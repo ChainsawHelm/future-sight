@@ -74,7 +74,7 @@
     "typescript": "^5.7.3"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
