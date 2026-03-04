@@ -9,6 +9,8 @@ import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { Amount } from '@/components/shared/amount';
 import { Button } from '@/components/ui/button';
+import { PlaidLinkButton } from '@/components/plaid/plaid-link-button';
+import { PlaidAccounts } from '@/components/plaid/plaid-accounts';
 import { formatDate, cn } from '@/lib/utils';
 import type { ImportRecord } from '@/types/models';
 
@@ -131,6 +133,9 @@ export function ImportView() {
 
       {phase === 'upload' && (
         <div className="space-y-6">
+          <PlaidAccounts onSync={() => { refetchImports(); }} />
+          <div className="rounded-xl border bg-card p-6 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Connect Your Bank</h2><p className="text-xs text-muted-foreground mt-1">Automatically import transactions</p></div><PlaidLinkButton onSuccess={() => { window.location.reload(); }} /></div></div>
+          <div className="relative flex items-center py-2"><div className="flex-grow border-t border-muted-foreground/20"></div><span className="mx-4 text-xs text-muted-foreground">or upload manually</span><div className="flex-grow border-t border-muted-foreground/20"></div></div>
           <div className="rounded-xl border-2 border-dashed border-muted-foreground/20 bg-card p-12 text-center hover:border-navy-300 transition-colors">
             <div className="mx-auto w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-foreground"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" /></svg>

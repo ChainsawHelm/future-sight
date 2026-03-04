@@ -44,6 +44,7 @@ model User {
   subscriptions     Subscription[]
   achievements      Achievement[]
   settings          UserSettings?
+  plaidItems        PlaidItem[]
 
   @@map("users")
 }
@@ -105,6 +106,7 @@ model Transaction {
   returnPairId        String?
   importRecordId      String?
   note                String?
+  plaidTransactionId  String?   @unique
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -342,4 +344,24 @@ model UserSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
+}
+
+// ─── Plaid Integration ─────────────────────
+
+model PlaidItem {
+  id            String   @id @default(cuid())
+  userId        String
+  itemId        String   @unique
+  accessToken   String
+  institutionId String?
+  institutionName String?
+  cursor        String?
+  lastSynced    DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("plaid_items")
 }
