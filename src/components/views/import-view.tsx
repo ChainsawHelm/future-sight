@@ -30,7 +30,7 @@ export function ImportView() {
   const { data: categories } = useCategories();
   const { data: rulesData } = useFetch<{ rules: Record<string, string> }>(() => merchantRulesApi.list(), []);
   const { data: importsData, refetch: refetchImports } = useFetch<{ imports: ImportRecord[] }>(() => importApi.list(), []);
-  const { data: recentTxns } = useFetch(() => transactionsApi.list({ limit: 200, sort: 'date', order: 'desc' }), []);
+  // Not used for duplicate detection anymore — we fetch per date range after parsing
 
   const importMutation = useMutation(useCallback((data: any) => transactionsApi.bulkCreate(data), []));
 
@@ -69,6 +69,20 @@ export function ImportView() {
     return d;
   };
 
+  // Fetch existing transactions within the date range of the incoming rows
+  const fetchExistingForRange = async (rows: RawTransaction[]) => {
+    if (rows.length === 0) return [];
+    const dates = rows.map(r => r.date).filter(Boolean).sort();
+    const dateFrom = dates[0];
+    const dateTo = dates[dates.length - 1];
+    try {
+      const res = await transactionsApi.list({ dateFrom, dateTo, limit: 9999 });
+      return (res?.transactions || []).map((t: any) => ({ date: t.date, amount: t.amount, description: t.description }));
+    } catch {
+      return [];
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setParseError(''); setFilename(file.name);
@@ -84,24 +98,23 @@ export function ImportView() {
         if (!res.ok) { setParseError(data.error || 'Failed to parse PDF'); setIsParsing(false); return; }
         if (data.transactions.length === 0) { setParseError('Could not extract transactions from PDF. Try exporting as CSV from your bank.'); setIsParsing(false); return; }
         const rules = rulesData?.rules || {};
-        const existing = (recentTxns?.transactions || []).map((t: any) => ({ date: t.date, amount: t.amount, description: t.description }));
+        const existing = await fetchExistingForRange(data.transactions);
         const result = processImport(data.transactions, rules, existing);
         setProcessed(result.transactions); setStats(result.stats); setPhase('review');
       } catch (err: any) { setParseError(err.message || 'Failed to parse PDF'); }
       setIsParsing(false);
     } else {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const raw = parseCSV(ev.target?.result as string);
-          if (raw.length === 0) { setParseError('Could not parse any transactions. Check CSV format.'); return; }
-          const rules = rulesData?.rules || {};
-          const existing = (recentTxns?.transactions || []).map((t: any) => ({ date: t.date, amount: t.amount, description: t.description }));
-          const result = processImport(raw, rules, existing);
-          setProcessed(result.transactions); setStats(result.stats); setPhase('review');
-        } catch (err: any) { setParseError(err.message || 'Failed to parse file'); }
-      };
-      reader.readAsText(file);
+      setIsParsing(true);
+      try {
+        const text = await file.text();
+        const raw = parseCSV(text);
+        if (raw.length === 0) { setParseError('Could not parse any transactions. Check CSV format.'); setIsParsing(false); return; }
+        const rules = rulesData?.rules || {};
+        const existing = await fetchExistingForRange(raw);
+        const result = processImport(raw, rules, existing);
+        setProcessed(result.transactions); setStats(result.stats); setPhase('review');
+      } catch (err: any) { setParseError(err.message || 'Failed to parse file'); }
+      setIsParsing(false);
     }
     e.target.value = '';
   };
