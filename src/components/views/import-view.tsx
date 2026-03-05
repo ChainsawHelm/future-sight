@@ -16,13 +16,17 @@ import type { ImportRecord } from '@/types/models';
 
 type ImportPhase = 'upload' | 'review' | 'complete';
 interface ImportStats { total: number; autoMatched: number; transfers: number; duplicates: number; }
+interface FileGroup { filename: string; startIdx: number; count: number; }
+interface FileQueueItem { name: string; status: 'pending' | 'parsing' | 'done' | 'error'; count?: number; error?: string; }
 
 export function ImportView() {
   const [phase, setPhase] = useState<ImportPhase>('upload');
   const [processed, setProcessed] = useState<ProcessedTransaction[]>([]);
   const [stats, setStats] = useState<ImportStats>({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 });
+  const [fileGroups, setFileGroups] = useState<FileGroup[]>([]);
+  const [fileQueue, setFileQueue] = useState<FileQueueItem[]>([]);
   const [filename, setFilename] = useState('');
-  const [importResult, setImportResult] = useState<{ count: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ count: number; files: { name: string; count: number }[] } | null>(null);
   const [parseError, setParseError] = useState('');
   const [excludeDupes, setExcludeDupes] = useState(true);
   const [isParsing, setIsParsing] = useState(false);
@@ -84,39 +88,68 @@ export function ImportView() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    setParseError(''); setFilename(file.name);
-    const isPdf = file.name.toLowerCase().endsWith('.pdf');
-
-    if (isPdf) {
-      setIsParsing(true);
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!res.ok) { setParseError(data.error || 'Failed to parse PDF'); setIsParsing(false); return; }
-        if (data.transactions.length === 0) { setParseError('Could not extract transactions from PDF. Try exporting as CSV from your bank.'); setIsParsing(false); return; }
-        const rules = rulesData?.rules || {};
-        const existing = await fetchExistingForRange(data.transactions);
-        const result = processImport(data.transactions, rules, existing);
-        setProcessed(result.transactions); setStats(result.stats); setPhase('review');
-      } catch (err: any) { setParseError(err.message || 'Failed to parse PDF'); }
-      setIsParsing(false);
-    } else {
-      setIsParsing(true);
-      try {
-        const text = await file.text();
-        const raw = parseCSV(text);
-        if (raw.length === 0) { setParseError('Could not parse any transactions. Check CSV format.'); setIsParsing(false); return; }
-        const rules = rulesData?.rules || {};
-        const existing = await fetchExistingForRange(raw);
-        const result = processImport(raw, rules, existing);
-        setProcessed(result.transactions); setStats(result.stats); setPhase('review');
-      } catch (err: any) { setParseError(err.message || 'Failed to parse file'); }
-      setIsParsing(false);
-    }
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     e.target.value = '';
+
+    setParseError('');
+    setFilename(files.length === 1 ? files[0].name : `${files.length} files`);
+    setFileQueue(files.map(f => ({ name: f.name, status: 'pending' })));
+    setIsParsing(true);
+
+    const allProcessed: ProcessedTransaction[] = [];
+    const groups: FileGroup[] = [];
+    const accumulated: ImportStats = { total: 0, autoMatched: 0, transfers: 0, duplicates: 0 };
+    const rules = rulesData?.rules || {};
+
+    for (const file of files) {
+      setFileQueue(prev => prev.map(q => q.name === file.name ? { ...q, status: 'parsing' } : q));
+
+      try {
+        let raw: RawTransaction[] = [];
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to parse PDF');
+          raw = data.transactions;
+        } else {
+          const text = await file.text();
+          raw = parseCSV(text);
+          if (raw.length === 0) throw new Error('Could not parse any transactions. Check CSV format.');
+        }
+
+        const existing = await fetchExistingForRange(raw);
+        // Also pass already-processed txns so cross-file dupes are caught
+        const crossFileExisting = allProcessed.map(t => ({ date: t.date, amount: t.amount, description: t.description }));
+        const result = processImport(raw, rules, [...existing, ...crossFileExisting]);
+
+        const startIdx = allProcessed.length;
+        allProcessed.push(...result.transactions);
+        groups.push({ filename: file.name, startIdx, count: result.transactions.length });
+
+        accumulated.total        += result.stats.total;
+        accumulated.autoMatched  += result.stats.autoMatched;
+        accumulated.transfers    += result.stats.transfers;
+        accumulated.duplicates   += result.stats.duplicates;
+
+        setFileQueue(prev => prev.map(q => q.name === file.name ? { ...q, status: 'done', count: result.transactions.length } : q));
+      } catch (err: any) {
+        setFileQueue(prev => prev.map(q => q.name === file.name ? { ...q, status: 'error', error: err.message } : q));
+      }
+    }
+
+    setIsParsing(false);
+
+    if (allProcessed.length > 0) {
+      setProcessed(allProcessed);
+      setStats(accumulated);
+      setFileGroups(groups);
+      setPhase('review');
+    } else {
+      setParseError('No transactions could be parsed from the selected files.');
+    }
   };
 
   const handleCategoryChange = (idx: number, category: string) => {
@@ -124,16 +157,31 @@ export function ImportView() {
   };
 
   const handleConfirmImport = async () => {
-    const toImport = excludeDupes ? processed.filter(t => !t.flagged) : processed;
-    const result = await importMutation.mutate({
-      transactions: toImport.map(t => ({ date: t.date, description: t.description, originalDescription: t.originalDescription, amount: t.amount, category: t.category, account: t.account, autoMatched: t.autoMatched, flagged: false, transferPairId: t.transferPairId })),
-      importRecord: { filename, sourceType: 'csv' },
-    });
-    if (result) { setImportResult({ count: result.created }); setPhase('complete'); refetchImports(); }
+    let totalCreated = 0;
+    const fileResults: { name: string; count: number }[] = [];
+
+    for (const group of fileGroups) {
+      const slice = processed.slice(group.startIdx, group.startIdx + group.count);
+      const toImport = excludeDupes ? slice.filter(t => !t.flagged) : slice;
+      if (toImport.length === 0) continue;
+      try {
+        const res = await transactionsApi.bulkCreate({
+          transactions: toImport.map(t => ({ date: t.date, description: t.description, originalDescription: t.originalDescription, amount: t.amount, category: t.category, account: t.account, autoMatched: t.autoMatched, flagged: false, transferPairId: t.transferPairId })),
+          importRecord: { filename: group.filename, sourceType: group.filename.toLowerCase().endsWith('.pdf') ? 'pdf' : 'csv' },
+        });
+        if (res?.created) { totalCreated += res.created; fileResults.push({ name: group.filename, count: res.created }); }
+      } catch {}
+    }
+
+    if (totalCreated > 0) {
+      setImportResult({ count: totalCreated, files: fileResults });
+      setPhase('complete');
+      refetchImports();
+    }
   };
 
   const handleDeleteImport = async (id: string) => { if (!confirm('Delete this import and all its transactions?')) return; await importApi.delete(id); refetchImports(); };
-  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFilename(''); setImportResult(null); setParseError(''); };
+  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); };
   const importCount = excludeDupes ? processed.filter(t => !t.flagged).length : processed.length;
 
   return (
@@ -164,24 +212,55 @@ export function ImportView() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <div className="border border-dashed border-border bg-surface-1 p-12 text-center hover:border-primary/40 transition-colors">
+          <div className="border border-dashed border-border bg-surface-1 p-10 text-center hover:border-primary/40 transition-colors">
             <div className="mx-auto w-12 h-12 flex items-center justify-center mb-4 border border-border bg-surface-2 text-muted-foreground">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" /></svg>
             </div>
-            <p className="text-sm font-semibold mb-1">Drop a CSV or PDF file here or click to browse</p>
-            <p className="ticker mb-5">Supports CSV bank exports and PDF statements. Auto-categorizes via merchant rules.</p>
+            <p className="text-sm font-semibold mb-1">Drop files here or click to browse</p>
+            <p className="ticker mb-1">Supports CSV and PDF — select multiple files at once</p>
+            <p className="ticker mb-5 text-[10px]">Each file gets its own import record. Cross-file duplicates are automatically detected.</p>
             <label className="inline-block">
-              <input type="file" accept=".csv,.txt,.pdf" onChange={handleFileUpload} className="hidden" disabled={isParsing} />
+              <input type="file" accept=".csv,.txt,.pdf" onChange={handleFileUpload} className="hidden" disabled={isParsing} multiple />
               <span className={cn(
                 'inline-flex items-center h-9 px-5 text-sm font-semibold cursor-pointer transition-colors',
                 isParsing
                   ? 'bg-primary/40 text-primary-foreground cursor-wait'
                   : 'bg-primary text-primary-foreground hover:bg-primary/85 shadow-[0_0_12px_hsl(var(--primary)/0.2)]'
               )}>
-                {isParsing ? 'Parsing PDF...' : 'Choose File'}
+                {isParsing ? 'Processing...' : 'Choose Files'}
               </span>
             </label>
           </div>
+
+          {/* File processing queue */}
+          {fileQueue.length > 0 && (
+            <div className="border border-border bg-surface-1 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border">
+                <p className="ticker">Processing Queue</p>
+              </div>
+              <div className="divide-y divide-border">
+                {fileQueue.map(f => (
+                  <div key={f.name} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className={cn('w-4 h-4 flex items-center justify-center text-[10px] shrink-0',
+                      f.status === 'done'    ? 'text-income'
+                      : f.status === 'error'  ? 'text-expense'
+                      : f.status === 'parsing'? 'text-primary'
+                      : 'text-muted-foreground/30'
+                    )}>
+                      {f.status === 'done' ? '✓' : f.status === 'error' ? '✕' : f.status === 'parsing' ? '…' : '○'}
+                    </span>
+                    <p className="text-xs font-mono flex-1 truncate">{f.name}</p>
+                    <p className="ticker text-[10px] shrink-0">
+                      {f.status === 'done'    ? `${f.count} transactions`
+                       : f.status === 'error'  ? f.error
+                       : f.status === 'parsing'? 'Parsing...'
+                       : 'Pending'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {parseError && <ErrorAlert message={parseError} />}
 
@@ -226,7 +305,16 @@ export function ImportView() {
 
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-4">
-              <p className="text-sm font-mono font-medium">{filename}</p>
+              <div>
+                <p className="text-sm font-mono font-medium">{filename}</p>
+                {fileGroups.length > 1 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {fileGroups.map(g => (
+                      <span key={g.filename} className="ticker text-[9px] px-1.5 py-0.5 bg-surface-3 border border-border">{g.filename} ({g.count})</span>
+                    ))}
+                  </div>
+                )}
+              </div>
               {stats.duplicates > 0 && (
                 <label className="flex items-center gap-2 ticker cursor-pointer">
                   <input type="checkbox" checked={excludeDupes} onChange={e => setExcludeDupes(e.target.checked)} className="accent-primary" />
@@ -299,7 +387,19 @@ export function ImportView() {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>
           </div>
           <h2 className="text-xl font-bold mb-2">Import Complete</h2>
-          <p className="ticker mb-3">{importResult.count} transaction{importResult.count !== 1 ? 's' : ''} imported from {filename}</p>
+          <p className="ticker mb-3">{importResult.count} transaction{importResult.count !== 1 ? 's' : ''} imported</p>
+
+          {importResult.files.length > 1 && (
+            <div className="max-w-xs mx-auto mb-3 space-y-1 text-left">
+              {importResult.files.map(f => (
+                <div key={f.name} className="flex items-center justify-between gap-4 ticker text-[10px]">
+                  <span className="truncate">{f.name}</span>
+                  <span className="font-semibold shrink-0">{f.count} txns</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {stats.autoMatched > 0 && <p className="ticker text-primary mb-1">{stats.autoMatched} auto-categorized by merchant rules</p>}
           {stats.transfers > 0 && <p className="ticker text-purple-400 mb-1">{Math.floor(stats.transfers / 2)} transfer pairs detected</p>}
           {stats.duplicates > 0 && excludeDupes && <p className="ticker text-yellow-400 mb-1">{stats.duplicates} duplicates excluded</p>}
