@@ -198,4 +198,9 @@ export const backupApi = {
     request<any>('/api/backup', { method: 'POST', body: JSON.stringify(data) }),
 };
 
+export const resetApi = {
+  resetTransactionData: () =>
+    request<any>('/api/reset', { method: 'POST' }),
+};
+
 export { ApiError };
