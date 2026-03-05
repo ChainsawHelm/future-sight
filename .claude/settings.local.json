@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma db push)",
+      "Bash(npm run db:push)",
+      "Bash(where prisma)",
+      "Bash(cmd //c \"cd \"\"c:\\\\Users\\\\snele\\\\OneDrive\\\\Desktop\\\\Claude Workj\\\\future-sight\\\\future-sight\"\" && npm run db:push\")",
+      "Bash(cmd //c \"cd /d \"\"C:\\\\Users\\\\snele\\\\OneDrive\\\\Desktop\\\\Claude Workj\\\\future-sight\\\\future-sight\"\" && npm run db:push 2>&1\")",
+      "Bash(powershell -Command \"Set-Location ''C:\\\\Users\\\\snele\\\\OneDrive\\\\Desktop\\\\Claude Workj\\\\future-sight\\\\future-sight''; npm run db:push\")",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"Set-Location ''C:\\\\Users\\\\snele\\\\OneDrive\\\\Desktop\\\\Claude Workj\\\\future-sight\\\\future-sight''; npm run db:push\")",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"Set-Location ''C:\\\\Users\\\\snele\\\\OneDrive\\\\Desktop\\\\Claude Workj\\\\future-sight\\\\future-sight''; \\(Test-Path node_modules\\\\.bin\\\\prisma.cmd\\)\")",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"Set-Location ''C:\\\\Users\\\\snele\\\\OneDrive\\\\Desktop\\\\Claude Workj\\\\future-sight\\\\future-sight''; \\(Get-ChildItem node_modules -ErrorAction SilentlyContinue\\).Count\")",
+      "Bash(bash --version)",
+      "Bash(npm install)",
+      "Bash(./node_modules/.bin/prisma db push --accept-data-loss)"
+    ]
+  }
+}
