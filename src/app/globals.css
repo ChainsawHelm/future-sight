@@ -374,3 +374,135 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ══════════════════════════════════════════
+   THEME: STUDIO MINIMAL
+   Cool near-white · ink black · sage highlights
+   HEX: #F9FAFB #111827 #8FBC8F #CBD5E1 #9CA3AF
+══════════════════════════════════════════ */
+:root[data-theme="studio-minimal"] {
+  --background: 210 17% 98%;
+  --foreground: 221 39% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 221 39% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 221 39% 11%;
+  --primary: 221 39% 11%;
+  --primary-foreground: 210 17% 98%;
+  --secondary: 214 18% 92%;
+  --secondary-foreground: 221 35% 20%;
+  --muted: 214 15% 95%;
+  --muted-foreground: 218 11% 50%;
+  --accent: 120 22% 55%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 213 27% 84%;
+  --input: 213 20% 91%;
+  --ring: 120 22% 52%;
+  --income: 120 28% 36%;
+  --expense: 0 72% 51%;
+  --neutral: 38 70% 46%;
+  --info: 213 80% 46%;
+  --surface-0: 210 17% 99%;
+  --surface-1: 210 15% 97%;
+  --surface-2: 213 18% 95%;
+  --surface-3: 213 22% 91%;
+  --dot: 213 22% 90%;
+}
+:root[data-theme="studio-minimal"].dark {
+  --background: 222 47% 8%;
+  --foreground: 210 17% 92%;
+  --card: 222 40% 11%;
+  --card-foreground: 210 17% 92%;
+  --popover: 222 40% 11%;
+  --popover-foreground: 210 17% 92%;
+  --primary: 120 22% 62%;
+  --primary-foreground: 222 47% 8%;
+  --secondary: 222 32% 17%;
+  --secondary-foreground: 210 17% 85%;
+  --muted: 222 28% 15%;
+  --muted-foreground: 218 11% 52%;
+  --accent: 120 22% 58%;
+  --accent-foreground: 222 47% 8%;
+  --destructive: 0 70% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 222 28% 19%;
+  --input: 222 28% 19%;
+  --ring: 120 22% 62%;
+  --income: 120 25% 52%;
+  --expense: 0 72% 58%;
+  --neutral: 38 80% 52%;
+  --info: 213 80% 52%;
+  --surface-0: 222 47% 8%;
+  --surface-1: 222 40% 11%;
+  --surface-2: 222 35% 14%;
+  --surface-3: 222 28% 18%;
+  --dot: 222 28% 17%;
+}
+
+/* ══════════════════════════════════════════
+   THEME: STUDIO WARM
+   Warm sandy off-white · ink black · clay accent
+   Same structure as Studio Minimal, warmer palette
+══════════════════════════════════════════ */
+:root[data-theme="studio-warm"] {
+  --background: 38 15% 97%;
+  --foreground: 221 39% 11%;
+  --card: 38 10% 99%;
+  --card-foreground: 221 39% 11%;
+  --popover: 38 10% 99%;
+  --popover-foreground: 221 39% 11%;
+  --primary: 221 39% 11%;
+  --primary-foreground: 38 15% 97%;
+  --secondary: 30 12% 92%;
+  --secondary-foreground: 221 35% 20%;
+  --muted: 32 10% 94%;
+  --muted-foreground: 25 8% 47%;
+  --accent: 22 62% 54%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 30 14% 86%;
+  --input: 30 12% 90%;
+  --ring: 120 22% 52%;
+  --income: 120 28% 36%;
+  --expense: 21 41% 44%;
+  --neutral: 38 70% 46%;
+  --info: 196 50% 36%;
+  --surface-0: 38 15% 98%;
+  --surface-1: 38 12% 96%;
+  --surface-2: 32 10% 93%;
+  --surface-3: 30 12% 89%;
+  --dot: 30 12% 88%;
+}
+:root[data-theme="studio-warm"].dark {
+  --background: 25 28% 8%;
+  --foreground: 38 15% 90%;
+  --card: 25 24% 11%;
+  --card-foreground: 38 15% 90%;
+  --popover: 25 24% 11%;
+  --popover-foreground: 38 15% 90%;
+  --primary: 22 62% 58%;
+  --primary-foreground: 25 28% 8%;
+  --secondary: 25 20% 17%;
+  --secondary-foreground: 38 15% 85%;
+  --muted: 25 18% 15%;
+  --muted-foreground: 25 8% 50%;
+  --accent: 120 22% 58%;
+  --accent-foreground: 25 28% 8%;
+  --destructive: 0 70% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 25 16% 20%;
+  --input: 25 16% 20%;
+  --ring: 22 62% 58%;
+  --income: 120 25% 52%;
+  --expense: 21 41% 58%;
+  --neutral: 38 80% 52%;
+  --info: 196 50% 52%;
+  --surface-0: 25 28% 8%;
+  --surface-1: 25 24% 11%;
+  --surface-2: 25 20% 14%;
+  --surface-3: 25 16% 18%;
+  --dot: 25 16% 17%;
+}

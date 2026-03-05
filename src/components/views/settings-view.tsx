@@ -20,11 +20,45 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
+const THEMES = [
+  {
+    id: 'glasshouse',
+    name: 'Glasshouse',
+    desc: 'Warm sage & terracotta',
+    colors: ['#F6F3EE', '#1F2A2E', '#8FBC8F', '#B8C8B1', '#B26E4A'],
+  },
+  {
+    id: 'studio-minimal',
+    name: 'Studio Minimal',
+    desc: 'Cool white & ink black',
+    colors: ['#F9FAFB', '#111827', '#8FBC8F', '#CBD5E1', '#9CA3AF'],
+  },
+  {
+    id: 'studio-warm',
+    name: 'Studio Warm',
+    desc: 'Sandy off-white & clay',
+    colors: ['#FAF8F5', '#111827', '#8FBC8F', '#D4B896', '#C1825E'],
+  },
+];
+
 export function SettingsView() {
   const { data, error, isLoading, refetch } = useFetch<{ settings: UserSettings }>(() => settingsApi.get(), []);
   const [restoreStatus, setRestoreStatus] = useState('');
+  const [activeTheme, setActiveTheme] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('fs-theme') || 'glasshouse' : 'glasshouse'
+  );
 
   const updateSettings = useMutation(useCallback((d: any) => settingsApi.update(d), []));
+
+  const applyTheme = (id: string) => {
+    setActiveTheme(id);
+    localStorage.setItem('fs-theme', id);
+    if (id === 'glasshouse') {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = id;
+    }
+  };
   const settings = data?.settings;
 
   const toggle = async (key: keyof UserSettings, value: boolean) => {
@@ -85,6 +119,35 @@ export function SettingsView() {
             <p className="ticker mt-0.5">Easier on the eyes at night</p>
           </div>
           <Toggle on={settings.darkMode} onToggle={() => toggle('darkMode', !settings.darkMode)} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold mb-3">Color Theme</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {THEMES.map(t => (
+              <button
+                key={t.id}
+                onClick={() => applyTheme(t.id)}
+                className={`relative text-left p-3 rounded-lg border-2 transition-all ${
+                  activeTheme === t.id
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-surface-2 hover:border-primary/40'
+                }`}
+              >
+                {activeTheme === t.id && (
+                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                    <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5"><path d="M2 6l3 3 5-5"/></svg>
+                  </span>
+                )}
+                <div className="flex gap-1 mb-2">
+                  {t.colors.map((c, i) => (
+                    <span key={i} className="w-5 h-5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+                <p className="text-xs font-semibold">{t.name}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{t.desc}</p>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

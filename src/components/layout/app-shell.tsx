@@ -240,9 +240,16 @@ export function AppShell({ user, children }: AppShellProps) {
   const [darkMode, setDarkMode] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // Default light, load user preference
+  // Default light, load user preference + theme
   useEffect(() => {
     document.documentElement.classList.remove('dark');
+    // Apply saved theme from localStorage
+    const savedTheme = localStorage.getItem('fs-theme') || 'glasshouse';
+    if (savedTheme !== 'glasshouse') {
+      document.documentElement.dataset.theme = savedTheme;
+    } else {
+      delete document.documentElement.dataset.theme;
+    }
     const load = async () => {
       try {
         const res = await settingsApi.get();
