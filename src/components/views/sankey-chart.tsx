@@ -309,28 +309,6 @@ export function SankeyChart({ transactions, period }: SankeyChartProps) {
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* ── TEMP FONT DEMO — remove once font is chosen ── */}
-      <div className="mb-4 p-3 rounded-lg border border-border bg-surface-2">
-        <p className="text-[9px] font-mono text-muted-foreground mb-2 uppercase tracking-wider">Font preview — tell me which one you like</p>
-        <div className="grid grid-cols-5 gap-2">
-          {[
-            { name: 'Inter',         fontVar: 'var(--font-sans)' },
-            { name: 'Plus Jakarta',  fontVar: 'var(--font-jakarta)' },
-            { name: 'DM Sans',       fontVar: 'var(--font-dm-sans)' },
-            { name: 'Outfit',        fontVar: 'var(--font-outfit)' },
-            { name: 'Figtree',       fontVar: 'var(--font-figtree)' },
-          ].map(f => (
-            <div key={f.name} className="rounded-md border border-border bg-card p-2 text-center">
-              <p className="text-[8px] font-mono text-muted-foreground mb-1.5">{f.name}</p>
-              <p style={{ fontFamily: f.fontVar }} className="text-sm font-semibold text-foreground leading-tight">Future Sight</p>
-              <p style={{ fontFamily: f.fontVar }} className="text-xs text-muted-foreground mt-0.5">$6,400.00</p>
-              <p style={{ fontFamily: f.fontVar }} className="text-[10px] text-muted-foreground">Net worth tracker</p>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* ── END FONT DEMO ── */}
-
       {/* Column headers — absolutely positioned over the SVG */}
       <div className="relative h-5 mb-1 select-none">
         {colLabels.map((label, i) => {

@@ -1,36 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter, Plus_Jakarta_Sans, DM_Sans, Outfit, Figtree, DM_Mono } from 'next/font/google';
+import { Inter, DM_Mono } from 'next/font/google';
 import './globals.css';
 
-// Primary font (active)
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
-  display: 'swap',
-});
-
-// Demo fonts — loaded for the font picker preview
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  variable: '--font-jakarta',
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-});
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-dm-sans',
-  display: 'swap',
-});
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-});
-const figtree = Figtree({
-  subsets: ['latin'],
-  variable: '--font-figtree',
-  weight: ['400', '500', '600', '700'],
   display: 'swap',
 });
 
@@ -56,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className={`${inter.variable} ${jakarta.variable} ${dmSans.variable} ${outfit.variable} ${figtree.variable} ${dmMono.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${dmMono.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>
