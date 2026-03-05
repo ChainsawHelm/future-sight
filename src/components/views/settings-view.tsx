@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
 import { settingsApi, backupApi, resetApi } from '@/lib/api-client';
@@ -43,11 +44,12 @@ const THEMES = [
 
 export function SettingsView() {
   const { data, error, isLoading, refetch } = useFetch<{ settings: UserSettings }>(() => settingsApi.get(), []);
+  const router = useRouter();
   const [restoreStatus, setRestoreStatus] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
   const [resetting, setResetting] = useState(false);
-  const [resetResult, setResetResult] = useState<string | null>(null);
+  const [resetDone, setResetDone] = useState<{ transactions: number; plaidConnections: number } | null>(null);
   const [activeTheme, setActiveTheme] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('fs-theme') || 'glasshouse' : 'glasshouse'
   );
@@ -108,15 +110,26 @@ export function SettingsView() {
     setResetting(true);
     try {
       const result = await resetApi.resetTransactionData();
-      const d = result.deleted;
-      setResetResult(`Cleared ${d.transactions} transactions, ${d.plaidConnections} Plaid connections, ${d.netWorthSnapshots} snapshots.`);
-      setShowResetModal(false);
+      setResetDone(result.deleted);
       setResetConfirm('');
     } catch (err: any) {
-      setResetResult('Reset failed: ' + err.message);
+      alert('Reset failed: ' + err.message);
     } finally {
       setResetting(false);
     }
+  };
+
+  const handleGoToImport = () => {
+    setShowResetModal(false);
+    setResetDone(null);
+    // Hard navigate so all stale in-memory data is cleared
+    window.location.href = '/import';
+  };
+
+  const handleCloseAfterReset = () => {
+    setShowResetModal(false);
+    setResetDone(null);
+    window.location.reload();
   };
 
   if (isLoading) return <PageLoader message="Loading settings..." />;
@@ -218,73 +231,111 @@ export function SettingsView() {
         <p className="ticker text-expense">Danger Zone</p>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-foreground">Reset Transaction Data</p>
-            <p className="ticker mt-0.5">Permanently deletes all transactions, import history, and Plaid connections. Goals, debts, and assets are kept. You can re-sync from Plaid after reset.</p>
+            <p className="text-sm font-semibold text-foreground">Start fresh</p>
+            <p className="ticker mt-0.5">Wipes all transaction data and bank connections so you can re-import from scratch. Your goals, debts, assets, and budgets are preserved.</p>
           </div>
           <button
-            onClick={() => { setShowResetModal(true); setResetResult(null); setResetConfirm(''); }}
+            onClick={() => { setShowResetModal(true); setResetDone(null); setResetConfirm(''); }}
             className="shrink-0 flex items-center gap-2 h-9 px-4 border border-expense/40 bg-expense/10 text-expense text-sm font-semibold hover:bg-expense/20 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            Reset
+            Wipe &amp; Restart
           </button>
         </div>
-        {resetResult && (
-          <p className="ticker text-income">{resetResult}</p>
-        )}
       </div>
 
-      {/* Reset confirmation modal */}
+      {/* Reset modal */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-sm mx-4 border border-expense/40 bg-card p-6 shadow-xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-expense/10 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-expense" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">This cannot be undone</p>
-                <p className="ticker mt-0.5">All transactions and Plaid connections will be permanently deleted.</p>
-              </div>
-            </div>
+          <div className="w-full max-w-sm mx-4 border border-border bg-card p-6 shadow-xl space-y-4">
 
-            <div className="bg-surface-2 border border-border p-3 space-y-1 text-xs font-mono">
-              <p className="text-expense">Will delete:</p>
-              <p className="text-muted-foreground">· All transactions &amp; import history</p>
-              <p className="text-muted-foreground">· Plaid bank connections</p>
-              <p className="text-muted-foreground">· Net worth snapshots</p>
-              <p className="text-income mt-2">Will keep:</p>
-              <p className="text-muted-foreground">· Goals, debts &amp; assets</p>
-              <p className="text-muted-foreground">· Budgets &amp; categories</p>
-              <p className="text-muted-foreground">· Settings &amp; calendar</p>
-            </div>
+            {resetDone ? (
+              /* ── Success state ── */
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-income" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Data cleared</p>
+                    <p className="ticker mt-0.5">{resetDone.transactions} transactions and {resetDone.plaidConnections} bank connection{resetDone.plaidConnections !== 1 ? 's' : ''} removed.</p>
+                  </div>
+                </div>
 
-            <div>
-              <p className="text-xs text-muted-foreground mb-1.5">Type <span className="font-mono font-bold text-expense">RESET</span> to confirm</p>
-              <input
-                type="text"
-                value={resetConfirm}
-                onChange={e => setResetConfirm(e.target.value)}
-                placeholder="RESET"
-                className="w-full h-9 px-3 border border-border bg-surface-2 text-sm font-mono focus:outline-none focus:border-expense placeholder:text-muted-foreground/40"
-              />
-            </div>
+                <div className="bg-surface-2 border border-border p-3 text-xs text-muted-foreground">
+                  Head to <span className="font-semibold text-foreground">Import</span> to upload a CSV or PDF, or reconnect your bank via Plaid.
+                </div>
 
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => { setShowResetModal(false); setResetConfirm(''); }}
-                className="flex-1 h-9 border border-border bg-surface-2 text-sm font-medium hover:bg-surface-3 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReset}
-                disabled={resetConfirm !== 'RESET' || resetting}
-                className="flex-1 h-9 border border-expense/40 bg-expense text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-expense/90 transition-colors"
-              >
-                {resetting ? 'Deleting...' : 'Delete Everything'}
-              </button>
-            </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCloseAfterReset}
+                    className="flex-1 h-9 border border-border bg-surface-2 text-sm font-medium hover:bg-surface-3 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={handleGoToImport}
+                    className="flex-1 h-9 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    Go to Import →
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* ── Confirmation state ── */
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-expense/10 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-expense" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">This cannot be undone</p>
+                    <p className="ticker mt-0.5">All transaction history will be permanently deleted.</p>
+                  </div>
+                </div>
+
+                <div className="bg-surface-2 border border-border p-3 space-y-1 text-xs font-mono">
+                  <p className="text-expense font-semibold">Deletes:</p>
+                  <p className="text-muted-foreground">· All transactions &amp; import history</p>
+                  <p className="text-muted-foreground">· Bank connections (Plaid)</p>
+                  <p className="text-muted-foreground">· Net worth snapshots</p>
+                  <p className="text-income font-semibold mt-2">Keeps:</p>
+                  <p className="text-muted-foreground">· Goals, debts &amp; assets</p>
+                  <p className="text-muted-foreground">· Budgets, categories &amp; calendar</p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1.5">
+                    Type <span className="font-mono font-bold text-expense">RESET</span> to confirm
+                  </p>
+                  <input
+                    type="text"
+                    value={resetConfirm}
+                    onChange={e => setResetConfirm(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleReset()}
+                    placeholder="RESET"
+                    autoFocus
+                    className="w-full h-9 px-3 border border-border bg-surface-2 text-sm font-mono focus:outline-none focus:border-expense placeholder:text-muted-foreground/40"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowResetModal(false); setResetConfirm(''); }}
+                    className="flex-1 h-9 border border-border bg-surface-2 text-sm font-medium hover:bg-surface-3 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    disabled={resetConfirm !== 'RESET' || resetting}
+                    className="flex-1 h-9 border border-expense/40 bg-expense text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-expense/90 transition-colors"
+                  >
+                    {resetting ? 'Deleting...' : 'Delete Everything'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
