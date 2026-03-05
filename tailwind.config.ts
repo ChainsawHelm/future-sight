@@ -2,115 +2,136 @@ import type { Config } from 'tailwindcss';
 
 const config: Config = {
   darkMode: 'class',
-  content: [
-    './src/**/*.{ts,tsx}',
-  ],
+  content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        // CSS variable-based semantic colors
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        border:      'hsl(var(--border))',
+        input:       'hsl(var(--input))',
+        ring:        'hsl(var(--ring))',
+        background:  'hsl(var(--background))',
+        foreground:  'hsl(var(--foreground))',
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
+          DEFAULT:    'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
+          DEFAULT:    'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
+          DEFAULT:    'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
+          DEFAULT:    'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
+          DEFAULT:    'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
         },
         popover: {
-          DEFAULT: 'hsl(var(--popover))',
+          DEFAULT:    'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
         },
         card: {
-          DEFAULT: 'hsl(var(--card))',
+          DEFAULT:    'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Terminal palette
-        terminal: {
-          bg: '#060A12',
-          surface: '#0C1221',
-          border: '#141E35',
-          cyan: '#00D4FF',
-          'cyan-dim': '#005A6B',
+        // Financial semantic colors (CSS variable-backed)
+        income:   'hsl(var(--income))',
+        expense:  'hsl(var(--expense))',
+        neutral:  'hsl(var(--neutral))',
+        info:     'hsl(var(--info))',
+        // Surface layers
+        surface: {
+          0: 'hsl(var(--surface-0))',
+          1: 'hsl(var(--surface-1))',
+          2: 'hsl(var(--surface-2))',
+          3: 'hsl(var(--surface-3))',
         },
-        // Semantic financial colors
-        income: 'hsl(var(--income))',
-        expense: 'hsl(var(--expense))',
-        transfer: '#8B5CF6',
-        savings: '#00D4FF',
-        // Brand navy (kept for compatibility)
+        // Static fallback (for compatibility)
         navy: {
           DEFAULT: '#1B3A5C',
           300: '#7596BA',
           400: '#4773A3',
           500: '#1B3A5C',
         },
+        transfer: '#6366F1',
+        savings:  'hsl(var(--income))',
       },
+
       fontFamily: {
-        sans: ['Outfit', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+        sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono:    ['var(--font-mono)', 'Consolas', 'monospace'],
+        display: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
+
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '1rem' }],
+        '3xs': ['0.5rem',   { lineHeight: '0.75rem' }],
       },
+
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius))',
-        sm: 'calc(var(--radius))',
-        xl: 'calc(var(--radius) + 2px)',
-        '2xl': 'calc(var(--radius) + 4px)',
+        sm:  '0.125rem',
+        DEFAULT: '0.25rem',
+        md:  '0.25rem',
+        lg:  '0.375rem',
+        xl:  '0.5rem',
+        '2xl': '0.75rem',
+        full: '9999px',
       },
+
       animation: {
-        'fade-in': 'fadeIn 0.25s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-        'pulse-cyan': 'pulse-cyan 2s ease-in-out infinite',
-        'blink': 'blink 1s step-end infinite',
+        'fade-in':     'fadeUp 0.3s ease-out both',
+        'slide-up':    'slideUp 0.35s ease-out both',
+        'slide-down':  'slideDown 0.3s ease-out both',
+        'bar-fill':    'bar-fill 0.6s ease-out both',
+        'pulse-dot':   'pulse-dot 2s ease-in-out infinite',
+        'ring-draw':   'ring-draw 0.8s ease-out both',
       },
+
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(6px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        fadeUp: {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
         },
         slideUp: {
-          '0%': { transform: 'translateY(12px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
         },
         slideDown: {
-          '0%': { transform: 'translateY(-12px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
+          from: { opacity: '0', transform: 'translateY(-16px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
         },
-        'pulse-cyan': {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.5' },
+        'bar-fill': {
+          from: { transform: 'scaleX(0)', transformOrigin: 'left' },
+          to:   { transform: 'scaleX(1)', transformOrigin: 'left' },
         },
-        blink: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0' },
+        'pulse-dot': {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%':      { opacity: '0.5', transform: 'scale(0.75)' },
+        },
+        'ring-draw': {
+          from: { strokeDashoffset: '502' },
         },
       },
+
       boxShadow: {
-        'cyan-sm': '0 0 8px rgba(0, 212, 255, 0.12)',
-        'cyan-md': '0 0 16px rgba(0, 212, 255, 0.18)',
-        'income': '0 0 8px rgba(0, 217, 126, 0.2)',
-        'expense': '0 0 8px rgba(255, 59, 92, 0.2)',
+        'glow-green': '0 0 20px hsl(var(--income) / 0.2), 0 0 40px hsl(var(--income) / 0.08)',
+        'glow-red':   '0 0 20px hsl(var(--expense) / 0.2)',
+        'panel':      '0 1px 0 hsl(var(--border)), 0 0 0 1px hsl(var(--border) / 0.5)',
+        'inner-glow': 'inset 0 1px 0 hsl(var(--foreground) / 0.04)',
+      },
+
+      backgroundImage: {
+        'dot-grid': 'radial-gradient(circle, hsl(var(--dot)) 1px, transparent 1px)',
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
+
+      backgroundSize: {
+        'dot': '28px 28px',
       },
     },
   },

@@ -3,195 +3,318 @@
 @tailwind utilities;
 
 @layer base {
-  /* ─── Dark Terminal (Default) ─── */
+  /* ═══════════════════════════════════════════════
+     OBSIDIAN — Dark Financial Command Center
+     Primary palette: near-black + electric green
+  ═══════════════════════════════════════════════ */
   :root {
-    --background: 220 60% 4%;
-    --foreground: 214 45% 90%;
-    --card: 220 55% 7%;
-    --card-foreground: 214 45% 90%;
-    --popover: 220 55% 7%;
-    --popover-foreground: 214 45% 90%;
-    --primary: 190 100% 50%;
-    --primary-foreground: 220 60% 4%;
-    --secondary: 220 45% 12%;
-    --secondary-foreground: 214 45% 90%;
-    --muted: 220 45% 11%;
-    --muted-foreground: 214 22% 52%;
-    --accent: 220 45% 12%;
-    --accent-foreground: 214 45% 90%;
-    --destructive: 348 100% 62%;
-    --destructive-foreground: 214 45% 90%;
-    --border: 220 45% 13%;
-    --input: 220 45% 13%;
-    --ring: 190 100% 50%;
+    --background: 232 35% 4%;
+    --foreground: 220 28% 92%;
+    --card: 228 30% 7%;
+    --card-foreground: 220 28% 92%;
+    --popover: 228 30% 7%;
+    --popover-foreground: 220 28% 92%;
+    --primary: 152 100% 45%;
+    --primary-foreground: 232 35% 6%;
+    --secondary: 224 26% 12%;
+    --secondary-foreground: 220 28% 92%;
+    --muted: 224 26% 10%;
+    --muted-foreground: 220 17% 45%;
+    --accent: 224 26% 12%;
+    --accent-foreground: 220 28% 92%;
+    --destructive: 348 100% 60%;
+    --destructive-foreground: 220 28% 92%;
+    --border: 222 28% 13%;
+    --input: 222 28% 13%;
+    --ring: 152 100% 45%;
     --radius: 0.25rem;
-    --income: 152 100% 42%;
-    --expense: 348 100% 62%;
 
-    /* Terminal accent colors */
-    --cyan: 190 100% 50%;
-    --cyan-dim: 190 80% 30%;
-    --surface-1: 220 55% 7%;
-    --surface-2: 220 50% 10%;
-    --surface-3: 220 45% 13%;
+    /* Financial semantics */
+    --income: 152 100% 45%;     /* #00E574 electric green */
+    --expense: 348 100% 60%;    /* #FF3355 */
+    --neutral: 40 100% 52%;     /* #FFB400 gold */
+    --info: 213 100% 60%;       /* #338EFF blue */
+
+    /* Surface layers */
+    --surface-0: 232 35% 4%;
+    --surface-1: 228 30% 7%;
+    --surface-2: 226 28% 10%;
+    --surface-3: 224 26% 13%;
+
+    /* Dot grid */
+    --dot: 222 30% 12%;
   }
 
-  /* ─── Light Mode Override ─── */
   .light {
-    --background: 210 20% 98%;
-    --foreground: 220 45% 12%;
+    --background: 210 25% 98%;
+    --foreground: 225 35% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 220 45% 12%;
+    --card-foreground: 225 35% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 45% 12%;
-    --primary: 210 80% 35%;
+    --popover-foreground: 225 35% 10%;
+    --primary: 152 70% 32%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 94%;
-    --secondary-foreground: 220 45% 12%;
-    --muted: 210 20% 94%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 20% 94%;
-    --accent-foreground: 220 45% 12%;
-    --destructive: 0 84% 60%;
+    --secondary: 210 20% 93%;
+    --secondary-foreground: 225 35% 10%;
+    --muted: 210 20% 93%;
+    --muted-foreground: 215 18% 50%;
+    --accent: 210 20% 93%;
+    --accent-foreground: 225 35% 10%;
+    --destructive: 0 80% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 25% 88%;
-    --input: 214 25% 88%;
-    --ring: 210 80% 35%;
-    --income: 142 71% 37%;
-    --expense: 0 84% 60%;
-    --surface-1: 0 0% 100%;
-    --surface-2: 210 20% 96%;
-    --surface-3: 214 25% 88%;
+    --border: 214 22% 87%;
+    --input: 214 22% 87%;
+    --ring: 152 70% 32%;
+    --income: 142 67% 34%;
+    --expense: 0 80% 55%;
+    --neutral: 38 95% 48%;
+    --info: 213 90% 50%;
+    --dot: 214 22% 87%;
   }
 }
 
 @layer base {
-  * {
-    border-color: hsl(var(--border));
-  }
+  * { border-color: hsl(var(--border)); }
+
   html {
-    /* Force dark by default */
     color-scheme: dark;
   }
+
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   }
 }
 
-/* ─── Tabular numbers ─── */
+/* ══════════════════════════════════════════
+   DOT GRID — applied to main content area
+══════════════════════════════════════════ */
+.dot-grid {
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--dot)) 1px,
+    transparent 1px
+  );
+  background-size: 28px 28px;
+}
+
+/* ══════════════════════════════════════════
+   TYPOGRAPHY UTILITIES
+══════════════════════════════════════════ */
+
+/* Uppercase ticker labels — the signature style */
+.ticker {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  font-family: var(--font-mono), monospace;
+}
+
+/* Large financial number display */
+.numeral {
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* Tabular numbers for tables */
 .tabnum {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono), monospace;
 }
 
-/* ─── Terminal glow effect for accent elements ─── */
-.glow-cyan {
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
-}
-.text-glow-cyan {
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-}
+/* ══════════════════════════════════════════
+   PANEL COMPONENTS
+══════════════════════════════════════════ */
 
-/* ─── Active nav indicator ─── */
-.nav-active {
-  border-left: 2px solid hsl(var(--cyan));
-  background: rgba(0, 212, 255, 0.06);
-}
-
-/* ─── Scrollbar ─── */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.4);
-}
-
-/* ─── Stat card scan-line effect ─── */
-.scanline {
+/* Instrument panel card */
+.instrument {
   position: relative;
+  background: hsl(var(--surface-1));
+  border: 1px solid hsl(var(--border));
   overflow: hidden;
 }
-.scanline::after {
+
+/* Corner ruler marks decoration */
+.instrument::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 212, 255, 0.015) 2px,
-    rgba(0, 212, 255, 0.015) 4px
-  );
-  pointer-events: none;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-top: 1px solid hsl(var(--border));
+  border-right: 1px solid hsl(var(--border));
+  opacity: 0.6;
 }
 
-/* ─── Data grid lines ─── */
-.data-grid {
-  background-image:
-    linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* ─── Animations ─── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes slideUp {
-  from { transform: translateY(12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-@keyframes slideDown {
-  from { transform: translateY(-12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-@keyframes pulse-cyan {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.animate-fade-in { animation: fadeIn 0.25s ease-out; }
-.animate-slide-up { animation: slideUp 0.3s ease-out; }
-.animate-slide-down { animation: slideDown 0.3s ease-out; }
-.animate-pulse-cyan { animation: pulse-cyan 2s ease-in-out infinite; }
-.animate-blink { animation: blink 1s step-end infinite; }
-
-/* ─── Number display ─── */
-.mono-num {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
-/* ─── Ticker-style labels ─── */
-.ticker-label {
+/* Status indicators */
+.status-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 0.6rem;
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: hsl(var(--income));
+}
+
+.status-live::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: hsl(var(--income));
+  box-shadow: 0 0 6px hsl(var(--income));
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════
+   NAV ACTIVE STATE
+══════════════════════════════════════════ */
+.nav-item-active {
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
+}
+
+.nav-item-active .nav-icon-wrap {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.4);
+}
+
+/* ══════════════════════════════════════════
+   PROGRESS BARS
+══════════════════════════════════════════ */
+.progress-track {
+  height: 2px;
+  background: hsl(var(--surface-3));
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 0;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ══════════════════════════════════════════
+   GLOW EFFECTS
+══════════════════════════════════════════ */
+.glow-green {
+  box-shadow: 0 0 20px hsl(var(--income) / 0.15),
+              0 0 40px hsl(var(--income) / 0.08);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px hsl(var(--expense) / 0.15);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 24px hsl(var(--income) / 0.5);
+}
+
+/* ══════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--surface-3));
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* ══════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes bar-fill {
+  from { transform: scaleX(0); transform-origin: left; }
+  to   { transform: scaleX(1); transform-origin: left; }
+}
+
+@keyframes ring-draw {
+  from { stroke-dashoffset: 502; }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in    { animation: fadeUp 0.3s ease-out both; }
+.animate-slide-up   { animation: slideUp 0.35s ease-out both; }
+.animate-slide-down { animation: slideDown 0.3s ease-out both; }
+.animate-bar-fill   { animation: bar-fill 0.6s ease-out both; }
+
+/* Staggered children */
+.stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger > *:nth-child(4) { animation-delay: 0.16s; }
+.stagger > *:nth-child(5) { animation-delay: 0.20s; }
+.stagger > *:nth-child(6) { animation-delay: 0.24s; }
+
+/* ══════════════════════════════════════════
+   DIVIDERS
+══════════════════════════════════════════ */
+.h-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+}
+
+.v-line {
+  width: 1px;
+  background: linear-gradient(180deg, transparent, hsl(var(--border)), transparent);
+}
+
+/* ══════════════════════════════════════════
+   TABLE STYLES
+══════════════════════════════════════════ */
+.data-table th {
+  font-size: 0.6rem;
+  font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
-  font-weight: 500;
+  font-family: var(--font-mono), monospace;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid hsl(var(--border));
 }
 
-/* ─── Status dot ─── */
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
+.data-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  font-size: 0.8rem;
 }
-.status-dot.online { background: hsl(var(--income)); box-shadow: 0 0 6px hsl(var(--income) / 0.6); }
-.status-dot.offline { background: hsl(var(--expense)); }
+
+.data-table tr:hover td {
+  background: hsl(var(--surface-2));
+}

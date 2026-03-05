@@ -1,40 +1,37 @@
 import type { Metadata } from 'next';
-import { Outfit, JetBrains_Mono } from 'next/font/google';
+import { Syne, DM_Mono } from 'next/font/google';
 import './globals.css';
 
-const outfit = Outfit({
+const syne = Syne({
   subsets: ['latin'],
   variable: '--font-sans',
-  weight: ['300', '400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const dmMono = DM_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
-  weight: ['400', '500', '600'],
+  weight: ['300', '400', '500'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'Future Sight — Personal Finance Tracker',
-  description: 'See your financial future clearly. Goals, budgets, debt tracking, net worth, and spending insights.',
+  title: 'Future Sight — Financial Command Center',
+  description: 'Track net worth, spending, goals, debts, and financial health — all in one place.',
   icons: { icon: '/favicon.ico' },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#060A12" />
+        <meta name="theme-color" content="#070810" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icons/icon.svg" />
       </head>
-      <body className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <body className={`${syne.variable} ${dmMono.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>

@@ -7,77 +7,204 @@ import { settingsApi } from '@/lib/api-client';
 import { KeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { cn } from '@/lib/utils';
 
-interface NavItem {
-  id: string;
-  label: string;
-  href: string;
-  icon: string;
-}
-
+/* ══════════════════════════════════════════
+   NAV STRUCTURE — grouped sections
+══════════════════════════════════════════ */
 const NAV_GROUPS = [
   {
+    id: 'overview',
     label: 'Overview',
     items: [
-      { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'M3 3h7v7H3zM14 3h7v4H14zM14 11h7v10H14zM3 14h7v7H3z' },
-      { id: 'networth', label: 'Net Worth', href: '/networth', icon: 'M2 20h20M5 20V10M10 20V4M15 20V12M20 20V8' },
-      { id: 'health', label: 'Health Score', href: '/health', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
+      { id: 'dashboard',    label: 'Dashboard',    href: '/dashboard',    icon: IconDashboard },
+      { id: 'networth',     label: 'Net Worth',    href: '/networth',     icon: IconNetWorth },
+      { id: 'health',       label: 'Health Score', href: '/health',       icon: IconHealth },
     ],
   },
   {
-    label: 'Transactions',
+    id: 'money',
+    label: 'Money',
     items: [
-      { id: 'transactions', label: 'Transactions', href: '/transactions', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 14l2 2 4-4' },
-      { id: 'import', label: 'Import', href: '/import', icon: 'M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4' },
-      { id: 'calendar', label: 'Calendar', href: '/calendar', icon: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z' },
+      { id: 'transactions', label: 'Transactions', href: '/transactions', icon: IconTransactions },
+      { id: 'import',       label: 'Import',       href: '/import',       icon: IconImport },
+      { id: 'calendar',     label: 'Calendar',     href: '/calendar',     icon: IconCalendar },
     ],
   },
   {
+    id: 'planning',
     label: 'Planning',
     items: [
-      { id: 'goals', label: 'Goals', href: '/goals', icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8' },
-      { id: 'debts', label: 'Debts', href: '/debts', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
-      { id: 'budget', label: 'Budget', href: '/budget', icon: 'M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 12h6M12 9v6' },
-      { id: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+      { id: 'goals',         label: 'Goals',        href: '/goals',         icon: IconGoals },
+      { id: 'debts',         label: 'Debts',        href: '/debts',         icon: IconDebts },
+      { id: 'budget',        label: 'Budget',       href: '/budget',        icon: IconBudget },
+      { id: 'subscriptions', label: 'Subscriptions',href: '/subscriptions', icon: IconSubscriptions },
     ],
   },
   {
-    label: 'Analysis',
+    id: 'analytics',
+    label: 'Analytics',
     items: [
-      { id: 'insights', label: 'Insights', href: '/insights', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
-      { id: 'reports', label: 'Reports', href: '/reports', icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8' },
-      { id: 'heatmap', label: 'Heatmap', href: '/heatmap', icon: 'M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z' },
-      { id: 'yoy', label: 'Year-over-Year', href: '/yoy', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-      { id: 'cashflow', label: 'Cash Flow', href: '/cashflow', icon: 'M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3' },
-      { id: 'achievements', label: 'Achievements', href: '/achievements', icon: 'M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2 4 4 .5-3 3 .5 4.5L13 13l-3.5 2 .5-4.5-3-3L11 7l2-4z' },
+      { id: 'insights',      label: 'Insights',     href: '/insights',      icon: IconInsights },
+      { id: 'reports',       label: 'Reports',      href: '/reports',       icon: IconReports },
+      { id: 'heatmap',       label: 'Heatmap',      href: '/heatmap',       icon: IconHeatmap },
+      { id: 'yoy',           label: 'Year vs Year', href: '/yoy',           icon: IconYoY },
+      { id: 'cashflow',      label: 'Cash Flow',    href: '/cashflow',      icon: IconCashFlow },
+      { id: 'achievements',  label: 'Achievements', href: '/achievements',  icon: IconAchievements },
     ],
   },
 ];
 
-const ALL_NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap(g => g.items);
-const MOBILE_PRIMARY = ['dashboard', 'transactions', 'goals', 'budget'];
+const ALL_ITEMS = NAV_GROUPS.flatMap(g => g.items);
+const MOBILE_PRIMARY = ['dashboard', 'transactions', 'goals', 'insights'];
 
-function NavIcon({ d, size = 16, className }: { d: string; size?: number; className?: string }) {
+/* ══════════════════════════════════════════
+   ICON COMPONENTS — distinct filled style
+══════════════════════════════════════════ */
+function IconDashboard({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <rect x="2" y="2" width="9" height="9" rx="1" opacity="0.9"/>
+    <rect x="13" y="2" width="9" height="5" rx="1" opacity="0.9"/>
+    <rect x="13" y="9" width="9" height="11" rx="1" opacity="0.9"/>
+    <rect x="2" y="13" width="9" height="9" rx="1" opacity="0.9"/>
+  </svg>;
+}
+function IconNetWorth({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <polyline points="3,17 8,12 13,15 21,7"/>
+    <line x1="3" y1="21" x2="21" y2="21" strokeWidth="1.5"/>
+  </svg>;
+}
+function IconHealth({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>;
+}
+function IconTransactions({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="8" y1="6" x2="21" y2="6"/>
+    <line x1="8" y1="12" x2="21" y2="12"/>
+    <line x1="8" y1="18" x2="21" y2="18"/>
+    <line x1="3" y1="6" x2="3.01" y2="6"/>
+    <line x1="3" y1="12" x2="3.01" y2="12"/>
+    <line x1="3" y1="18" x2="3.01" y2="18"/>
+  </svg>;
+}
+function IconImport({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>;
+}
+function IconCalendar({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>;
+}
+function IconGoals({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <circle cx="12" cy="12" r="6"/>
+    <circle cx="12" cy="12" r="2" fill="currentColor"/>
+  </svg>;
+}
+function IconDebts({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="12" y1="1" x2="12" y2="23"/>
+    <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+  </svg>;
+}
+function IconBudget({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <rect x="2" y="3" width="20" height="14" rx="2"/>
+    <line x1="8" y1="21" x2="16" y2="21"/>
+    <line x1="12" y1="17" x2="12" y2="21"/>
+  </svg>;
+}
+function IconSubscriptions({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="10"/>
+    <polyline points="12 6 12 12 16 14"/>
+  </svg>;
+}
+function IconInsights({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M2 20h.01M7 20v-4M12 20v-8M17 20v-6M22 4l-10 8-4-4-6 4"/>
+  </svg>;
+}
+function IconReports({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10 9 9 9 8 9"/>
+  </svg>;
+}
+function IconHeatmap({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <rect x="2"  y="2"  width="5" height="5" rx="0.5" opacity="0.3"/>
+    <rect x="9"  y="2"  width="5" height="5" rx="0.5" opacity="0.6"/>
+    <rect x="16" y="2"  width="5" height="5" rx="0.5" opacity="1.0"/>
+    <rect x="2"  y="9"  width="5" height="5" rx="0.5" opacity="0.6"/>
+    <rect x="9"  y="9"  width="5" height="5" rx="0.5" opacity="1.0"/>
+    <rect x="16" y="9"  width="5" height="5" rx="0.5" opacity="0.4"/>
+    <rect x="2"  y="16" width="5" height="5" rx="0.5" opacity="1.0"/>
+    <rect x="9"  y="16" width="5" height="5" rx="0.5" opacity="0.5"/>
+    <rect x="16" y="16" width="5" height="5" rx="0.5" opacity="0.2"/>
+  </svg>;
+}
+function IconYoY({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="18" y1="20" x2="18" y2="10"/>
+    <line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6"  y1="20" x2="6"  y2="14"/>
+  </svg>;
+}
+function IconCashFlow({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23"/>
+    <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+    <polyline points="16 8 20 5 16 2"/>
+    <polyline points="8 19 4 22 8 25"/>
+  </svg>;
+}
+function IconAchievements({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="6"/>
+    <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+  </svg>;
+}
+function IconSettings({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+  </svg>;
+}
+function IconSignOut({ size = 16 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+    <polyline points="16 17 21 12 16 7"/>
+    <line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>;
+}
+
+function LogoMark() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d={d} />
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect x="1" y="1" width="20" height="20" rx="3" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M6 11 C6 8 8.5 6 11 6 C13.5 6 16 8 16 11 C16 14 13.5 16 11 16 C8.5 16 6 14 6 11Z"
+        stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <circle cx="11" cy="11" r="2.5" fill="currentColor" />
     </svg>
   );
 }
 
-function UserInitials({ name, email }: { name?: string | null; email?: string | null }) {
-  const text = name || email || '?';
-  const initials = text
-    .split(/[\s@.]+/)
-    .slice(0, 2)
-    .map((w: string) => w[0]?.toUpperCase() || '')
-    .join('');
-  return (
-    <div className="w-7 h-7 rounded-sm bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-      <span className="text-[10px] font-semibold text-primary font-mono">{initials}</span>
-    </div>
-  );
-}
-
+/* ══════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════ */
 interface AppShellProps {
   user: { id: string; name?: string | null; email?: string | null; image?: string | null };
   children: React.ReactNode;
@@ -88,85 +215,96 @@ export function AppShell({ user, children }: AppShellProps) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  // Apply dark class immediately and load settings
+  // Default dark, load user preference
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-    const loadSettings = async () => {
+    document.documentElement.classList.remove('light');
+    const load = async () => {
       try {
         const res = await settingsApi.get();
-        const isDark = res?.settings?.darkMode !== false; // default to dark
+        const isDark = res?.settings?.darkMode !== false;
         setDarkMode(isDark);
-        document.documentElement.classList.toggle('dark', isDark);
         document.documentElement.classList.toggle('light', !isDark);
-      } catch {
-        // Keep dark as default
-      }
+      } catch { /* keep dark */ }
     };
-    loadSettings();
+    load();
   }, []);
 
+  useEffect(() => { setMoreOpen(false); }, [pathname]);
+
   const toggleDark = async () => {
-    const newValue = !darkMode;
-    setDarkMode(newValue);
-    document.documentElement.classList.toggle('dark', newValue);
-    document.documentElement.classList.toggle('light', !newValue);
-    try { await settingsApi.update({ darkMode: newValue }); } catch {}
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle('light', !next);
+    try { await settingsApi.update({ darkMode: next }); } catch { }
   };
 
-  useEffect(() => { setMoreMenuOpen(false); }, [pathname]);
+  const userInitials = (user.name || user.email || '?')
+    .split(/[\s@.]+/).slice(0, 2).map((w: string) => w[0]?.toUpperCase()).join('');
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <KeyboardShortcuts />
 
-      {/* ─── Sidebar ─── */}
-      <aside className={cn(
-        'hidden md:flex flex-col border-r border-border bg-card transition-all duration-200 ease-in-out shrink-0',
-        sidebarOpen ? 'w-[200px]' : 'w-[52px]'
-      )}>
+      {/* ════════════════════════════════
+          SIDEBAR
+      ════════════════════════════════ */}
+      <aside
+        className={cn(
+          'hidden md:flex flex-col border-r border-border bg-surface-1 shrink-0 transition-all duration-200',
+          sidebarOpen ? 'w-[216px]' : 'w-[56px]',
+        )}
+      >
         {/* Logo */}
         <div className={cn(
           'flex items-center h-12 border-b border-border shrink-0',
-          sidebarOpen ? 'px-4 gap-2.5' : 'justify-center'
+          sidebarOpen ? 'px-4 gap-3' : 'justify-center'
         )}>
-          <div className="w-6 h-6 rounded-sm bg-primary flex items-center justify-center shrink-0">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
-            </svg>
+          <div className={cn('shrink-0 transition-colors', sidebarOpen ? 'text-primary' : 'text-muted-foreground')}>
+            <LogoMark />
           </div>
           {sidebarOpen && (
-            <span className="text-xs font-bold tracking-widest uppercase text-foreground/90 truncate">
+            <span className="font-bold text-[11px] tracking-[0.18em] uppercase text-foreground/80 truncate">
               Future Sight
             </span>
           )}
         </div>
 
-        {/* Nav groups */}
-        <nav className="flex-1 overflow-y-auto py-3 space-y-4">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label}>
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-3 space-y-5">
+          {NAV_GROUPS.map(group => (
+            <div key={group.id}>
               {sidebarOpen && (
-                <p className="ticker-label px-4 mb-1">{group.label}</p>
+                <p className="ticker px-4 mb-2">{group.label}</p>
               )}
-              <div className="space-y-px">
-                {group.items.map((item) => {
+              <div className="px-2 space-y-0.5">
+                {group.items.map(item => {
                   const isActive = pathname.startsWith(item.href);
+                  const Icon = item.icon;
                   return (
                     <button
                       key={item.id}
                       onClick={() => router.push(item.href)}
                       title={!sidebarOpen ? item.label : undefined}
                       className={cn(
-                        'w-full flex items-center gap-2.5 text-xs font-medium transition-all duration-100',
-                        sidebarOpen ? 'pl-4 pr-3 py-1.5' : 'justify-center py-2',
+                        'w-full flex items-center gap-3 px-2 py-1.5 text-xs font-medium transition-all duration-150',
                         isActive
-                          ? 'nav-active text-primary'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50 pl-[17px]'
+                          ? 'text-primary bg-primary/8 rounded'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded',
+                        !sidebarOpen && 'justify-center'
                       )}
                     >
-                      <NavIcon d={item.icon} size={14} className="shrink-0" />
+                      {/* Icon wrapper — colored square when active */}
+                      <span className={cn(
+                        'flex items-center justify-center shrink-0 transition-all duration-150',
+                        sidebarOpen ? 'w-6 h-6' : 'w-8 h-8',
+                        isActive
+                          ? 'bg-primary text-primary-foreground rounded shadow-[0_0_10px_rgba(0,229,116,0.3)]'
+                          : 'text-muted-foreground'
+                      )}>
+                        <Icon size={sidebarOpen ? 13 : 15} />
+                      </span>
                       {sidebarOpen && <span className="truncate">{item.label}</span>}
                     </button>
                   );
@@ -176,37 +314,26 @@ export function AppShell({ user, children }: AppShellProps) {
           ))}
         </nav>
 
-        {/* Bottom: user + controls */}
-        <div className="border-t border-border py-2 shrink-0">
-          {/* Dark mode toggle */}
+        {/* Bottom controls */}
+        <div className="border-t border-border shrink-0 p-2 space-y-0.5">
+          {/* Dark mode */}
           <button
             onClick={toggleDark}
-            title={!sidebarOpen ? (darkMode ? 'Light mode' : 'Dark mode') : undefined}
+            title={!sidebarOpen ? 'Toggle theme' : undefined}
             className={cn(
-              'w-full flex items-center gap-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors py-1.5',
-              sidebarOpen ? 'px-4' : 'justify-center'
+              'w-full flex items-center gap-3 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded transition-colors',
+              !sidebarOpen && 'justify-center'
             )}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-              {darkMode
-                ? <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                : <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />}
-            </svg>
+            <span className="flex items-center justify-center w-6 h-6 shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                {darkMode
+                  ? <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>
+                  : <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+                }
+              </svg>
+            </span>
             {sidebarOpen && <span>{darkMode ? 'Light mode' : 'Dark mode'}</span>}
-          </button>
-
-          {/* Collapse toggle */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={cn(
-              'w-full flex items-center gap-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors py-1.5',
-              sidebarOpen ? 'px-4' : 'justify-center'
-            )}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={cn('shrink-0 transition-transform', !sidebarOpen && 'rotate-180')}>
-              <path d="M11 19l-7-7 7-7M18 19l-7-7 7-7" />
-            </svg>
-            {sidebarOpen && <span>Collapse</span>}
           </button>
 
           {/* Settings */}
@@ -214,102 +341,158 @@ export function AppShell({ user, children }: AppShellProps) {
             onClick={() => router.push('/settings')}
             title={!sidebarOpen ? 'Settings' : undefined}
             className={cn(
-              'w-full flex items-center gap-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors py-1.5',
-              sidebarOpen ? 'px-4' : 'justify-center',
-              pathname.startsWith('/settings') && 'text-primary'
+              'w-full flex items-center gap-3 px-2 py-1.5 text-xs transition-colors rounded',
+              pathname.startsWith('/settings')
+                ? 'text-primary bg-primary/8'
+                : 'text-muted-foreground hover:text-foreground hover:bg-surface-2',
+              !sidebarOpen && 'justify-center'
             )}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-              <path d="M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
-            </svg>
+            <span className={cn(
+              'flex items-center justify-center w-6 h-6 shrink-0',
+              pathname.startsWith('/settings') && 'bg-primary text-primary-foreground rounded shadow-[0_0_10px_rgba(0,229,116,0.3)]'
+            )}>
+              <IconSettings size={13} />
+            </span>
             {sidebarOpen && <span>Settings</span>}
+          </button>
+
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={cn(
+              'w-full flex items-center gap-3 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded transition-colors',
+              !sidebarOpen && 'justify-center'
+            )}
+          >
+            <span className="flex items-center justify-center w-6 h-6 shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                className={cn('transition-transform', !sidebarOpen && 'rotate-180')}>
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </span>
+            {sidebarOpen && <span>Collapse</span>}
           </button>
 
           {/* User / Sign out */}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            title={!sidebarOpen ? 'Sign out' : undefined}
+            title={!sidebarOpen ? `Sign out ${user.name || user.email}` : undefined}
             className={cn(
-              'w-full flex items-center gap-2.5 text-xs text-muted-foreground hover:text-expense transition-colors py-1.5 mt-1 border-t border-border',
-              sidebarOpen ? 'px-4' : 'justify-center'
+              'w-full flex items-center gap-3 px-2 py-2 text-xs text-muted-foreground hover:text-expense hover:bg-expense/5 rounded transition-colors mt-1 border-t border-border pt-2',
+              !sidebarOpen && 'justify-center'
             )}
           >
-            <UserInitials name={user.name} email={user.email} />
+            <span className={cn(
+              'w-6 h-6 shrink-0 rounded bg-surface-3 border border-border flex items-center justify-center',
+              'text-[9px] font-bold font-mono text-foreground/70'
+            )}>
+              {userInitials}
+            </span>
             {sidebarOpen && (
-              <div className="flex-1 min-w-0 text-left">
-                <div className="text-foreground font-medium truncate text-[11px]">{user.name || user.email}</div>
-                <div className="text-[10px] text-muted-foreground">Sign out</div>
+              <div className="flex-1 text-left min-w-0">
+                <div className="font-medium text-foreground/80 truncate text-[11px]">{user.name || user.email}</div>
+                <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-px">
+                  <IconSignOut size={9} />
+                  Sign out
+                </div>
               </div>
             )}
           </button>
         </div>
       </aside>
 
-      {/* ─── Main Content ─── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile header */}
-        <header className="md:hidden flex items-center justify-between h-12 px-4 border-b border-border bg-card shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-sm bg-primary flex items-center justify-center">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
-              </svg>
-            </div>
-            <span className="text-xs font-bold tracking-widest uppercase">Future Sight</span>
+      {/* ════════════════════════════════
+          MAIN CONTENT
+      ════════════════════════════════ */}
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Mobile top bar */}
+        <header className="md:hidden flex items-center justify-between h-12 px-4 border-b border-border bg-surface-1 shrink-0">
+          <div className="flex items-center gap-2.5 text-primary">
+            <LogoMark />
+            <span className="font-bold text-[10px] tracking-[0.18em] uppercase text-foreground/70">
+              Future Sight
+            </span>
           </div>
-          <button onClick={toggleDark} className="p-1.5 rounded hover:bg-accent transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              {darkMode ? <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /> : <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />}
+          <button onClick={toggleDark} className="w-8 h-8 flex items-center justify-center rounded hover:bg-surface-2 transition-colors text-muted-foreground">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              {darkMode ? <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/> : <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/></>}
             </svg>
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 pb-20 md:pb-5">
-          {children}
+        {/* Content with dot grid */}
+        <div className="flex-1 overflow-y-auto pb-20 md:pb-0 dot-grid">
+          <div className="p-4 md:p-5 lg:p-6">
+            {children}
+          </div>
         </div>
       </main>
 
-      {/* ─── Mobile Bottom Nav ─── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-        <div className="flex items-center justify-around h-14">
-          {ALL_NAV_ITEMS.filter(i => MOBILE_PRIMARY.includes(i.id)).map((item) => {
+      {/* ════════════════════════════════
+          MOBILE BOTTOM NAV
+      ════════════════════════════════ */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-1 border-t border-border">
+        <div className="flex items-stretch h-16">
+          {ALL_ITEMS.filter(i => MOBILE_PRIMARY.includes(i.id)).map(item => {
             const isActive = pathname.startsWith(item.href);
+            const Icon = item.icon;
             return (
-              <button key={item.id} onClick={() => router.push(item.href)}
-                className={cn('flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors',
+              <button
+                key={item.id}
+                onClick={() => router.push(item.href)}
+                className={cn(
+                  'flex-1 flex flex-col items-center justify-center gap-1 transition-colors',
                   isActive ? 'text-primary' : 'text-muted-foreground'
+                )}
+              >
+                <span className={cn(
+                  'w-8 h-8 flex items-center justify-center rounded transition-all',
+                  isActive && 'bg-primary/10'
                 )}>
-                <NavIcon d={item.icon} size={18} />
-                <span className="text-[9px] font-medium tracking-wide uppercase">{item.label}</span>
+                  <Icon size={17} />
+                </span>
+                <span className="text-[9px] font-semibold tracking-wider uppercase">{item.label}</span>
               </button>
             );
           })}
-          <button onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-            className={cn('flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors',
-              moreMenuOpen ? 'text-primary' : 'text-muted-foreground'
-            )}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
-            </svg>
-            <span className="text-[9px] font-medium tracking-wide uppercase">More</span>
+
+          <button
+            onClick={() => setMoreOpen(!moreOpen)}
+            className={cn('flex-1 flex flex-col items-center justify-center gap-1 transition-colors',
+              moreOpen ? 'text-primary' : 'text-muted-foreground'
+            )}
+          >
+            <span className={cn('w-8 h-8 flex items-center justify-center rounded', moreOpen && 'bg-primary/10')}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+              </svg>
+            </span>
+            <span className="text-[9px] font-semibold tracking-wider uppercase">More</span>
           </button>
         </div>
 
-        {moreMenuOpen && (
+        {/* More drawer */}
+        {moreOpen && (
           <>
-            <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setMoreMenuOpen(false)} />
-            <div className="fixed bottom-14 left-0 right-0 bg-card border-t border-border rounded-t-lg shadow-2xl z-50 max-h-[60vh] overflow-y-auto animate-slide-up">
-              <div className="w-8 h-0.5 bg-border rounded-full mx-auto my-3" />
-              <div className="px-4 pb-4 grid grid-cols-4 gap-1">
-                {ALL_NAV_ITEMS.filter(i => !MOBILE_PRIMARY.includes(i.id)).map((item) => {
+            <div className="fixed inset-0 bg-black/70 z-40" onClick={() => setMoreOpen(false)} />
+            <div className="fixed bottom-16 left-0 right-0 bg-surface-1 border-t border-border z-50 max-h-[65vh] overflow-y-auto animate-slide-up">
+              <div className="w-10 h-0.5 bg-border mx-auto my-3 rounded-full" />
+              <div className="p-4 grid grid-cols-4 gap-2">
+                {ALL_ITEMS.filter(i => !MOBILE_PRIMARY.includes(i.id)).map(item => {
                   const isActive = pathname.startsWith(item.href);
+                  const Icon = item.icon;
                   return (
-                    <button key={item.id} onClick={() => { router.push(item.href); setMoreMenuOpen(false); }}
-                      className={cn('flex flex-col items-center gap-1 p-2.5 rounded transition-colors',
-                        isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent/50'
-                      )}>
-                      <NavIcon d={item.icon} size={16} />
-                      <span className="text-[9px] font-medium text-center leading-tight">{item.label}</span>
+                    <button
+                      key={item.id}
+                      onClick={() => { router.push(item.href); setMoreOpen(false); }}
+                      className={cn(
+                        'flex flex-col items-center gap-2 py-3 px-1 rounded transition-colors',
+                        isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-surface-2'
+                      )}
+                    >
+                      <Icon size={18} />
+                      <span className="text-[9px] text-center leading-tight font-medium">{item.label}</span>
                     </button>
                   );
                 })}
