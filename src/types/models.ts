@@ -21,7 +21,7 @@ export interface Transaction {
 export interface TransactionQuery {
   page?: number;
   limit?: number;
-  sort?: 'date' | 'amount' | 'description' | 'category';
+  sort?: 'date' | 'amount' | 'description' | 'category' | 'account';
   order?: 'asc' | 'desc';
   category?: string;
   account?: string;

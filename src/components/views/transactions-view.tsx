@@ -48,12 +48,14 @@ function TransactionsViewInner() {
     setFilterCategory(urlCategory);
     setFilterAccount(urlAccount);
     setSearch(urlSearch);
+    setActivePreset(null); // clear preset when URL drives the date
     setQuery(q => ({ ...q, page: 1 }));
   }, [urlDateFrom, urlDateTo, urlCategory, urlAccount, urlSearch]);
 
   const clearDateFilter = () => {
     setFilterDateFrom('');
     setFilterDateTo('');
+    setActivePreset(null);
     setQuery(q => ({ ...q, page: 1 }));
     router.replace('/transactions');
   };
@@ -131,6 +133,52 @@ function TransactionsViewInner() {
   };
 
   const setPage = (p: number) => setQuery((q) => ({ ...q, page: p }));
+
+  // Quick-sort presets
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+
+  const applyPreset = (label: string, from: string, to: string) => {
+    setActivePreset(label);
+    setFilterDateFrom(from);
+    setFilterDateTo(to);
+    setQuery((q) => ({ ...q, page: 1 }));
+  };
+
+  const clearPreset = () => {
+    setActivePreset(null);
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setQuery((q) => ({ ...q, page: 1 }));
+  };
+
+  const datePresets = (() => {
+    const now = new Date();
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const startOf = (d: Date) => { d.setHours(0, 0, 0, 0); return d; };
+
+    const today = fmt(startOf(new Date()));
+    const minus = (days: number) => fmt(startOf(new Date(Date.now() - days * 864e5)));
+
+    const thisYear = now.getFullYear();
+    const lastYear = thisYear - 1;
+
+    const presets: { label: string; from: string; to: string }[] = [
+      { label: '1D',   from: today,                   to: today },
+      { label: '7D',   from: minus(6),                to: today },
+      { label: '30D',  from: minus(29),               to: today },
+      { label: '3M',   from: minus(89),               to: today },
+      { label: '6M',   from: minus(179),              to: today },
+      { label: 'YTD',  from: `${thisYear}-01-01`,     to: today },
+      { label: `${lastYear}`, from: `${lastYear}-01-01`, to: `${lastYear}-12-31` },
+    ];
+
+    // Add per-year chunks back to 2020
+    for (let y = lastYear - 1; y >= 2020; y--) {
+      presets.push({ label: `${y}`, from: `${y}-01-01`, to: `${y}-12-31` });
+    }
+
+    return presets;
+  })();
 
   const toggleSort = (field: TransactionQuery['sort']) => {
     setQuery((q) => ({
@@ -242,28 +290,47 @@ function TransactionsViewInner() {
           </select>
         )}
 
-        {/* Date range pickers */}
+      </div>
+
+      {/* Quick date presets */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {datePresets.map((p) => (
+          <button
+            key={p.label}
+            onClick={() => activePreset === p.label ? clearPreset() : applyPreset(p.label, p.from, p.to)}
+            className={cn(
+              'px-2.5 py-1 text-[11px] font-mono border transition-colors',
+              activePreset === p.label
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border bg-surface-1 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
+        <span className="text-muted-foreground/40 text-xs mx-1">|</span>
+        {/* Custom range pickers */}
         <Input
           type="date"
           value={filterDateFrom}
-          onChange={(e) => { setFilterDateFrom(e.target.value); setQuery(q => ({ ...q, page: 1 })); }}
-          className="h-9 w-[140px] text-xs"
+          onChange={(e) => { setActivePreset(null); setFilterDateFrom(e.target.value); setQuery(q => ({ ...q, page: 1 })); }}
+          className="h-7 w-[130px] text-xs"
           title="From date"
         />
+        <span className="text-muted-foreground text-xs">→</span>
         <Input
           type="date"
           value={filterDateTo}
-          onChange={(e) => { setFilterDateTo(e.target.value); setQuery(q => ({ ...q, page: 1 })); }}
-          className="h-9 w-[140px] text-xs"
+          onChange={(e) => { setActivePreset(null); setFilterDateTo(e.target.value); setQuery(q => ({ ...q, page: 1 })); }}
+          className="h-7 w-[130px] text-xs"
           title="To date"
         />
-        {(filterDateFrom || filterDateTo) && (
+        {(filterDateFrom || filterDateTo) && !activePreset && (
           <button
-            onClick={clearDateFilter}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2"
-            title="Clear date filter"
+            onClick={clearPreset}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5"
           >
-            ✕ dates
+            ✕
           </button>
         )}
       </div>
@@ -324,8 +391,8 @@ function TransactionsViewInner() {
                   <th className="text-left px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('category')}>
                     <span className="ticker">Category <SortIcon field="category" /></span>
                   </th>
-                  <th className="text-left px-3 py-2.5">
-                    <span className="ticker">Account</span>
+                  <th className="text-left px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('account')}>
+                    <span className="ticker">Account <SortIcon field="account" /></span>
                   </th>
                   <th className="text-right px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('amount')}>
                     <span className="ticker">Amount <SortIcon field="amount" /></span>

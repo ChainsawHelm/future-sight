@@ -17,7 +17,6 @@ const NAV_GROUPS = [
     items: [
       { id: 'dashboard',    label: 'Dashboard',    href: '/dashboard',    icon: IconDashboard },
       { id: 'networth',     label: 'Net Worth',    href: '/networth',     icon: IconNetWorth },
-      { id: 'health',       label: 'Health Score', href: '/health',       icon: IconHealth },
     ],
   },
   {
@@ -46,7 +45,6 @@ const NAV_GROUPS = [
       { id: 'insights',      label: 'Insights',     href: '/insights',      icon: IconInsights },
       { id: 'reports',       label: 'Reports',      href: '/reports',       icon: IconReports },
       { id: 'heatmap',       label: 'Heatmap',      href: '/heatmap',       icon: IconHeatmap },
-      { id: 'yoy',           label: 'Year vs Year', href: '/yoy',           icon: IconYoY },
       { id: 'cashflow',      label: 'Cash Flow',    href: '/cashflow',      icon: IconCashFlow },
       { id: 'achievements',  label: 'Achievements', href: '/achievements',  icon: IconAchievements },
     ],
