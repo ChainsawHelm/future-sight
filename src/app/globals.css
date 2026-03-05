@@ -3,127 +3,147 @@
 @tailwind utilities;
 
 @layer base {
-  /* ═══════════════════════════════════════════════
-     GLASSHOUSE — Modern, curated, sophisticated
-     Palette: #F6F3EE · #1F2A2E · #8FBC8F · #B8C8B1 · #B26E4A
-     Polished, warm, authoritative — with natural depth
-  ═══════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════════════
+     FENIX DESIGN SYSTEM
+     Canvas: #07080F deep obsidian-navy
+     Gold:   #C9A050 burnished, ancient
+     Jade:   #22D47A vivid income
+     Crimson:#E8524A confident expense
+     Fonts:  Bodoni Moda (display) · Outfit (sans) · JetBrains Mono (data)
+
+     Dark-first. The primary experience is obsidian with gold accents.
+     Light mode is a secondary warm parchment variant.
+  ═══════════════════════════════════════════════════════════════ */
+
+  /* ──── LIGHT MODE (parchment) ──── */
   :root {
-    --background: 38 30% 95%;          /* #F6F3EE warm off-white */
-    --foreground: 196 19% 15%;         /* #1F2A2E deep charcoal */
-    --card: 40 25% 98%;
-    --card-foreground: 196 19% 15%;
-    --popover: 40 25% 98%;
-    --popover-foreground: 196 19% 15%;
-    --primary: 196 19% 15%;            /* #1F2A2E — charcoal for buttons */
-    --primary-foreground: 38 30% 95%;  /* warm off-white on dark buttons */
-    --secondary: 101 15% 88%;          /* light sage */
-    --secondary-foreground: 196 19% 20%;
-    --muted: 101 12% 92%;
-    --muted-foreground: 196 12% 46%;
-    --accent: 21 41% 49%;              /* #B26E4A terracotta — use sparingly */
-    --accent-foreground: 38 30% 95%;
-    --destructive: 0 72% 51%;
+    --background:   38 30% 96%;
+    --foreground:  235 40% 12%;
+    --card:          0  0% 100%;
+    --card-foreground: 235 40% 12%;
+    --popover:       0  0% 100%;
+    --popover-foreground: 235 40% 12%;
+    --primary:      38 65% 42%;    /* deep amber-gold */
+    --primary-foreground: 0 0% 100%;
+    --secondary:    38 18% 90%;
+    --secondary-foreground: 235 30% 20%;
+    --muted:        38 14% 92%;
+    --muted-foreground: 235 10% 48%;
+    --accent:       38 70% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive:   3 72% 52%;
     --destructive-foreground: 0 0% 100%;
-    --border: 101 15% 84%;
-    --input: 101 15% 88%;
-    --ring: 120 22% 52%;               /* sage green focus ring */
+    --border:       38 16% 86%;
+    --input:        38 14% 90%;
+    --ring:         38 65% 42%;
     --radius: 0.625rem;
 
-    /* Financial semantics */
-    --income: 120 28% 36%;    /* deep sage — readable on light bg */
-    --expense: 21 41% 44%;    /* terracotta */
-    --neutral: 38 70% 46%;    /* warm amber */
-    --info: 196 50% 36%;      /* teal */
+    --income:  152 50% 35%;
+    --expense:   3 65% 50%;
+    --neutral:  38 70% 46%;
+    --info:    215 70% 50%;
 
-    /* Surface layers — warm off-white → soft sage */
-    --surface-0: 38 30% 97%;
-    --surface-1: 40 20% 96%;
-    --surface-2: 101 12% 93%;
-    --surface-3: 101 15% 87%;
-
-    /* Dot grid */
-    --dot: 101 15% 86%;
+    --surface-0: 38 30% 96%;
+    --surface-1: 38 22% 98%;
+    --surface-2: 38 16% 93%;
+    --surface-3: 38 12% 88%;
+    --dot:       38 14% 89%;
   }
 
+  /* ──── DARK MODE — FENIX PRIMARY ──── */
   .dark {
-    --background: 196 25% 9%;          /* near-black charcoal */
-    --foreground: 38 20% 90%;          /* warm cream */
-    --card: 196 22% 12%;
-    --card-foreground: 38 20% 90%;
-    --popover: 196 22% 12%;
-    --popover-foreground: 38 20% 90%;
-    --primary: 120 22% 62%;            /* sage green — interactive in dark */
-    --primary-foreground: 196 25% 9%;
-    --secondary: 196 18% 18%;
-    --secondary-foreground: 38 20% 85%;
-    --muted: 196 18% 16%;
-    --muted-foreground: 196 12% 50%;
-    --accent: 21 41% 56%;              /* brighter terracotta in dark */
-    --accent-foreground: 38 20% 90%;
-    --destructive: 0 70% 58%;
+    --background:  235 35%  5%;    /* #07080F obsidian */
+    --foreground:   42 20% 88%;    /* warm cream */
+    --card:        237 38%  8%;    /* #0B0C18 */
+    --card-foreground: 42 20% 88%;
+    --popover:     237 38%  8%;
+    --popover-foreground: 42 20% 88%;
+    --primary:      42 55% 55%;    /* #C9A050 burnished gold */
+    --primary-foreground: 235 35% 5%;
+    --secondary:   237 30% 14%;
+    --secondary-foreground: 42 18% 78%;
+    --muted:       237 28% 12%;
+    --muted-foreground: 237 10% 42%;
+    --accent:       42 62% 62%;    /* brighter gold for hover */
+    --accent-foreground: 235 35% 5%;
+    --destructive:   3 76% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 196 18% 20%;
-    --input: 196 18% 20%;
-    --ring: 120 22% 62%;
+    --border:      237 24% 14%;    /* subtle navy border */
+    --input:       237 28% 12%;
+    --ring:         42 55% 55%;
 
-    --income: 120 25% 52%;
-    --expense: 21 41% 58%;
-    --neutral: 38 80% 52%;
-    --info: 196 50% 52%;
+    --income:  152 68% 44%;    /* vivid jade */
+    --expense:   3 76% 60%;    /* confident crimson */
+    --neutral:  42 80% 60%;    /* bright gold */
+    --info:    215 80% 60%;    /* electric blue */
 
-    --surface-0: 196 25% 9%;
-    --surface-1: 196 22% 12%;
-    --surface-2: 196 20% 15%;
-    --surface-3: 196 18% 19%;
-    --dot: 196 18% 19%;
+    --surface-0: 235 35%  5%;
+    --surface-1: 237 38%  8%;
+    --surface-2: 237 32% 11%;
+    --surface-3: 237 26% 15%;
+    --dot:       237 26% 10%;
   }
 }
 
 @layer base {
   * { border-color: hsl(var(--border)); }
 
-  html {
-    color-scheme: light;
-  }
-
-  html.dark {
-    color-scheme: dark;
-  }
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
 
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   }
+
+  /* Atmospheric ambient gradient — dark mode only */
+  .dark body {
+    background:
+      radial-gradient(ellipse 130% 55% at 50% -5%, hsl(258 50% 18% / 0.5), transparent 65%),
+      radial-gradient(ellipse 60% 35% at 95% 5%, hsl(215 80% 20% / 0.22), transparent 55%),
+      hsl(var(--background));
+  }
+
+  /* Grain overlay — dark mode only */
+  .dark body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
 }
 
-/* ══════════════════════════════════════════
-   DOT GRID — very subtle on light backgrounds
-══════════════════════════════════════════ */
-.dot-grid {
-  background-image: radial-gradient(
-    circle,
-    hsl(var(--dot)) 1px,
-    transparent 1px
-  );
-  background-size: 28px 28px;
+/* ══════════════════════════════════════════════
+   TYPOGRAPHY
+══════════════════════════════════════════════ */
+
+/* Display — Bodoni Moda for hero numerals and headings */
+.display {
+  font-family: var(--font-display), Georgia, serif;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.02em;
 }
 
-/* ══════════════════════════════════════════
-   TYPOGRAPHY UTILITIES
-══════════════════════════════════════════ */
+.display-italic {
+  font-family: var(--font-display), Georgia, serif;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
 
-/* Label style — friendly, less aggressive than old OBSIDIAN */
+/* Ticker — monospaced uppercase label */
 .ticker {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
   font-family: var(--font-mono), monospace;
 }
 
-/* Large financial number display */
+/* Large financial numeral */
 .numeral {
   font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
@@ -131,36 +151,72 @@
   line-height: 1;
 }
 
-/* Tabular numbers for tables */
+/* Tabular numbers */
 .tabnum {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono), monospace;
 }
 
-/* ══════════════════════════════════════════
-   CARD / PANEL COMPONENTS
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   FENIX CROSSHATCH GRID
+══════════════════════════════════════════════ */
+.fenix-grid {
+  background-image:
+    linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
 
-/* Standard card — white, rounded, with soft shadow */
+/* Keep dot-grid as alias */
+.dot-grid {
+  background-image:
+    linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ══════════════════════════════════════════════
+   CARD / PANEL COMPONENTS
+══════════════════════════════════════════════ */
+
 .card {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) + 2px);
-  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04),
-              0 1px 8px hsl(var(--foreground) / 0.03);
+  border-radius: 14px;
 }
 
-/* Instrument panel — slightly elevated */
+/* FENIX card variant — gold top accent */
+.dark .card {
+  border-top-color: hsl(var(--primary) / 0.12);
+}
+
 .instrument {
   position: relative;
-  background: hsl(var(--surface-1));
+  background: hsl(var(--surface-2));
   border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) + 2px);
-  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.05);
+  border-radius: 14px;
   overflow: hidden;
 }
 
-/* Status indicators */
+.dark .instrument {
+  border-top-color: hsl(var(--primary) / 0.15);
+}
+
+/* ══════════════════════════════════════════════
+   GOLD ACCENT UTILITIES
+══════════════════════════════════════════════ */
+.gold-border {
+  border: 1px solid hsl(var(--primary) / 0.3);
+}
+
+.gold-glow {
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.15),
+              0 0 60px hsl(var(--primary) / 0.06);
+}
+
+/* ══════════════════════════════════════════════
+   STATUS INDICATORS
+══════════════════════════════════════════════ */
 .status-live {
   display: inline-flex;
   align-items: center;
@@ -181,24 +237,20 @@
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
-/* ══════════════════════════════════════════
-   NAV ACTIVE STATE
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   NAV ACTIVE — gold left rail
+══════════════════════════════════════════════ */
 .nav-item-active {
-  background: hsl(var(--primary) / 0.10);
+  border-left: 2px solid hsl(var(--primary));
   color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.06);
 }
 
-.nav-item-active .nav-icon-wrap {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-
-/* ══════════════════════════════════════════
-   PROGRESS BARS — rounded, friendly
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   PROGRESS BARS
+══════════════════════════════════════════════ */
 .progress-track {
-  height: 6px;
+  height: 4px;
   background: hsl(var(--surface-3));
   overflow: hidden;
   border-radius: 9999px;
@@ -210,18 +262,20 @@
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ══════════════════════════════════════════
-   PILL BADGES
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   BADGES
+══════════════════════════════════════════════ */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
   border-radius: 9999px;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: var(--font-mono), monospace;
 }
 
 .badge-income {
@@ -239,29 +293,34 @@
   color: hsl(var(--primary));
 }
 
-/* ══════════════════════════════════════════
-   SCROLLBAR — subtle, rounded
-══════════════════════════════════════════ */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+.badge-neutral {
+  background: hsl(var(--muted-foreground) / 0.10);
+  color: hsl(var(--muted-foreground));
+}
+
+/* ══════════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.4);
+  background: hsl(var(--primary) / 0.4);
 }
 
-/* ══════════════════════════════════════════
+/* ══════════════════════════════════════════════
    ANIMATIONS
-══════════════════════════════════════════ */
+══════════════════════════════════════════════ */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -272,7 +331,7 @@
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.8); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
 }
 
 @keyframes bar-fill {
@@ -284,36 +343,49 @@
   from { stroke-dashoffset: 502; }
 }
 
-@keyframes count-up {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(42 55% 55% / 0); }
+  50%       { box-shadow: 0 0 12px 4px hsl(42 55% 55% / 0.15); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-4px); }
+  50%       { transform: translateY(-5px); }
 }
 
-.animate-fade-in    { animation: fadeUp 0.3s ease-out both; }
-.animate-slide-up   { animation: slideUp 0.35s ease-out both; }
+.animate-fade-in    { animation: fadeUp 0.35s ease-out both; }
+.animate-slide-up   { animation: slideUp 0.4s ease-out both; }
 .animate-slide-down { animation: slideDown 0.3s ease-out both; }
-.animate-bar-fill   { animation: bar-fill 0.6s ease-out both; }
-.animate-float      { animation: float 3s ease-in-out infinite; }
+.animate-bar-fill   { animation: bar-fill 0.7s ease-out both; }
+.animate-float      { animation: float 3.5s ease-in-out infinite; }
+.animate-gold-pulse { animation: gold-pulse 3s ease-in-out infinite; }
 
 /* Staggered children */
-.stagger > *:nth-child(1) { animation-delay: 0.04s; }
-.stagger > *:nth-child(2) { animation-delay: 0.08s; }
-.stagger > *:nth-child(3) { animation-delay: 0.12s; }
-.stagger > *:nth-child(4) { animation-delay: 0.16s; }
-.stagger > *:nth-child(5) { animation-delay: 0.20s; }
-.stagger > *:nth-child(6) { animation-delay: 0.24s; }
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.30s; }
+.stagger > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger > *:nth-child(8) { animation-delay: 0.40s; }
 
-/* ══════════════════════════════════════════
+/* ══════════════════════════════════════════════
    DIVIDERS
-══════════════════════════════════════════ */
+══════════════════════════════════════════════ */
 .h-line {
   height: 1px;
   background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+}
+
+.h-line-gold {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent);
 }
 
 .v-line {
@@ -321,188 +393,72 @@
   background: linear-gradient(180deg, transparent, hsl(var(--border)), transparent);
 }
 
-/* ══════════════════════════════════════════
+/* ══════════════════════════════════════════════
    TABLE STYLES
-══════════════════════════════════════════ */
+══════════════════════════════════════════════ */
 .data-table th {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
   font-family: var(--font-mono), monospace;
-  padding: 0.625rem 0.875rem;
+  padding: 0.6rem 0.875rem;
   border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--surface-2));
 }
 
 .data-table td {
-  padding: 0.625rem 0.875rem;
-  border-bottom: 1px solid hsl(var(--border) / 0.6);
+  padding: 0.6rem 0.875rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
   font-size: 0.8rem;
 }
 
 .data-table tr:hover td {
-  background: hsl(var(--surface-2));
+  background: hsl(var(--primary) / 0.04);
 }
 
-/* ══════════════════════════════════════════
-   FOCUS RINGS — accessible, purple
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   FOCUS RINGS
+══════════════════════════════════════════════ */
 .focus-ring:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px hsl(var(--background)),
               0 0 0 4px hsl(var(--ring));
 }
 
-/* ══════════════════════════════════════════
-   GLASS CARD — for special hero sections
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   GLASS
+══════════════════════════════════════════════ */
 .glass {
-  background: hsl(var(--card) / 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: hsl(var(--card) / 0.80);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid hsl(var(--border));
 }
 
-/* ══════════════════════════════════════════
-   GRADIENT TEXT — for hero numbers
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   GRADIENT TEXT — gold flame
+══════════════════════════════════════════════ */
 .gradient-text {
-  background: linear-gradient(135deg, hsl(196 19% 18%), hsl(120 25% 42%));
+  background: linear-gradient(135deg, hsl(42 80% 72%), hsl(38 60% 48%));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ══════════════════════════════════════════
-   THEME: STUDIO MINIMAL
-   Cool near-white · ink black · sage highlights
-   HEX: #F9FAFB #111827 #8FBC8F #CBD5E1 #9CA3AF
-══════════════════════════════════════════ */
-:root[data-theme="studio-minimal"] {
-  --background: 210 17% 98%;
-  --foreground: 221 39% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 221 39% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 221 39% 11%;
-  --primary: 221 39% 11%;
-  --primary-foreground: 210 17% 98%;
-  --secondary: 214 18% 92%;
-  --secondary-foreground: 221 35% 20%;
-  --muted: 214 15% 95%;
-  --muted-foreground: 218 11% 50%;
-  --accent: 120 22% 55%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 213 27% 84%;
-  --input: 213 20% 91%;
-  --ring: 120 22% 52%;
-  --income: 120 28% 36%;
-  --expense: 0 72% 51%;
-  --neutral: 38 70% 46%;
-  --info: 213 80% 46%;
-  --surface-0: 210 17% 99%;
-  --surface-1: 210 15% 97%;
-  --surface-2: 213 18% 95%;
-  --surface-3: 213 22% 91%;
-  --dot: 213 22% 90%;
-}
-:root[data-theme="studio-minimal"].dark {
-  --background: 222 47% 8%;
-  --foreground: 210 17% 92%;
-  --card: 222 40% 11%;
-  --card-foreground: 210 17% 92%;
-  --popover: 222 40% 11%;
-  --popover-foreground: 210 17% 92%;
-  --primary: 120 22% 62%;
-  --primary-foreground: 222 47% 8%;
-  --secondary: 222 32% 17%;
-  --secondary-foreground: 210 17% 85%;
-  --muted: 222 28% 15%;
-  --muted-foreground: 218 11% 52%;
-  --accent: 120 22% 58%;
-  --accent-foreground: 222 47% 8%;
-  --destructive: 0 70% 58%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 222 28% 19%;
-  --input: 222 28% 19%;
-  --ring: 120 22% 62%;
-  --income: 120 25% 52%;
-  --expense: 0 72% 58%;
-  --neutral: 38 80% 52%;
-  --info: 213 80% 52%;
-  --surface-0: 222 47% 8%;
-  --surface-1: 222 40% 11%;
-  --surface-2: 222 35% 14%;
-  --surface-3: 222 28% 18%;
-  --dot: 222 28% 17%;
-}
-
-/* ══════════════════════════════════════════
-   THEME: STUDIO WARM
-   Warm sandy off-white · ink black · clay accent
-   Same structure as Studio Minimal, warmer palette
-══════════════════════════════════════════ */
-:root[data-theme="studio-warm"] {
-  --background: 38 15% 97%;
-  --foreground: 221 39% 11%;
-  --card: 38 10% 99%;
-  --card-foreground: 221 39% 11%;
-  --popover: 38 10% 99%;
-  --popover-foreground: 221 39% 11%;
-  --primary: 221 39% 11%;
-  --primary-foreground: 38 15% 97%;
-  --secondary: 30 12% 92%;
-  --secondary-foreground: 221 35% 20%;
-  --muted: 32 10% 94%;
-  --muted-foreground: 25 8% 47%;
-  --accent: 22 62% 54%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 30 14% 86%;
-  --input: 30 12% 90%;
-  --ring: 120 22% 52%;
-  --income: 120 28% 36%;
-  --expense: 21 41% 44%;
-  --neutral: 38 70% 46%;
-  --info: 196 50% 36%;
-  --surface-0: 38 15% 98%;
-  --surface-1: 38 12% 96%;
-  --surface-2: 32 10% 93%;
-  --surface-3: 30 12% 89%;
-  --dot: 30 12% 88%;
-}
-:root[data-theme="studio-warm"].dark {
-  --background: 25 28% 8%;
-  --foreground: 38 15% 90%;
-  --card: 25 24% 11%;
-  --card-foreground: 38 15% 90%;
-  --popover: 25 24% 11%;
-  --popover-foreground: 38 15% 90%;
-  --primary: 22 62% 58%;
-  --primary-foreground: 25 28% 8%;
-  --secondary: 25 20% 17%;
-  --secondary-foreground: 38 15% 85%;
-  --muted: 25 18% 15%;
-  --muted-foreground: 25 8% 50%;
-  --accent: 120 22% 58%;
-  --accent-foreground: 25 28% 8%;
-  --destructive: 0 70% 58%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 25 16% 20%;
-  --input: 25 16% 20%;
-  --ring: 22 62% 58%;
-  --income: 120 25% 52%;
-  --expense: 21 41% 58%;
-  --neutral: 38 80% 52%;
-  --info: 196 50% 52%;
-  --surface-0: 25 28% 8%;
-  --surface-1: 25 24% 11%;
-  --surface-2: 25 20% 14%;
-  --surface-3: 25 16% 18%;
-  --dot: 25 16% 17%;
+/* Shimmer text effect */
+.shimmer-text {
+  background: linear-gradient(
+    105deg,
+    hsl(42 55% 45%) 0%,
+    hsl(42 80% 72%) 40%,
+    hsl(42 55% 45%) 60%,
+    hsl(42 80% 72%) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
 }

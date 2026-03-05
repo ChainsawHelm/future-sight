@@ -1,17 +1,26 @@
 import type { Metadata } from 'next';
-import { Inter, DM_Mono } from 'next/font/google';
+import { Bodoni_Moda, Outfit, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
+const bodoniModa = Bodoni_Moda({
   subsets: ['latin'],
-  variable: '--font-sans',
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800'],
+  style: ['normal', 'italic'],
   display: 'swap',
 });
 
-const dmMono = DM_Mono({
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
-  weight: ['300', '400', '500'],
+  weight: ['300', '400', '500', '600'],
   display: 'swap',
 });
 
@@ -25,12 +34,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#F6F3EE" />
+        <meta name="theme-color" content="#07080F" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className={`${inter.variable} ${dmMono.variable} font-sans antialiased`}>
+      <body className={`${bodoniModa.variable} ${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>

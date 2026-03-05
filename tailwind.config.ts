@@ -39,24 +39,15 @@ const config: Config = {
           DEFAULT:    'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Financial semantic colors (CSS variable-backed)
         income:   'hsl(var(--income))',
         expense:  'hsl(var(--expense))',
         neutral:  'hsl(var(--neutral))',
         info:     'hsl(var(--info))',
-        // Surface layers
         surface: {
           0: 'hsl(var(--surface-0))',
           1: 'hsl(var(--surface-1))',
           2: 'hsl(var(--surface-2))',
           3: 'hsl(var(--surface-3))',
-        },
-        // Static fallback (for compatibility)
-        navy: {
-          DEFAULT: '#1B3A5C',
-          300: '#7596BA',
-          400: '#4773A3',
-          500: '#1B3A5C',
         },
         transfer: '#6366F1',
         savings:  'hsl(var(--income))',
@@ -65,7 +56,7 @@ const config: Config = {
       fontFamily: {
         sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],
         mono:    ['var(--font-mono)', 'Consolas', 'monospace'],
-        display: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
       },
 
       fontSize: {
@@ -76,30 +67,33 @@ const config: Config = {
       borderRadius: {
         sm:    '0.375rem',
         DEFAULT: '0.5rem',
-        md:    '0.5rem',
-        lg:    '0.75rem',
+        md:    '0.625rem',
+        lg:    '0.875rem',
         xl:    '1rem',
-        '2xl': '1.25rem',
-        '3xl': '1.5rem',
+        '2xl': '1.125rem',
+        '3xl': '1.375rem',
         full:  '9999px',
       },
 
       animation: {
-        'fade-in':     'fadeUp 0.3s ease-out both',
-        'slide-up':    'slideUp 0.35s ease-out both',
+        'fade-in':     'fadeUp 0.35s ease-out both',
+        'slide-up':    'slideUp 0.4s ease-out both',
         'slide-down':  'slideDown 0.3s ease-out both',
-        'bar-fill':    'bar-fill 0.6s ease-out both',
+        'bar-fill':    'bar-fill 0.7s ease-out both',
         'pulse-dot':   'pulse-dot 2s ease-in-out infinite',
         'ring-draw':   'ring-draw 0.8s ease-out both',
+        'gold-pulse':  'gold-pulse 3s ease-in-out infinite',
+        'shimmer':     'shimmer 3s linear infinite',
+        'float':       'float 3.5s ease-in-out infinite',
       },
 
       keyframes: {
         fadeUp: {
-          from: { opacity: '0', transform: 'translateY(10px)' },
+          from: { opacity: '0', transform: 'translateY(12px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
         slideUp: {
-          from: { opacity: '0', transform: 'translateY(16px)' },
+          from: { opacity: '0', transform: 'translateY(18px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
         slideDown: {
@@ -112,31 +106,47 @@ const config: Config = {
         },
         'pulse-dot': {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-          '50%':      { opacity: '0.5', transform: 'scale(0.75)' },
+          '50%':      { opacity: '0.4', transform: 'scale(0.75)' },
         },
         'ring-draw': {
           from: { strokeDashoffset: '502' },
+        },
+        'gold-pulse': {
+          '0%, 100%': { boxShadow: '0 0 0 0 hsl(42 55% 55% / 0)' },
+          '50%':      { boxShadow: '0 0 12px 4px hsl(42 55% 55% / 0.15)' },
+        },
+        shimmer: {
+          '0%':   { backgroundPosition: '-200% center' },
+          '100%': { backgroundPosition:  '200% center' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%':      { transform: 'translateY(-5px)' },
         },
       },
 
       boxShadow: {
         'soft':       '0 1px 3px hsl(var(--foreground) / 0.06), 0 4px 16px hsl(var(--foreground) / 0.04)',
         'medium':     '0 2px 8px hsl(var(--foreground) / 0.08), 0 8px 24px hsl(var(--foreground) / 0.05)',
-        'glow-purple':'0 0 20px hsl(120 25% 50% / 0.22), 0 0 40px hsl(120 25% 50% / 0.08)',
+        'gold':       '0 0 20px hsl(42 55% 55% / 0.18), 0 0 60px hsl(42 55% 55% / 0.06)',
+        'gold-sm':    '0 0 10px hsl(42 55% 55% / 0.22)',
         'glow-green': '0 0 20px hsl(var(--income) / 0.2), 0 0 40px hsl(var(--income) / 0.08)',
         'glow-red':   '0 0 20px hsl(var(--expense) / 0.2)',
         'panel':      '0 1px 0 hsl(var(--border)), 0 0 0 1px hsl(var(--border) / 0.5)',
         'inner':      'inset 0 1px 2px hsl(var(--foreground) / 0.04)',
-        'card':       '0 1px 3px hsl(196 19% 15% / 0.06), 0 4px 12px hsl(196 19% 15% / 0.04)',
+        'card':       '0 1px 3px hsl(235 35% 5% / 0.3), 0 4px 12px hsl(235 35% 5% / 0.2)',
       },
 
       backgroundImage: {
-        'dot-grid': 'radial-gradient(circle, hsl(var(--dot)) 1px, transparent 1px)',
+        'dot-grid':        'linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px)',
+        'fenix-grid':      'linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px)',
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gold-gradient':   'linear-gradient(135deg, hsl(42 80% 72%), hsl(38 60% 48%))',
       },
 
       backgroundSize: {
-        'dot': '28px 28px',
+        'dot':   '28px 28px',
+        'fenix': '40px 40px',
       },
     },
   },

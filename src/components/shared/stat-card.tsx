@@ -44,8 +44,8 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'relative bg-surface-1 border border-border overflow-hidden group',
-        'hover:border-border/80 transition-colors duration-200',
+        'relative bg-surface-1 border border-border rounded-[14px] overflow-hidden group',
+        'hover:border-primary/20 transition-colors duration-200',
         'animate-fade-in',
         className
       )}
