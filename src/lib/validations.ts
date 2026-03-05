@@ -37,7 +37,7 @@ export const transactionBulkDeleteSchema = z.object({
 
 export const transactionQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  limit: z.coerce.number().int().min(1).max(5000).default(50),
   sort: z.enum(['date', 'amount', 'description', 'category']).default('date'),
   order: z.enum(['asc', 'desc']).default('desc'),
   category: z.string().optional(),

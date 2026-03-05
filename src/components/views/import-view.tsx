@@ -76,7 +76,7 @@ export function ImportView() {
     const dateFrom = dates[0];
     const dateTo = dates[dates.length - 1];
     try {
-      const res = await transactionsApi.list({ dateFrom, dateTo, limit: 9999 });
+      const res = await transactionsApi.list({ dateFrom, dateTo, limit: 5000 });
       return (res?.transactions || []).map((t: any) => ({ date: t.date, amount: t.amount, description: t.description }));
     } catch {
       return [];

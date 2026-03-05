@@ -348,23 +348,6 @@ export function SankeyChart({ transactions, period }: SankeyChartProps) {
 
   return (
     <div ref={containerRef} className="w-full">
-      {/* Column headers */}
-      <div className="flex mb-2" style={{ paddingLeft: 0 }}>
-        {colLabels.map((label, i) => (
-          <div
-            key={label}
-            className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground text-center"
-            style={{
-              position: 'absolute',
-              left: `${colFracs[i] * 100}%`,
-              width: `${((colFracs[i + 1] || 1) - colFracs[i]) * 100}%`,
-            }}
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
       <div className="relative">
         {/* Column labels as a flex row above SVG */}
         <div className="flex text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
