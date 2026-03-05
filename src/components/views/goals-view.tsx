@@ -189,7 +189,7 @@ export function GoalsView() {
             </div>
             {form.linkedAccount ? (
               <div className="space-y-1.5">
-                <label className="ticker">Stack Position <span className="text-muted-foreground/60">(1 = funded first)</span></label>
+                <label className="ticker">Priority <span className="text-muted-foreground/60">(1 = funded first)</span></label>
                 <Input type="number" min="1" value={form.priorityOrder}
                   onChange={e => setForm(f => ({ ...f, priorityOrder: e.target.value }))}
                   placeholder={String((accountGroups[form.linkedAccount]?.length ?? 0) + 1)} />
