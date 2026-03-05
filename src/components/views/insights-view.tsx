@@ -268,6 +268,60 @@ export function InsightsView() {
     alerts.push({ type: 'info', title: `Unusual charge: ${t.description.slice(0, 30)}`, body: `${formatCurrency(Math.abs(t.amount))} on ${t.date} — your typical spend here is ${formatCurrency(avg)}.` });
   }
 
+  // ─── Budget adherence (last 6 complete months) ────────────────────────────
+  const adherenceMonths = [...past6Months].reverse(); // oldest → newest
+
+  interface MonthCell { month: string; spent: number; pct: number; }
+  interface CatAdherence {
+    category: string; limit: number;
+    monthly: MonthCell[];
+    overCount: number; avgPct: number;
+    trend: 'improving' | 'worsening' | 'stable';
+    tip: string;
+  }
+
+  const budgetAdherenceData: CatAdherence[] = budgets.map(b => {
+    const monthly: MonthCell[] = adherenceMonths.map(m => {
+      const spent = (byMonth[m] || [])
+        .filter(t => isRealExpense(t) && t.category === b.category)
+        .reduce((s, t) => s + Math.abs(t.amount), 0);
+      return { month: m.slice(5), spent, pct: b.monthlyLimit > 0 ? (spent / b.monthlyLimit) * 100 : 0 };
+    });
+    const dataMonths = monthly.filter(m => m.spent > 0);
+    if (dataMonths.length === 0) return null;
+
+    const overCount = monthly.filter(m => m.pct > 100).length;
+    const avgPct = monthly.reduce((s, m) => s + m.pct, 0) / monthly.length;
+    const first3 = monthly.slice(0, 3).reduce((s, m) => s + m.pct, 0) / 3;
+    const last3  = monthly.slice(3).reduce((s, m) => s + m.pct, 0) / 3;
+    const trend: 'improving' | 'worsening' | 'stable' =
+      last3 < first3 - 10 ? 'improving' : last3 > first3 + 10 ? 'worsening' : 'stable';
+
+    const avgSpend = dataMonths.reduce((s, m) => s + m.spent, 0) / dataMonths.length;
+    let tip = '';
+    if (overCount >= 4) {
+      const suggested = Math.ceil(avgSpend / 10) * 10;
+      tip = `Exceeded ${overCount} of 6 months. Average spend is ${formatCurrency(avgSpend)}. Raise limit to ${formatCurrency(suggested)} or actively cut back.`;
+    } else if (trend === 'worsening' && overCount >= 2) {
+      const inc = ((last3 - first3) / Math.max(first3, 1) * 100).toFixed(0);
+      tip = `Spending trending up ${inc}% over the last 3 months. Address this before it becomes a consistent habit.`;
+    } else if (trend === 'improving' && overCount >= 1) {
+      tip = `Spending has been declining — down from recent highs. Keep the momentum.`;
+    } else if (overCount === 2) {
+      tip = `Two overages in 6 months. Monitor this — a pattern may be forming.`;
+    } else if (overCount === 1) {
+      tip = `One overage in 6 months. Likely a one-time event. Keep an eye on it.`;
+    }
+
+    return { category: b.category, limit: b.monthlyLimit, monthly, overCount, avgPct, trend, tip };
+  }).filter(Boolean) as CatAdherence[];
+
+  const monthlyAdherenceScore = adherenceMonths.map((_, i) => {
+    const withData  = budgetAdherenceData.filter(d => d.monthly[i].spent > 0);
+    const onBudget  = withData.filter(d => d.monthly[i].pct <= 100);
+    return withData.length > 0 ? Math.round((onBudget.length / withData.length) * 100) : null;
+  });
+
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Header */}
@@ -301,6 +355,112 @@ export function InsightsView() {
               <AlertCard key={i} type={a.type} title={a.title} body={a.body} />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Budget adherence heatmap */}
+      {budgetAdherenceData.length > 0 && (
+        <div className="border border-border bg-surface-1 p-4">
+          <div className="flex items-start justify-between flex-wrap gap-2 mb-1">
+            <p className="ticker">Budget Adherence — Last 6 Months</p>
+            <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground">
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 bg-income/40 inline-block" />On budget</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 bg-yellow-500/40 inline-block" />Near limit</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 bg-expense/40 inline-block" />Over</span>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-mono mb-4">Complete months only. Current month excluded.</p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs font-mono border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left ticker py-1.5 pr-4 min-w-[130px]">Category</th>
+                  {adherenceMonths.map(m => (
+                    <th key={m} className="ticker py-1.5 px-2 text-center min-w-[52px]">{m.slice(5)}</th>
+                  ))}
+                  <th className="ticker py-1.5 px-2 text-center min-w-[44px]">Avg</th>
+                  <th className="ticker py-1.5 px-3 text-left">Trend</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {budgetAdherenceData.map(d => (
+                  <tr key={d.category}>
+                    <td className="py-2 pr-4">
+                      <div className="flex items-center gap-1.5">
+                        <CategoryDot category={d.category} />
+                        <span className="text-foreground/80 text-[11px]">{d.category}</span>
+                      </div>
+                      <p className="text-[9px] text-muted-foreground mt-0.5 ml-4">{formatCurrency(d.limit)}/mo</p>
+                    </td>
+                    {d.monthly.map((m, i) => {
+                      const bg = m.spent === 0 ? '' : m.pct <= 80 ? 'bg-income/10 text-income' : m.pct <= 100 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-expense/10 text-expense';
+                      return (
+                        <td key={i} className="py-2 px-2 text-center">
+                          {m.spent === 0
+                            ? <span className="text-[10px] text-muted-foreground/30">—</span>
+                            : <span className={cn('text-[10px] font-semibold px-1 py-0.5 inline-block', bg)}>{m.pct.toFixed(0)}%</span>
+                          }
+                        </td>
+                      );
+                    })}
+                    <td className="py-2 px-2 text-center">
+                      <span className={cn('text-[10px] font-semibold', d.avgPct <= 80 ? 'text-income' : d.avgPct <= 100 ? 'text-yellow-400' : 'text-expense')}>
+                        {d.avgPct.toFixed(0)}%
+                      </span>
+                    </td>
+                    <td className="py-2 px-3">
+                      <span className={cn('text-[10px]', d.trend === 'improving' ? 'text-income' : d.trend === 'worsening' ? 'text-expense' : 'text-muted-foreground')}>
+                        {d.trend === 'improving' ? '↓ improving' : d.trend === 'worsening' ? '↑ worsening' : '→ stable'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-border">
+                  <td className="py-2 pr-4 ticker text-[10px]">Monthly score</td>
+                  {monthlyAdherenceScore.map((score, i) => (
+                    <td key={i} className="py-2 px-2 text-center">
+                      {score === null
+                        ? <span className="text-[10px] text-muted-foreground/30">—</span>
+                        : <span className={cn('text-[10px] font-semibold font-mono', score >= 80 ? 'text-income' : score >= 60 ? 'text-yellow-400' : 'text-expense')}>{score}%</span>
+                      }
+                    </td>
+                  ))}
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Improvement tips */}
+          {budgetAdherenceData.some(d => d.tip) && (
+            <div className="mt-4 pt-4 border-t border-border space-y-2">
+              <p className="ticker text-[10px] mb-2">Improvement Analysis</p>
+              {budgetAdherenceData.filter(d => d.tip).map(d => (
+                <div key={d.category} className={cn(
+                  'flex gap-3 px-3 py-2.5 border text-xs',
+                  d.trend === 'improving' ? 'border-income/30 bg-income/5'
+                  : d.overCount >= 4       ? 'border-expense/30 bg-expense/5'
+                  :                          'border-yellow-500/30 bg-yellow-500/5'
+                )}>
+                  <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                    <CategoryDot category={d.category} />
+                    <span className="font-semibold">{d.category}</span>
+                  </div>
+                  <p className="text-muted-foreground leading-relaxed">{d.tip}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {budgets.length === 0 && (
+        <div className="border border-border bg-surface-1 px-5 py-4 flex items-center gap-3 text-sm text-muted-foreground font-mono">
+          <span className="text-muted-foreground/40">▸</span>
+          Set budgets in the Budget tab to see month-over-month adherence tracking here.
         </div>
       )}
 

@@ -310,6 +310,7 @@ model Subscription {
   nextBillDate  DateTime? @db.Date
   isAutoDetected Boolean @default(false)
   isActive      Boolean  @default(true)
+  cancelStatus  String   @default("active") // "active", "planned", "marked", "cancelled"
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

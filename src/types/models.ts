@@ -147,6 +147,7 @@ export interface Subscription {
   nextBillDate?: string | null;
   isAutoDetected: boolean;
   isActive: boolean;
+  cancelStatus: 'active' | 'planned' | 'marked' | 'cancelled';
 }
 
 // ─── Dashboard ──────────────────────────────
