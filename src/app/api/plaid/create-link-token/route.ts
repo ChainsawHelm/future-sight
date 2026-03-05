@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/lib/auth';
 import { plaidClient } from '@/lib/plaid';
 import { Products, CountryCode } from 'plaid';
 
-export async function POST(req: any) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  if (!token?.id) {
+export async function POST() {
+  const session = await auth();
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
     const response = await plaidClient.linkTokenCreate({
-      user: { client_user_id: token.id as string },
+      user: { client_user_id: session.user.id },
       client_name: 'Future Sight',
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
