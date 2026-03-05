@@ -73,6 +73,7 @@ export interface SavingsGoal {
   icon?: string | null;
   color?: string | null;
   priority: 'low' | 'medium' | 'high';
+  priorityOrder: number;
   status: 'active' | 'completed' | 'paused';
   contributions: GoalContribution[];
   createdAt: string;

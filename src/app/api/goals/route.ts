@@ -22,13 +22,22 @@ export async function GET() {
   const result = await requireAuth();
   if ('error' in result) return result.error;
 
-  const goals = await prisma.savingsGoal.findMany({
-    where: { userId: result.userId },
-    include: { contributions: { orderBy: { date: 'desc' } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [goals, assets] = await Promise.all([
+    prisma.savingsGoal.findMany({
+      where: { userId: result.userId },
+      include: { contributions: { orderBy: { date: 'desc' } } },
+      orderBy: [{ priorityOrder: 'asc' }, { createdAt: 'asc' }],
+    }),
+    prisma.asset.findMany({
+      where: { userId: result.userId },
+      select: { id: true, name: true, value: true, type: true },
+    }),
+  ]);
 
-  return NextResponse.json({ goals: goals.map(serializeGoal) });
+  return NextResponse.json({
+    goals: goals.map(serializeGoal),
+    assets: assets.map(a => ({ id: a.id, name: a.name, value: Number(a.value), type: a.type })),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -50,6 +59,7 @@ export async function POST(req: NextRequest) {
         icon: data.icon,
         color: data.color,
         priority: data.priority,
+        priorityOrder: data.priorityOrder,
       },
       include: { contributions: true },
     });

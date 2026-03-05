@@ -83,6 +83,7 @@ export const goalCreateSchema = z.object({
   icon: z.string().max(50).optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
+  priorityOrder: z.number().int().min(0).default(0),
 });
 
 export const goalUpdateSchema = goalCreateSchema.partial().extend({
