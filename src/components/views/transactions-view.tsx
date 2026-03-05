@@ -49,7 +49,6 @@ export function TransactionsView() {
   const transactions = data?.transactions || [];
   const pagination = data?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 };
 
-  // Get unique accounts for filter
   const accounts = [...new Set(transactions.map((t) => t.account))].sort();
 
   const toggleSelect = (id: string) => {
@@ -111,11 +110,11 @@ export function TransactionsView() {
   };
 
   const SortIcon = ({ field }: { field: string }) => {
-    if (query.sort !== field) return null;
+    if (query.sort !== field) return <span className="opacity-20 ml-1">↕</span>;
     return (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline ml-1">
-        <path d={query.order === 'asc' ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
-      </svg>
+      <span className="ml-1 text-primary">
+        {query.order === 'asc' ? '↑' : '↓'}
+      </span>
     );
   };
 
@@ -124,19 +123,23 @@ export function TransactionsView() {
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Transactions</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {pagination.total.toLocaleString()} total
-          </p>
+      <div className="border border-border bg-surface-1 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="ticker mb-1">Ledger</p>
+            <h1 className="text-xl font-bold tracking-tight">Transactions</h1>
+          </div>
+          <div className="text-right">
+            <p className="numeral text-2xl font-bold tabnum">{pagination.total.toLocaleString()}</p>
+            <p className="ticker">total records</p>
+          </div>
         </div>
       </div>
 
       {/* Filters bar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
           </svg>
           <Input
@@ -147,11 +150,10 @@ export function TransactionsView() {
           />
         </div>
 
-        {/* Category filter */}
         <select
           value={filterCategory}
           onChange={(e) => { setFilterCategory(e.target.value); setQuery((q) => ({ ...q, page: 1 })); }}
-          className="h-9 rounded-lg border bg-background px-3 text-sm"
+          className="h-9 border border-border bg-surface-1 px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:border-primary transition-colors"
         >
           <option value="">All categories</option>
           {categories?.map((c) => (
@@ -159,12 +161,11 @@ export function TransactionsView() {
           ))}
         </select>
 
-        {/* Account filter */}
         {accounts.length > 1 && (
           <select
             value={filterAccount}
             onChange={(e) => { setFilterAccount(e.target.value); setQuery((q) => ({ ...q, page: 1 })); }}
-            className="h-9 rounded-lg border bg-background px-3 text-sm"
+            className="h-9 border border-border bg-surface-1 px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:border-primary transition-colors"
           >
             <option value="">All accounts</option>
             {accounts.map((a) => (
@@ -176,12 +177,12 @@ export function TransactionsView() {
 
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg bg-navy-50 dark:bg-navy-900/30 border border-navy-200 dark:border-navy-800 px-4 py-2 animate-slide-down">
-          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+        <div className="flex items-center gap-3 border border-primary/30 bg-primary/5 px-4 py-2.5 animate-fade-in">
+          <span className="ticker text-primary">{selectedIds.size} selected</span>
           <div className="flex-1" />
           <select
             onChange={(e) => { if (e.target.value) handleBulkRecategorize(e.target.value); e.target.value = ''; }}
-            className="h-8 rounded-md border bg-background px-2 text-xs"
+            className="h-7 border border-border bg-surface-2 px-2 text-xs font-mono focus:outline-none focus:border-primary"
             defaultValue=""
           >
             <option value="" disabled>Recategorize...</option>
@@ -192,7 +193,7 @@ export function TransactionsView() {
           <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
             Delete
           </Button>
-          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-muted-foreground hover:underline">
+          <button onClick={() => setSelectedIds(new Set())} className="ticker text-muted-foreground hover:text-foreground transition-colors">
             Clear
           </button>
         </div>
@@ -208,33 +209,35 @@ export function TransactionsView() {
           description={search || filterCategory ? 'Try adjusting your filters' : 'Import a bank statement to get started'}
         />
       ) : (
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="border border-border bg-surface-1 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="w-10 px-3 py-3">
+                <tr className="border-b border-border bg-surface-2">
+                  <th className="w-10 px-3 py-2.5">
                     <input
                       type="checkbox"
                       checked={selectedIds.size === transactions.length && transactions.length > 0}
                       onChange={toggleSelectAll}
-                      className="rounded"
+                      className="w-3.5 h-3.5 accent-primary"
                     />
                   </th>
-                  <th className="text-left px-3 py-3 cursor-pointer select-none" onClick={() => toggleSort('date')}>
-                    Date <SortIcon field="date" />
+                  <th className="text-left px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('date')}>
+                    <span className="ticker">Date <SortIcon field="date" /></span>
                   </th>
-                  <th className="text-left px-3 py-3 cursor-pointer select-none" onClick={() => toggleSort('description')}>
-                    Description <SortIcon field="description" />
+                  <th className="text-left px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('description')}>
+                    <span className="ticker">Description <SortIcon field="description" /></span>
                   </th>
-                  <th className="text-left px-3 py-3 cursor-pointer select-none" onClick={() => toggleSort('category')}>
-                    Category <SortIcon field="category" />
+                  <th className="text-left px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('category')}>
+                    <span className="ticker">Category <SortIcon field="category" /></span>
                   </th>
-                  <th className="text-left px-3 py-3">Account</th>
-                  <th className="text-right px-3 py-3 cursor-pointer select-none" onClick={() => toggleSort('amount')}>
-                    Amount <SortIcon field="amount" />
+                  <th className="text-left px-3 py-2.5">
+                    <span className="ticker">Account</span>
                   </th>
-                  <th className="w-10 px-3 py-3"></th>
+                  <th className="text-right px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('amount')}>
+                    <span className="ticker">Amount <SortIcon field="amount" /></span>
+                  </th>
+                  <th className="w-10 px-3 py-2.5"></th>
                 </tr>
               </thead>
               <tbody>
@@ -242,9 +245,9 @@ export function TransactionsView() {
                   <tr
                     key={t.id}
                     className={cn(
-                      'border-b last:border-0 transition-colors hover:bg-muted/20',
-                      t.flagged && 'bg-yellow-50/50 dark:bg-yellow-900/10',
-                      selectedIds.has(t.id) && 'bg-navy-50/50 dark:bg-navy-900/20'
+                      'border-b border-border last:border-0 transition-colors hover:bg-surface-2/60',
+                      t.flagged && 'bg-yellow-500/5',
+                      selectedIds.has(t.id) && 'bg-primary/5'
                     )}
                   >
                     <td className="px-3 py-2.5">
@@ -252,10 +255,10 @@ export function TransactionsView() {
                         type="checkbox"
                         checked={selectedIds.has(t.id)}
                         onChange={() => toggleSelect(t.id)}
-                        className="rounded"
+                        className="w-3.5 h-3.5 accent-primary"
                       />
                     </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground tabnum text-xs">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground tabnum font-mono text-xs">
                       {formatDate(t.date)}
                     </td>
                     <td className="px-3 py-2.5 max-w-[250px]">
@@ -269,7 +272,7 @@ export function TransactionsView() {
                       ) : (
                         <button
                           onClick={() => startEdit(t)}
-                          className="text-left truncate block max-w-full hover:text-navy-500 transition-colors"
+                          className="text-left truncate block max-w-full text-foreground/90 hover:text-primary transition-colors text-xs"
                           title={t.originalDescription || t.description}
                         >
                           {t.description}
@@ -281,7 +284,7 @@ export function TransactionsView() {
                         <select
                           value={editFields.category || ''}
                           onChange={(e) => setEditFields((f) => ({ ...f, category: e.target.value }))}
-                          className="h-7 rounded border bg-background px-2 text-xs"
+                          className="h-7 border border-border bg-surface-2 px-2 text-xs font-mono focus:outline-none focus:border-primary"
                         >
                           {categories?.map((c) => (
                             <option key={c.id} value={c.name}>{c.name}</option>
@@ -291,27 +294,27 @@ export function TransactionsView() {
                         <CategoryBadge category={t.category} />
                       )}
                     </td>
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground">{t.account}</td>
+                    <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground">{t.account}</td>
                     <td className="px-3 py-2.5 text-right">
                       <Amount value={t.amount} size="sm" showSign />
                     </td>
                     <td className="px-3 py-2.5">
                       {editingId === t.id ? (
-                        <div className="flex gap-1">
-                          <button onClick={saveEdit} className="text-green-600 hover:text-green-700" title="Save">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>
+                        <div className="flex gap-1.5">
+                          <button onClick={saveEdit} className="text-primary hover:text-primary/70 transition-colors" title="Save">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
                           </button>
-                          <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground" title="Cancel">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                          <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground transition-colors" title="Cancel">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
                           </button>
                         </div>
                       ) : (
                         <button
                           onClick={() => startEdit(t)}
-                          className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                          className="text-muted-foreground/30 hover:text-muted-foreground transition-colors"
                           title="Edit"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                             <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
@@ -326,8 +329,8 @@ export function TransactionsView() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-surface-2">
+              <p className="ticker">
                 Page {pagination.page} of {pagination.totalPages}
               </p>
               <div className="flex gap-1">
@@ -337,7 +340,7 @@ export function TransactionsView() {
                   disabled={pagination.page <= 1}
                   onClick={() => setPage(pagination.page - 1)}
                 >
-                  Previous
+                  ← Prev
                 </Button>
                 <Button
                   variant="outline"
@@ -345,7 +348,7 @@ export function TransactionsView() {
                   disabled={pagination.page >= pagination.totalPages}
                   onClick={() => setPage(pagination.page + 1)}
                 >
-                  Next
+                  Next →
                 </Button>
               </div>
             </div>

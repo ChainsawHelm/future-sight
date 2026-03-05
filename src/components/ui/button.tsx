@@ -4,22 +4,22 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
+  'inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-40 active:scale-[0.98] tracking-wide',
   {
     variants: {
       variant: {
-        default: 'bg-navy-500 text-white hover:bg-navy-600 shadow-sm',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
+        default:     'bg-primary text-primary-foreground hover:bg-primary/85 shadow-[0_0_12px_hsl(var(--primary)/0.2)]',
+        destructive: 'bg-expense/10 text-expense border border-expense/40 hover:bg-expense/15',
+        outline:     'border border-border bg-transparent hover:border-primary/50 hover:text-primary text-muted-foreground',
+        secondary:   'bg-surface-2 text-foreground border border-border hover:bg-surface-3',
+        ghost:       'text-muted-foreground hover:bg-surface-2 hover:text-foreground',
+        link:        'text-primary underline-offset-4 hover:underline p-0 h-auto',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-lg px-8 text-base',
-        icon: 'h-10 w-10',
+        default: 'h-9 px-4',
+        sm:      'h-7 px-3 text-xs',
+        lg:      'h-11 px-6 text-base',
+        icon:    'h-9 w-9',
       },
     },
     defaultVariants: {

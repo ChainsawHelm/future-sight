@@ -13,6 +13,20 @@ interface ScoreComponent {
   description: string;
 }
 
+const SCORE_COLOR = (score: number) => {
+  if (score >= 80) return 'hsl(var(--primary))';
+  if (score >= 60) return '#facc15';
+  if (score >= 40) return '#fb923c';
+  return 'hsl(var(--expense))';
+};
+
+const SCORE_LABEL = (score: number) => {
+  if (score >= 80) return 'Excellent';
+  if (score >= 60) return 'Good';
+  if (score >= 40) return 'Fair';
+  return 'Needs Work';
+};
+
 export function HealthScoreView() {
   const { data: dash, isLoading: l1, error: e1 } = useFetch(() => dashboardApi.get(), []);
   const { data: debtsData, isLoading: l2 } = useFetch(() => debtsApi.list(), []);
@@ -28,21 +42,20 @@ export function HealthScoreView() {
   const budgets = budgetData?.budgets || [];
   const txns = txnData?.transactions || [];
 
-  // Calculate component scores
   const components: ScoreComponent[] = [];
 
-  // 1. Savings rate (0-25 pts)
+  // Savings rate (0-25 pts)
   const savingsRate = overview.monthlyIncome > 0 ? overview.netSavings / overview.monthlyIncome : 0;
   const savingsScore = Math.min(Math.max(savingsRate * 100, 0), 25);
   components.push({ name: 'Savings Rate', score: Math.round(savingsScore), max: 25, description: `${(savingsRate * 100).toFixed(0)}% of income saved` });
 
-  // 2. Debt-to-income (0-25 pts)
+  // Debt-to-income (0-25 pts)
   const totalDebtPayments = debts.reduce((s, d) => s + d.minimumPayment + d.extraPayment, 0);
   const dti = overview.monthlyIncome > 0 ? totalDebtPayments / overview.monthlyIncome : 0;
   const dtiScore = Math.max(25 - dti * 50, 0);
   components.push({ name: 'Debt-to-Income', score: Math.round(dtiScore), max: 25, description: `${(dti * 100).toFixed(0)}% DTI ratio` });
 
-  // 3. Budget adherence (0-25 pts)
+  // Budget adherence (0-25 pts)
   let budgetAdherence = budgets.length > 0 ? 25 : 12;
   if (budgets.length > 0) {
     const spending: Record<string, number> = {};
@@ -57,7 +70,7 @@ export function HealthScoreView() {
   }
   components.push({ name: 'Budget Adherence', score: budgetAdherence, max: 25, description: budgets.length > 0 ? `${budgetAdherence} of 25 categories on budget` : 'No budgets set' });
 
-  // 4. Emergency fund (0-25 pts)
+  // Emergency fund (0-25 pts)
   const emergencyTarget = overview.monthlyExpenses * 3;
   const emergencyRatio = emergencyTarget > 0 ? Math.min(overview.totalAssets / emergencyTarget, 1) : 0;
   const emergencyScore = Math.round(emergencyRatio * 25);
@@ -65,77 +78,109 @@ export function HealthScoreView() {
 
   const totalScore = components.reduce((s, c) => s + c.score, 0);
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-500';
-    if (score >= 40) return 'text-orange-500';
-    return 'text-red-500';
-  };
-
-  const getScoreLabel = (score: number) => {
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
-    if (score >= 40) return 'Fair';
-    return 'Needs Work';
-  };
-
-  const getArcColor = (score: number) => {
-    if (score >= 80) return '#16A34A';
-    if (score >= 60) return '#EAB308';
-    if (score >= 40) return '#F97316';
-    return '#EF4444';
-  };
-
-  // SVG arc for score display
+  // SVG arc
   const radius = 80;
   const circumference = 2 * Math.PI * radius;
   const arcLength = (totalScore / 100) * circumference;
+  const arcColor = SCORE_COLOR(totalScore);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold">Financial Health Score</h1>
-        <p className="text-sm text-muted-foreground mt-1">A composite score based on your financial habits</p>
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="border border-border bg-surface-1 px-5 py-4">
+        <p className="ticker mb-1">Diagnostics</p>
+        <h1 className="text-xl font-bold tracking-tight">Financial Health Score</h1>
       </div>
 
-      {/* Score circle */}
-      <div className="rounded-xl border bg-card p-8 shadow-sm flex flex-col items-center">
-        <div className="relative w-48 h-48">
+      {/* Score dial */}
+      <div className="border border-border bg-surface-1 p-8 flex flex-col items-center">
+        <div className="relative w-52 h-52 mb-6">
+          {/* Dot grid behind dial */}
+          <div className="absolute inset-0 dot-grid opacity-30 rounded-full overflow-hidden" />
+
           <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
-            <circle cx="100" cy="100" r={radius} fill="none" strokeWidth="12" className="stroke-muted" />
+            {/* Track */}
+            <circle cx="100" cy="100" r={radius} fill="none" strokeWidth="10"
+              stroke="hsl(var(--surface-3))" />
+            {/* Arc */}
             <circle
-              cx="100" cy="100" r={radius} fill="none" strokeWidth="12"
-              stroke={getArcColor(totalScore)}
+              cx="100" cy="100" r={radius} fill="none" strokeWidth="10"
+              stroke={arcColor}
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={circumference - arcLength}
               className="transition-all duration-1000"
+              style={{ filter: `drop-shadow(0 0 10px ${arcColor}60)` }}
             />
           </svg>
+
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn('text-4xl font-bold tabnum', getScoreColor(totalScore))}>{totalScore}</span>
-            <span className="text-sm text-muted-foreground">{getScoreLabel(totalScore)}</span>
+            <span className="numeral text-5xl font-bold tabnum" style={{ color: arcColor }}>
+              {totalScore}
+            </span>
+            <span className="ticker mt-1" style={{ color: arcColor }}>
+              {SCORE_LABEL(totalScore)}
+            </span>
           </div>
+        </div>
+
+        {/* Score tiers legend */}
+        <div className="flex items-center gap-6">
+          {[
+            { label: 'Needs Work', range: '0–39', color: 'hsl(var(--expense))' },
+            { label: 'Fair', range: '40–59', color: '#fb923c' },
+            { label: 'Good', range: '60–79', color: '#facc15' },
+            { label: 'Excellent', range: '80+', color: 'hsl(var(--primary))' },
+          ].map((tier) => (
+            <div key={tier.label} className="flex items-center gap-1.5">
+              <div className="w-2 h-2" style={{ backgroundColor: tier.color }} />
+              <div>
+                <p className="font-mono text-[9px] font-semibold" style={{ color: tier.color }}>{tier.label}</p>
+                <p className="font-mono text-[9px] text-muted-foreground">{tier.range}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Component breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {components.map((c) => (
-          <div key={c.name} className="rounded-xl border bg-card p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold">{c.name}</h3>
-              <span className="text-sm font-bold tabnum">{c.score}/{c.max}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {components.map((c, i) => {
+          const pct = (c.score / c.max) * 100;
+          const color = SCORE_COLOR(pct);
+
+          return (
+            <div key={c.name} className="border border-border bg-surface-1 p-5 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: color }} />
+
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="ticker mb-0.5">Component {String(i + 1).padStart(2, '0')}</p>
+                  <h3 className="text-sm font-bold">{c.name}</h3>
+                </div>
+                <div className="text-right">
+                  <span className="numeral text-2xl font-bold tabnum" style={{ color }}>
+                    {c.score}
+                  </span>
+                  <span className="ticker ml-1">/{c.max}</span>
+                </div>
+              </div>
+
+              <div className="h-1.5 bg-surface-3 overflow-hidden mb-2">
+                <div
+                  className="h-full transition-all duration-700"
+                  style={{
+                    width: `${pct}%`,
+                    backgroundColor: color,
+                    boxShadow: `0 0 6px ${color}50`,
+                  }}
+                />
+              </div>
+
+              <p className="ticker">{c.description}</p>
             </div>
-            <div className="h-2 rounded-full bg-muted overflow-hidden mb-2">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${(c.score / c.max) * 100}%`, backgroundColor: getArcColor((c.score / c.max) * 100) }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">{c.description}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
