@@ -9,6 +9,7 @@ import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
 import { getCategoryColor } from '@/components/shared/category-badge';
 import { formatCurrency } from '@/lib/utils';
+import { isRealIncome, isRealExpense } from '@/lib/classify';
 import {
   PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
@@ -54,8 +55,8 @@ export function DashboardView() {
   for (const t of txns) {
     const m = t.date.slice(0, 7);
     if (!monthMap[m]) monthMap[m] = { income: 0, expenses: 0 };
-    if (t.amount > 0) monthMap[m].income += t.amount;
-    else monthMap[m].expenses += Math.abs(t.amount);
+    if (isRealIncome(t)) monthMap[m].income += t.amount;
+    else if (isRealExpense(t)) monthMap[m].expenses += Math.abs(t.amount);
   }
   const barData = Object.entries(monthMap)
     .sort(([a], [b]) => a.localeCompare(b))

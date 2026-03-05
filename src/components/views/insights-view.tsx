@@ -7,6 +7,7 @@ import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
 import { CategoryDot, getCategoryColor } from '@/components/shared/category-badge';
 import { formatCurrency } from '@/lib/utils';
+import { isRealExpense } from '@/lib/classify';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend,
@@ -36,10 +37,10 @@ export function InsightsView() {
   if (error) return <ErrorAlert message={error} retry={refetch} />;
   if (txns.length === 0) return <EmptyState title="No data yet" description="Import transactions to see insights." />;
 
-  // Top merchants
+  // Top merchants (real expenses only)
   const merchants: Record<string, { count: number; total: number }> = {};
   for (const t of txns) {
-    if (t.amount >= 0) continue;
+    if (!isRealExpense(t)) continue;
     const m = t.description.toUpperCase().slice(0, 25);
     if (!merchants[m]) merchants[m] = { count: 0, total: 0 };
     merchants[m].count++;
@@ -50,20 +51,20 @@ export function InsightsView() {
     .slice(0, 8)
     .map(([name, { count, total }]) => ({ name: name.slice(0, 18), total: Math.round(total), count }));
 
-  // Category totals for pie
+  // Category totals for pie (real expenses only)
   const catTotals: Record<string, number> = {};
   for (const t of txns) {
-    if (t.amount < 0) catTotals[t.category] = (catTotals[t.category] || 0) + Math.abs(t.amount);
+    if (isRealExpense(t)) catTotals[t.category] = (catTotals[t.category] || 0) + Math.abs(t.amount);
   }
   const pieData = Object.entries(catTotals)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 8)
     .map(([name, value]) => ({ name, value: Math.round(value), fill: getCategoryColor(name) }));
 
-  // Monthly spending trend
+  // Monthly spending trend (real expenses only)
   const monthTotals: Record<string, number> = {};
   for (const t of txns) {
-    if (t.amount < 0) {
+    if (isRealExpense(t)) {
       const m = t.date.slice(0, 7);
       monthTotals[m] = (monthTotals[m] || 0) + Math.abs(t.amount);
     }
@@ -76,8 +77,8 @@ export function InsightsView() {
   // Average monthly spending
   const avgMonthly = trendData.length > 0 ? trendData.reduce((s, d) => s + d.Spending, 0) / trendData.length : 0;
 
-  // Largest expenses
-  const largestExpenses = txns.filter(t => t.amount < 0).sort((a, b) => a.amount - b.amount).slice(0, 5);
+  // Largest expenses (real expenses only)
+  const largestExpenses = txns.filter(isRealExpense).sort((a, b) => a.amount - b.amount).slice(0, 5);
 
   return (
     <div className="space-y-6 animate-fade-in">

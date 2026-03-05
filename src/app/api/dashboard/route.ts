@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
+import { isRealIncome, isRealExpense } from '@/lib/classify';
 
 export async function GET() {
   const result = await requireAuth();
@@ -27,7 +28,7 @@ export async function GET() {
         userId,
         date: { gte: startOfMonth, lte: endOfMonth },
       },
-      select: { amount: true, category: true },
+      select: { amount: true, category: true, transferPairId: true },
     }),
     // Active goals summary
     prisma.savingsGoal.findMany({
@@ -44,7 +45,7 @@ export async function GET() {
       where: { userId },
       select: { name: true, value: true, type: true },
     }),
-    // Latest net worth snapshot
+    // Latest net worth snapshots
     prisma.netWorthSnapshot.findMany({
       where: { userId },
       orderBy: { date: 'desc' },
@@ -53,18 +54,18 @@ export async function GET() {
     }),
   ]);
 
-  // Calculate monthly income/expenses
+  // Calculate monthly income/expenses using classification
   let monthlyIncome = 0;
   let monthlyExpenses = 0;
   const categorySpending: Record<string, number> = {};
 
   for (const t of monthTxns) {
-    const amt = Number(t.amount);
-    if (amt > 0) {
-      monthlyIncome += amt;
-    } else {
-      monthlyExpenses += Math.abs(amt);
-      categorySpending[t.category] = (categorySpending[t.category] || 0) + Math.abs(amt);
+    const txn = { amount: Number(t.amount), category: t.category, transferPairId: t.transferPairId };
+    if (isRealIncome(txn)) {
+      monthlyIncome += txn.amount;
+    } else if (isRealExpense(txn)) {
+      monthlyExpenses += Math.abs(txn.amount);
+      categorySpending[t.category] = (categorySpending[t.category] || 0) + Math.abs(txn.amount);
     }
   }
 
