@@ -29,11 +29,12 @@ const nextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js needs inline scripts
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com", // Next.js needs inline scripts
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
-            "connect-src 'self'",
+            "connect-src 'self' https://*.plaid.com",
+            "frame-src https://*.plaid.com",
             "frame-ancestors 'none'",
             "form-action 'self'",
             "base-uri 'self'",

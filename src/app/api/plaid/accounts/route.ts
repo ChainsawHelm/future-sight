@@ -8,12 +8,44 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const userId = session.user.id;
+
   const items = await prisma.plaidItem.findMany({
-    where: { userId: session.user.id },
-    select: { id: true, institutionName: true, isActive: true, lastSynced: true, createdAt: true },
+    where: { userId },
+    include: {
+      accounts: {
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          accountId: true,
+          name: true,
+          officialName: true,
+          type: true,
+          subtype: true,
+          currentBalance: true,
+          availableBalance: true,
+          mask: true,
+          isoCurrencyCode: true,
+        },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   });
-  return NextResponse.json({ accounts: items });
+
+  const institutions = items.map((item) => ({
+    id: item.id,
+    institutionName: item.institutionName,
+    isActive: item.isActive,
+    lastSynced: item.lastSynced,
+    createdAt: item.createdAt,
+    accounts: item.accounts.map((a) => ({
+      ...a,
+      currentBalance: a.currentBalance !== null ? Number(a.currentBalance) : null,
+      availableBalance: a.availableBalance !== null ? Number(a.availableBalance) : null,
+    })),
+  }));
+
+  return NextResponse.json({ institutions });
 }
 
 export async function DELETE(req: any) {
@@ -24,9 +56,12 @@ export async function DELETE(req: any) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+
   const item = await prisma.plaidItem.findFirst({ where: { id, userId: session.user.id } });
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
   try { await plaidClient.itemRemove({ access_token: item.accessToken }); } catch {}
   await prisma.plaidItem.delete({ where: { id } });
+
   return NextResponse.json({ success: true });
 }

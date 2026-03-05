@@ -45,6 +45,7 @@ model User {
   achievements      Achievement[]
   settings          UserSettings?
   plaidItems        PlaidItem[]
+  plaidAccounts     PlaidAccount[]
 
   @@map("users")
 }
@@ -217,6 +218,7 @@ model Debt {
   dueDay          Int      @default(1)
   type            String   @default("other") // "mortgage", "auto", "student", "credit_card", "personal", "other"
   linkedAccount   String?
+  plaidAccountId  String?  @unique // Plaid account_id, set for auto-created debts
   status          String   @default("active") // "active", "paid_off"
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -230,13 +232,14 @@ model Debt {
 // ─── Assets & Net Worth ─────────────────────
 
 model Asset {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  value     Decimal  @db.Decimal(14, 2)
-  type      String   @default("other") // "checking", "savings", "investment", "retirement", "property", "vehicle", "other"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  value          Decimal  @db.Decimal(14, 2)
+  type           String   @default("other") // "checking", "savings", "investment", "retirement", "property", "vehicle", "other"
+  plaidAccountId String?  @unique // Plaid account_id, set for auto-created assets
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -349,19 +352,46 @@ model UserSettings {
 // ─── Plaid Integration ─────────────────────
 
 model PlaidItem {
-  id            String   @id @default(cuid())
-  userId        String
-  itemId        String   @unique
-  accessToken   String
-  institutionId String?
+  id              String   @id @default(cuid())
+  userId          String
+  itemId          String   @unique
+  accessToken     String
+  institutionId   String?
   institutionName String?
-  cursor        String?
-  lastSynced    DateTime?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  cursor          String?
+  lastSynced      DateTime?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts PlaidAccount[]
 
   @@map("plaid_items")
+}
+
+// ─── Plaid Individual Accounts ──────────────
+
+model PlaidAccount {
+  id               String   @id @default(cuid())
+  userId           String
+  plaidItemId      String
+  accountId        String   @unique // Plaid's account_id
+  name             String
+  officialName     String?
+  type             String   // depository, credit, loan, investment, brokerage, other
+  subtype          String?  // checking, savings, credit card, mortgage, student, etc.
+  currentBalance   Decimal? @db.Decimal(14, 2)
+  availableBalance Decimal? @db.Decimal(14, 2)
+  limitBalance     Decimal? @db.Decimal(14, 2)
+  mask             String?  // last 4 digits
+  isoCurrencyCode  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plaidItem PlaidItem @relation(fields: [plaidItemId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("plaid_accounts")
 }
