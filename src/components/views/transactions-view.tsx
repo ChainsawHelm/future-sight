@@ -206,9 +206,21 @@ function TransactionsViewInner() {
           className="h-9 rounded-md border border-border bg-background px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
         >
           <option value="">All categories</option>
-          {categories?.map((c) => (
-            <option key={c.id} value={c.name}>{c.name}</option>
-          ))}
+          <optgroup label="Expense">
+            {categories?.filter(c => c.type === 'expense').map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Income">
+            {categories?.filter(c => c.type === 'income').map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="System">
+            {categories?.filter(c => c.type === 'system').map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </optgroup>
         </select>
 
         {accounts.length > 1 && (
@@ -345,13 +357,33 @@ function TransactionsViewInner() {
                           autoFocus
                         />
                       ) : (
-                        <button
-                          onClick={() => startEdit(t)}
-                          className="text-left truncate block max-w-full text-foreground/90 hover:text-primary transition-colors text-xs"
-                          title={t.originalDescription || t.description}
-                        >
-                          {t.description}
-                        </button>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <button
+                            onClick={() => startEdit(t)}
+                            className="text-left truncate text-foreground/90 hover:text-primary transition-colors text-xs min-w-0"
+                            title={t.originalDescription ? `Original: ${t.originalDescription}` : t.description}
+                          >
+                            {t.description}
+                          </button>
+                          {/* Pencil badge — shown when description was manually edited */}
+                          {t.originalDescription && t.originalDescription !== t.description && (
+                            <span
+                              title={`Edited · Original: ${t.originalDescription}`}
+                              className="shrink-0 text-[9px] text-primary/60 hover:text-primary cursor-help transition-colors"
+                            >
+                              ✎
+                            </span>
+                          )}
+                          {/* Auto-matched badge */}
+                          {t.autoMatched && (
+                            <span
+                              title="Auto-categorized"
+                              className="shrink-0 text-[8px] font-mono bg-primary/10 text-primary px-1 rounded-sm"
+                            >
+                              auto
+                            </span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="px-3 py-2.5">
