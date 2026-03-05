@@ -4,72 +4,79 @@
 
 @layer base {
   /* ═══════════════════════════════════════════════
-     OBSIDIAN — Dark Financial Command Center
-     Primary palette: near-black + electric green
+     LUMINARY — Friendly Financial Companion
+     Primary palette: warm white + vibrant purple
+     Approachable, inviting, clean, and fun
   ═══════════════════════════════════════════════ */
   :root {
-    --background: 232 35% 4%;
-    --foreground: 220 28% 92%;
-    --card: 228 30% 7%;
-    --card-foreground: 220 28% 92%;
-    --popover: 228 30% 7%;
-    --popover-foreground: 220 28% 92%;
-    --primary: 152 100% 45%;
-    --primary-foreground: 232 35% 6%;
-    --secondary: 224 26% 12%;
-    --secondary-foreground: 220 28% 92%;
-    --muted: 224 26% 10%;
-    --muted-foreground: 220 17% 45%;
-    --accent: 224 26% 12%;
-    --accent-foreground: 220 28% 92%;
-    --destructive: 348 100% 60%;
-    --destructive-foreground: 220 28% 92%;
-    --border: 222 28% 13%;
-    --input: 222 28% 13%;
-    --ring: 152 100% 45%;
-    --radius: 0.25rem;
+    --background: 250 80% 99%;
+    --foreground: 255 45% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 255 45% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 255 45% 12%;
+    --primary: 263 68% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 262 50% 94%;
+    --secondary-foreground: 263 60% 30%;
+    --muted: 260 40% 96%;
+    --muted-foreground: 255 18% 52%;
+    --accent: 262 50% 94%;
+    --accent-foreground: 263 60% 30%;
+    --destructive: 0 82% 57%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 258 35% 90%;
+    --input: 258 35% 90%;
+    --ring: 263 68% 56%;
+    --radius: 0.625rem;
 
     /* Financial semantics */
-    --income: 152 100% 45%;     /* #00E574 electric green */
-    --expense: 348 100% 60%;    /* #FF3355 */
-    --neutral: 40 100% 52%;     /* #FFB400 gold */
-    --info: 213 100% 60%;       /* #338EFF blue */
+    --income: 152 72% 36%;     /* forest green */
+    --expense: 0 78% 53%;      /* rose red */
+    --neutral: 38 90% 48%;     /* amber */
+    --info: 213 90% 52%;       /* sky blue */
 
-    /* Surface layers */
-    --surface-0: 232 35% 4%;
-    --surface-1: 228 30% 7%;
-    --surface-2: 226 28% 10%;
-    --surface-3: 224 26% 13%;
+    /* Surface layers — very light purple tints */
+    --surface-0: 250 80% 99%;
+    --surface-1: 260 55% 98%;
+    --surface-2: 258 45% 96%;
+    --surface-3: 255 35% 92%;
 
     /* Dot grid */
-    --dot: 222 30% 12%;
+    --dot: 258 35% 90%;
   }
 
-  .light {
-    --background: 210 25% 98%;
-    --foreground: 225 35% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 225 35% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 225 35% 10%;
-    --primary: 152 70% 32%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 93%;
-    --secondary-foreground: 225 35% 10%;
-    --muted: 210 20% 93%;
-    --muted-foreground: 215 18% 50%;
-    --accent: 210 20% 93%;
-    --accent-foreground: 225 35% 10%;
-    --destructive: 0 80% 55%;
+  .dark {
+    --background: 250 32% 8%;
+    --foreground: 250 22% 92%;
+    --card: 250 28% 11%;
+    --card-foreground: 250 22% 92%;
+    --popover: 250 28% 11%;
+    --popover-foreground: 250 22% 92%;
+    --primary: 263 72% 66%;
+    --primary-foreground: 250 32% 8%;
+    --secondary: 250 24% 17%;
+    --secondary-foreground: 250 22% 92%;
+    --muted: 250 24% 15%;
+    --muted-foreground: 250 16% 48%;
+    --accent: 250 24% 17%;
+    --accent-foreground: 250 22% 92%;
+    --destructive: 0 70% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 22% 87%;
-    --input: 214 22% 87%;
-    --ring: 152 70% 32%;
-    --income: 142 67% 34%;
-    --expense: 0 80% 55%;
-    --neutral: 38 95% 48%;
-    --info: 213 90% 50%;
-    --dot: 214 22% 87%;
+    --border: 250 20% 19%;
+    --input: 250 20% 19%;
+    --ring: 263 72% 66%;
+
+    --income: 152 72% 44%;
+    --expense: 0 72% 58%;
+    --neutral: 38 90% 52%;
+    --info: 213 90% 58%;
+
+    --surface-0: 250 32% 8%;
+    --surface-1: 250 28% 11%;
+    --surface-2: 250 25% 14%;
+    --surface-3: 250 22% 18%;
+    --dot: 250 20% 19%;
   }
 }
 
@@ -77,6 +84,10 @@
   * { border-color: hsl(var(--border)); }
 
   html {
+    color-scheme: light;
+  }
+
+  html.dark {
     color-scheme: dark;
   }
 
@@ -87,7 +98,7 @@
 }
 
 /* ══════════════════════════════════════════
-   DOT GRID — applied to main content area
+   DOT GRID — very subtle on light backgrounds
 ══════════════════════════════════════════ */
 .dot-grid {
   background-image: radial-gradient(
@@ -102,11 +113,11 @@
    TYPOGRAPHY UTILITIES
 ══════════════════════════════════════════ */
 
-/* Uppercase ticker labels — the signature style */
+/* Label style — friendly, less aggressive than old OBSIDIAN */
 .ticker {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
   font-family: var(--font-mono), monospace;
@@ -116,7 +127,7 @@
 .numeral {
   font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   line-height: 1;
 }
 
@@ -127,28 +138,26 @@
 }
 
 /* ══════════════════════════════════════════
-   PANEL COMPONENTS
+   CARD / PANEL COMPONENTS
 ══════════════════════════════════════════ */
 
-/* Instrument panel card */
+/* Standard card — white, rounded, with soft shadow */
+.card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) + 2px);
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.04),
+              0 1px 8px hsl(var(--foreground) / 0.03);
+}
+
+/* Instrument panel — slightly elevated */
 .instrument {
   position: relative;
   background: hsl(var(--surface-1));
   border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) + 2px);
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.05);
   overflow: hidden;
-}
-
-/* Corner ruler marks decoration */
-.instrument::after {
-  content: '';
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 20px;
-  height: 20px;
-  border-top: 1px solid hsl(var(--border));
-  border-right: 1px solid hsl(var(--border));
-  opacity: 0.6;
 }
 
 /* Status indicators */
@@ -169,7 +178,6 @@
   height: 5px;
   border-radius: 50%;
   background: hsl(var(--income));
-  box-shadow: 0 0 6px hsl(var(--income));
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
@@ -177,59 +185,71 @@
    NAV ACTIVE STATE
 ══════════════════════════════════════════ */
 .nav-item-active {
-  background: hsl(var(--primary) / 0.12);
+  background: hsl(var(--primary) / 0.10);
   color: hsl(var(--primary));
 }
 
 .nav-item-active .nav-icon-wrap {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
-  box-shadow: 0 0 12px hsl(var(--primary) / 0.4);
 }
 
 /* ══════════════════════════════════════════
-   PROGRESS BARS
+   PROGRESS BARS — rounded, friendly
 ══════════════════════════════════════════ */
 .progress-track {
-  height: 2px;
+  height: 6px;
   background: hsl(var(--surface-3));
   overflow: hidden;
-  border-radius: 0;
+  border-radius: 9999px;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 0;
+  border-radius: 9999px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ══════════════════════════════════════════
-   GLOW EFFECTS
+   PILL BADGES
 ══════════════════════════════════════════ */
-.glow-green {
-  box-shadow: 0 0 20px hsl(var(--income) / 0.15),
-              0 0 40px hsl(var(--income) / 0.08);
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
-.glow-red {
-  box-shadow: 0 0 20px hsl(var(--expense) / 0.15);
+.badge-income {
+  background: hsl(var(--income) / 0.12);
+  color: hsl(var(--income));
 }
 
-.text-glow-green {
-  text-shadow: 0 0 24px hsl(var(--income) / 0.5);
+.badge-expense {
+  background: hsl(var(--expense) / 0.12);
+  color: hsl(var(--expense));
+}
+
+.badge-primary {
+  background: hsl(var(--primary) / 0.12);
+  color: hsl(var(--primary));
 }
 
 /* ══════════════════════════════════════════
-   SCROLLBAR
+   SCROLLBAR — subtle, rounded
 ══════════════════════════════════════════ */
-::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--surface-3));
-  border-radius: 0;
+  background: hsl(var(--border));
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: hsl(var(--muted-foreground) / 0.4);
 }
 
 /* ══════════════════════════════════════════
@@ -269,10 +289,16 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
 .animate-fade-in    { animation: fadeUp 0.3s ease-out both; }
 .animate-slide-up   { animation: slideUp 0.35s ease-out both; }
 .animate-slide-down { animation: slideDown 0.3s ease-out both; }
 .animate-bar-fill   { animation: bar-fill 0.6s ease-out both; }
+.animate-float      { animation: float 3s ease-in-out infinite; }
 
 /* Staggered children */
 .stagger > *:nth-child(1) { animation-delay: 0.04s; }
@@ -299,22 +325,52 @@
    TABLE STYLES
 ══════════════════════════════════════════ */
 .data-table th {
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
   font-family: var(--font-mono), monospace;
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
   border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--surface-2));
 }
 
 .data-table td {
-  padding: 0.625rem 0.75rem;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
   font-size: 0.8rem;
 }
 
 .data-table tr:hover td {
   background: hsl(var(--surface-2));
+}
+
+/* ══════════════════════════════════════════
+   FOCUS RINGS — accessible, purple
+══════════════════════════════════════════ */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)),
+              0 0 0 4px hsl(var(--ring));
+}
+
+/* ══════════════════════════════════════════
+   GLASS CARD — for special hero sections
+══════════════════════════════════════════ */
+.glass {
+  background: hsl(var(--card) / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border));
+}
+
+/* ══════════════════════════════════════════
+   GRADIENT TEXT — for hero numbers
+══════════════════════════════════════════ */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(263 85% 72%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }

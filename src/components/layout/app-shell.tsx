@@ -193,11 +193,34 @@ function IconSignOut({ size = 16 }: { size?: number }) {
 
 function LogoMark() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-      <rect x="1" y="1" width="20" height="20" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M6 11 C6 8 8.5 6 11 6 C13.5 6 16 8 16 11 C16 14 13.5 16 11 16 C8.5 16 6 14 6 11Z"
-        stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <circle cx="11" cy="11" r="2.5" fill="currentColor" />
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <defs>
+        <radialGradient id="ballGrad" cx="38%" cy="32%" r="68%">
+          <stop offset="0%" stopColor="#C4B5FD" />
+          <stop offset="45%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#5B21B6" />
+        </radialGradient>
+        <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="shimmer" cx="50%" cy="85%" r="40%">
+          <stop offset="0%" stopColor="#DDD6FE" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#DDD6FE" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* Soft glow ring */}
+      <circle cx="13" cy="13" r="12" fill="url(#glowGrad)" />
+      {/* Main sphere */}
+      <circle cx="13" cy="13" r="10" fill="url(#ballGrad)" />
+      {/* Bottom shimmer */}
+      <circle cx="13" cy="13" r="10" fill="url(#shimmer)" />
+      {/* Main highlight */}
+      <ellipse cx="10" cy="9.5" rx="3" ry="1.8" fill="white" opacity="0.55" transform="rotate(-15 10 9.5)" />
+      {/* Small sparkle dot */}
+      <circle cx="8.5" cy="8" r="1.1" fill="white" opacity="0.75" />
+      {/* Tiny star sparkle above */}
+      <path d="M19 5 L19.4 6.6 L21 7 L19.4 7.4 L19 9 L18.6 7.4 L17 7 L18.6 6.6Z" fill="#C4B5FD" opacity="0.9" />
     </svg>
   );
 }
@@ -214,19 +237,19 @@ export function AppShell({ user, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // Default dark, load user preference
+  // Default light, load user preference
   useEffect(() => {
-    document.documentElement.classList.remove('light');
+    document.documentElement.classList.remove('dark');
     const load = async () => {
       try {
         const res = await settingsApi.get();
-        const isDark = res?.settings?.darkMode !== false;
+        const isDark = res?.settings?.darkMode === true;
         setDarkMode(isDark);
-        document.documentElement.classList.toggle('light', !isDark);
-      } catch { /* keep dark */ }
+        document.documentElement.classList.toggle('dark', isDark);
+      } catch { /* keep light */ }
     };
     load();
   }, []);
@@ -236,7 +259,7 @@ export function AppShell({ user, children }: AppShellProps) {
   const toggleDark = async () => {
     const next = !darkMode;
     setDarkMode(next);
-    document.documentElement.classList.toggle('light', !next);
+    document.documentElement.classList.toggle('dark', next);
     try { await settingsApi.update({ darkMode: next }); } catch { }
   };
 
@@ -300,7 +323,7 @@ export function AppShell({ user, children }: AppShellProps) {
                         'flex items-center justify-center shrink-0 transition-all duration-150',
                         sidebarOpen ? 'w-6 h-6' : 'w-8 h-8',
                         isActive
-                          ? 'bg-primary text-primary-foreground rounded shadow-[0_0_10px_rgba(0,229,116,0.3)]'
+                          ? 'bg-primary text-primary-foreground rounded shadow-[0_2px_8px_hsl(var(--primary)/0.35)]'
                           : 'text-muted-foreground'
                       )}>
                         <Icon size={sidebarOpen ? 13 : 15} />
@@ -350,7 +373,7 @@ export function AppShell({ user, children }: AppShellProps) {
           >
             <span className={cn(
               'flex items-center justify-center w-6 h-6 shrink-0',
-              pathname.startsWith('/settings') && 'bg-primary text-primary-foreground rounded shadow-[0_0_10px_rgba(0,229,116,0.3)]'
+              pathname.startsWith('/settings') && 'bg-primary text-primary-foreground rounded shadow-[0_2px_8px_hsl(var(--primary)/0.35)]'
             )}>
               <IconSettings size={13} />
             </span>

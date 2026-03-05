@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useTransactions, useCategories } from '@/hooks/use-data';
 import { useMutation } from '@/hooks/use-fetch';
 import { transactionsApi } from '@/lib/api-client';
@@ -14,7 +15,14 @@ import { Input } from '@/components/ui/input';
 import { cn, formatDate } from '@/lib/utils';
 import type { TransactionQuery, Transaction } from '@/types/models';
 
-export function TransactionsView() {
+function TransactionsViewInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Read initial date filters from URL (e.g. from heatmap or calendar click)
+  const urlDateFrom = searchParams.get('dateFrom') || '';
+  const urlDateTo   = searchParams.get('dateTo')   || '';
+
   const [query, setQuery] = useState<TransactionQuery>({
     page: 1,
     limit: 50,
@@ -27,12 +35,30 @@ export function TransactionsView() {
   const [editFields, setEditFields] = useState<Partial<Transaction>>({});
   const [filterCategory, setFilterCategory] = useState('');
   const [filterAccount, setFilterAccount] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState(urlDateFrom);
+  const [filterDateTo, setFilterDateTo] = useState(urlDateTo);
+
+  // Keep date filters in sync when URL params change (e.g. browser back/forward)
+  useEffect(() => {
+    setFilterDateFrom(urlDateFrom);
+    setFilterDateTo(urlDateTo);
+    setQuery(q => ({ ...q, page: 1 }));
+  }, [urlDateFrom, urlDateTo]);
+
+  const clearDateFilter = () => {
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setQuery(q => ({ ...q, page: 1 }));
+    router.replace('/transactions');
+  };
 
   const { data, error, isLoading, refetch } = useTransactions({
     ...query,
     search: search || undefined,
     category: filterCategory || undefined,
     account: filterAccount || undefined,
+    dateFrom: filterDateFrom || undefined,
+    dateTo: filterDateTo || undefined,
   });
   const { data: categories } = useCategories();
 
@@ -136,6 +162,30 @@ export function TransactionsView() {
         </div>
       </div>
 
+      {/* Date filter banner — shown when coming from heatmap/calendar */}
+      {(filterDateFrom || filterDateTo) && (
+        <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5 animate-fade-in">
+          <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <span className="text-xs font-medium text-primary">
+            Filtered by date:&nbsp;
+            {filterDateFrom === filterDateTo
+              ? filterDateFrom
+              : `${filterDateFrom || '…'} → ${filterDateTo || '…'}`}
+          </span>
+          <button
+            onClick={clearDateFilter}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Filters bar */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -153,7 +203,7 @@ export function TransactionsView() {
         <select
           value={filterCategory}
           onChange={(e) => { setFilterCategory(e.target.value); setQuery((q) => ({ ...q, page: 1 })); }}
-          className="h-9 border border-border bg-surface-1 px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:border-primary transition-colors"
+          className="h-9 rounded-md border border-border bg-background px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
         >
           <option value="">All categories</option>
           {categories?.map((c) => (
@@ -165,13 +215,38 @@ export function TransactionsView() {
           <select
             value={filterAccount}
             onChange={(e) => { setFilterAccount(e.target.value); setQuery((q) => ({ ...q, page: 1 })); }}
-            className="h-9 border border-border bg-surface-1 px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:border-primary transition-colors"
+            className="h-9 rounded-md border border-border bg-background px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
           >
             <option value="">All accounts</option>
             {accounts.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
+        )}
+
+        {/* Date range pickers */}
+        <Input
+          type="date"
+          value={filterDateFrom}
+          onChange={(e) => { setFilterDateFrom(e.target.value); setQuery(q => ({ ...q, page: 1 })); }}
+          className="h-9 w-[140px] text-xs"
+          title="From date"
+        />
+        <Input
+          type="date"
+          value={filterDateTo}
+          onChange={(e) => { setFilterDateTo(e.target.value); setQuery(q => ({ ...q, page: 1 })); }}
+          className="h-9 w-[140px] text-xs"
+          title="To date"
+        />
+        {(filterDateFrom || filterDateTo) && (
+          <button
+            onClick={clearDateFilter}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2"
+            title="Clear date filter"
+          >
+            ✕ dates
+          </button>
         )}
       </div>
 
@@ -356,5 +431,13 @@ export function TransactionsView() {
         </div>
       )}
     </div>
+  );
+}
+
+export function TransactionsView() {
+  return (
+    <Suspense fallback={<TransactionTableSkeleton />}>
+      <TransactionsViewInner />
+    </Suspense>
   );
 }

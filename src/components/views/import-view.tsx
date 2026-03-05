@@ -15,7 +15,6 @@ import { formatDate, cn } from '@/lib/utils';
 import type { ImportRecord } from '@/types/models';
 
 type ImportPhase = 'upload' | 'review' | 'complete';
-
 interface ImportStats { total: number; autoMatched: number; transfers: number; duplicates: number; }
 
 export function ImportView() {
@@ -26,6 +25,7 @@ export function ImportView() {
   const [importResult, setImportResult] = useState<{ count: number } | null>(null);
   const [parseError, setParseError] = useState('');
   const [excludeDupes, setExcludeDupes] = useState(true);
+  const [isParsing, setIsParsing] = useState(false);
 
   const { data: categories } = useCategories();
   const { data: rulesData } = useFetch<{ rules: Record<string, string> }>(() => merchantRulesApi.list(), []);
@@ -69,15 +69,12 @@ export function ImportView() {
     return d;
   };
 
-  const [isParsing, setIsParsing] = useState(false);
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setParseError(''); setFilename(file.name);
     const isPdf = file.name.toLowerCase().endsWith('.pdf');
 
     if (isPdf) {
-      // PDF: send to server for parsing
       setIsParsing(true);
       try {
         const formData = new FormData();
@@ -93,7 +90,6 @@ export function ImportView() {
       } catch (err: any) { setParseError(err.message || 'Failed to parse PDF'); }
       setIsParsing(false);
     } else {
-      // CSV: parse client-side
       const reader = new FileReader();
       reader.onload = (ev) => {
         try {
@@ -128,38 +124,69 @@ export function ImportView() {
   const importCount = excludeDupes ? processed.filter(t => !t.flagged).length : processed.length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div><h1 className="text-2xl font-bold">Import</h1><p className="text-sm text-muted-foreground mt-1">Import transactions from bank statements</p></div>
+    <div className="space-y-4 animate-fade-in">
+      <div className="border border-border bg-surface-1 px-5 py-4">
+        <p className="ticker mb-1">Data Import</p>
+        <h1 className="text-xl font-bold tracking-tight">Import</h1>
+      </div>
 
       {phase === 'upload' && (
-        <div className="space-y-6">
-          <PlaidAccounts onSync={() => { refetchImports(); }} />
-          <div className="rounded-xl border bg-card p-6 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Connect Your Bank</h2><p className="text-xs text-muted-foreground mt-1">Automatically import transactions</p></div><PlaidLinkButton onSuccess={() => { window.location.reload(); }} /></div></div>
-          <div className="relative flex items-center py-2"><div className="flex-grow border-t border-muted-foreground/20"></div><span className="mx-4 text-xs text-muted-foreground">or upload manually</span><div className="flex-grow border-t border-muted-foreground/20"></div></div>
-          <div className="rounded-xl border-2 border-dashed border-muted-foreground/20 bg-card p-12 text-center hover:border-navy-300 transition-colors">
-            <div className="mx-auto w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-foreground"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" /></svg>
+        <div className="space-y-4">
+          <PlaidAccounts onSync={() => refetchImports()} />
+
+          <div className="border border-border bg-surface-1 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="ticker mb-0.5">Bank Connection</p>
+                <h2 className="text-sm font-semibold">Connect Your Bank</h2>
+                <p className="ticker mt-0.5">Automatically import transactions via Plaid</p>
+              </div>
+              <PlaidLinkButton onSuccess={() => window.location.reload()} />
             </div>
-            <p className="text-sm font-medium mb-1">Drop a CSV or PDF file here or click to browse</p>
-            <p className="text-xs text-muted-foreground mb-4">Supports CSV bank exports and PDF statements. Auto-categorizes via merchant rules.</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="ticker">or upload manually</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <div className="border border-dashed border-border bg-surface-1 p-12 text-center hover:border-primary/40 transition-colors">
+            <div className="mx-auto w-12 h-12 flex items-center justify-center mb-4 border border-border bg-surface-2 text-muted-foreground">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12m0 0l-4-4m4 4l4-4" /></svg>
+            </div>
+            <p className="text-sm font-semibold mb-1">Drop a CSV or PDF file here or click to browse</p>
+            <p className="ticker mb-5">Supports CSV bank exports and PDF statements. Auto-categorizes via merchant rules.</p>
             <label className="inline-block">
               <input type="file" accept=".csv,.txt,.pdf" onChange={handleFileUpload} className="hidden" disabled={isParsing} />
-              <span className={cn('inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors',
-                isParsing ? 'bg-navy-400 text-white/70 cursor-wait' : 'bg-navy-500 text-white hover:bg-navy-600'
+              <span className={cn(
+                'inline-flex items-center h-9 px-5 text-sm font-semibold cursor-pointer transition-colors',
+                isParsing
+                  ? 'bg-primary/40 text-primary-foreground cursor-wait'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/85 shadow-[0_0_12px_hsl(var(--primary)/0.2)]'
               )}>
                 {isParsing ? 'Parsing PDF...' : 'Choose File'}
               </span>
             </label>
           </div>
+
           {parseError && <ErrorAlert message={parseError} />}
+
           {importsData?.imports && importsData.imports.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold mb-3">Import History</h2>
-              <div className="space-y-2">
+            <div className="border border-border bg-surface-1 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border">
+                <p className="ticker">Import History</p>
+              </div>
+              <div className="divide-y divide-border">
                 {importsData.imports.map(imp => (
-                  <div key={imp.id} className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
-                    <div><p className="text-sm font-medium">{imp.filename}</p><p className="text-xs text-muted-foreground">{imp.transactionCount} transactions · {formatDate(imp.importedAt)}</p></div>
-                    <button onClick={() => handleDeleteImport(imp.id)} className="text-muted-foreground/40 hover:text-red-500 transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg></button>
+                  <div key={imp.id} className="flex items-center justify-between px-4 py-3 hover:bg-surface-2/60 transition-colors">
+                    <div>
+                      <p className="text-sm font-medium">{imp.filename}</p>
+                      <p className="ticker">{imp.transactionCount} transactions · {formatDate(imp.importedAt)}</p>
+                    </div>
+                    <button onClick={() => handleDeleteImport(imp.id)} className="text-muted-foreground/30 hover:text-expense transition-colors">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -170,50 +197,79 @@ export function ImportView() {
 
       {phase === 'review' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-lg border bg-card p-3 text-center"><p className="text-lg font-bold tabnum">{stats.total}</p><p className="text-[11px] text-muted-foreground">Total Parsed</p></div>
-            <div className="rounded-lg border bg-card p-3 text-center"><p className="text-lg font-bold tabnum text-green-600">{stats.autoMatched}</p><p className="text-[11px] text-muted-foreground">Auto-Categorized</p></div>
-            <div className="rounded-lg border bg-card p-3 text-center"><p className="text-lg font-bold tabnum text-purple-600">{stats.transfers}</p><p className="text-[11px] text-muted-foreground">Transfer Pairs</p></div>
-            <div className="rounded-lg border bg-card p-3 text-center"><p className="text-lg font-bold tabnum text-yellow-600">{stats.duplicates}</p><p className="text-[11px] text-muted-foreground">Duplicates</p></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 border border-border bg-surface-1">
+            {[
+              { label: 'Total Parsed', value: stats.total, color: 'text-foreground' },
+              { label: 'Auto-Categorized', value: stats.autoMatched, color: 'text-primary' },
+              { label: 'Transfer Pairs', value: stats.transfers, color: 'text-purple-400' },
+              { label: 'Duplicates', value: stats.duplicates, color: 'text-yellow-400' },
+            ].map((s, i) => (
+              <div key={s.label} className={`px-4 py-3 ${i > 0 ? 'border-l border-border' : ''}`}>
+                <p className="ticker mb-1">{s.label}</p>
+                <p className={`numeral font-bold text-xl tabnum ${s.color}`}>{s.value}</p>
+              </div>
+            ))}
           </div>
+
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-4">
-              <p className="text-sm font-medium">{filename}</p>
+              <p className="text-sm font-mono font-medium">{filename}</p>
               {stats.duplicates > 0 && (
-                <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={excludeDupes} onChange={e => setExcludeDupes(e.target.checked)} className="rounded" />Exclude {stats.duplicates} duplicate{stats.duplicates !== 1 ? 's' : ''}</label>
+                <label className="flex items-center gap-2 ticker cursor-pointer">
+                  <input type="checkbox" checked={excludeDupes} onChange={e => setExcludeDupes(e.target.checked)} className="accent-primary" />
+                  Exclude {stats.duplicates} duplicate{stats.duplicates !== 1 ? 's' : ''}
+                </label>
               )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={resetImport}>Cancel</Button>
-              <Button size="sm" onClick={handleConfirmImport} disabled={importMutation.isLoading} className="bg-navy-500 hover:bg-navy-600">{importMutation.isLoading ? 'Importing...' : `Import ${importCount} Transactions`}</Button>
+              <button
+                onClick={handleConfirmImport}
+                disabled={importMutation.isLoading}
+                className="h-9 px-4 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors disabled:opacity-40 shadow-[0_0_12px_hsl(var(--primary)/0.2)]"
+              >
+                {importMutation.isLoading ? 'Importing...' : `Import ${importCount} Transactions`}
+              </button>
             </div>
           </div>
+
           {importMutation.error && <ErrorAlert message={importMutation.error} />}
-          <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+
+          <div className="border border-border bg-surface-1 overflow-hidden">
             <div className="overflow-x-auto max-h-[500px]">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-muted/50 backdrop-blur"><tr className="border-b">
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground w-16">Status</th>
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground">Date</th>
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground">Description</th>
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground">Category</th>
-                  <th className="text-left px-3 py-2.5 text-xs font-medium text-muted-foreground">Account</th>
-                  <th className="text-right px-3 py-2.5 text-xs font-medium text-muted-foreground">Amount</th>
-                </tr></thead>
+                <thead className="sticky top-0 bg-surface-2 border-b border-border">
+                  <tr>
+                    <th className="text-left px-3 py-2.5 w-16"><span className="ticker">Status</span></th>
+                    <th className="text-left px-3 py-2.5"><span className="ticker">Date</span></th>
+                    <th className="text-left px-3 py-2.5"><span className="ticker">Description</span></th>
+                    <th className="text-left px-3 py-2.5"><span className="ticker">Category</span></th>
+                    <th className="text-left px-3 py-2.5"><span className="ticker">Account</span></th>
+                    <th className="text-right px-3 py-2.5"><span className="ticker">Amount</span></th>
+                  </tr>
+                </thead>
                 <tbody>
                   {processed.map((row, i) => (
-                    <tr key={i} className={cn('border-b last:border-0 hover:bg-muted/10', row.flagged && 'bg-yellow-50/50 dark:bg-yellow-900/10 opacity-60', row.transferPairId && !row.flagged && 'bg-purple-50/30 dark:bg-purple-900/10')}>
-                      <td className="px-3 py-2 text-[10px]">
-                        {row.flagged ? <span className="text-yellow-600" title="Potential duplicate">⚠ Dupe</span> : row.transferPairId ? <span className="text-purple-600" title="Transfer pair">⇄ Xfer</span> : row.autoMatched ? <span className="text-green-600" title="Auto-matched">✓ Auto</span> : null}
+                    <tr key={i} className={cn(
+                      'border-b border-border last:border-0 hover:bg-surface-2/60',
+                      row.flagged && 'bg-yellow-500/5 opacity-60',
+                      row.transferPairId && !row.flagged && 'bg-purple-500/5'
+                    )}>
+                      <td className="px-3 py-2 font-mono text-[10px]">
+                        {row.flagged ? <span className="text-yellow-400">⚠ Dupe</span>
+                          : row.transferPairId ? <span className="text-purple-400">⇄ Xfer</span>
+                          : row.autoMatched ? <span className="text-primary">✓ Auto</span>
+                          : null}
                       </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground tabnum whitespace-nowrap">{row.date}</td>
+                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground tabnum whitespace-nowrap">{row.date}</td>
                       <td className="px-3 py-2 text-xs max-w-[200px] truncate" title={row.originalDescription}>{row.description}</td>
                       <td className="px-3 py-2">
-                        <select value={row.category} onChange={e => handleCategoryChange(i, e.target.value)} className="h-7 rounded border bg-background px-2 text-xs w-full max-w-[160px]">
-                          {categories?.map(c => (<option key={c.id} value={c.name}>{c.name}</option>))}
+                        <select value={row.category} onChange={e => handleCategoryChange(i, e.target.value)}
+                          className="h-7 border border-border bg-surface-2 px-2 text-xs font-mono focus:outline-none focus:border-primary w-full max-w-[160px]">
+                          {categories?.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </select>
                       </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{row.account}</td>
+                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{row.account}</td>
                       <td className="px-3 py-2 text-right"><Amount value={row.amount} size="sm" showSign /></td>
                     </tr>
                   ))}
@@ -225,16 +281,21 @@ export function ImportView() {
       )}
 
       {phase === 'complete' && importResult && (
-        <div className="rounded-xl border bg-card p-10 text-center">
-          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600"><path d="M20 6L9 17l-5-5" /></svg></div>
+        <div className="border border-border bg-surface-1 p-12 text-center">
+          <div className="w-14 h-14 flex items-center justify-center mx-auto mb-5 bg-primary/10 text-primary border border-primary/30">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5" /></svg>
+          </div>
           <h2 className="text-xl font-bold mb-2">Import Complete</h2>
-          <p className="text-sm text-muted-foreground mb-2">{importResult.count} transaction{importResult.count !== 1 ? 's' : ''} imported from {filename}</p>
-          {stats.autoMatched > 0 && <p className="text-xs text-green-600 mb-1">{stats.autoMatched} auto-categorized by merchant rules</p>}
-          {stats.transfers > 0 && <p className="text-xs text-purple-600 mb-1">{Math.floor(stats.transfers / 2)} transfer pairs detected</p>}
-          {stats.duplicates > 0 && excludeDupes && <p className="text-xs text-yellow-600 mb-1">{stats.duplicates} duplicates excluded</p>}
+          <p className="ticker mb-3">{importResult.count} transaction{importResult.count !== 1 ? 's' : ''} imported from {filename}</p>
+          {stats.autoMatched > 0 && <p className="ticker text-primary mb-1">{stats.autoMatched} auto-categorized by merchant rules</p>}
+          {stats.transfers > 0 && <p className="ticker text-purple-400 mb-1">{Math.floor(stats.transfers / 2)} transfer pairs detected</p>}
+          {stats.duplicates > 0 && excludeDupes && <p className="ticker text-yellow-400 mb-1">{stats.duplicates} duplicates excluded</p>}
           <div className="flex gap-3 justify-center mt-6">
             <Button variant="outline" onClick={resetImport}>Import Another</Button>
-            <Button className="bg-navy-500 hover:bg-navy-600" onClick={() => window.location.href = '/transactions'}>View Transactions</Button>
+            <button onClick={() => window.location.href = '/transactions'}
+              className="h-9 px-4 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors shadow-[0_0_12px_hsl(var(--primary)/0.2)]">
+              View Transactions
+            </button>
           </div>
         </div>
       )}

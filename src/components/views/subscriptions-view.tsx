@@ -8,7 +8,6 @@ import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { Subscription } from '@/types/models';
 
@@ -28,10 +27,9 @@ export function SubscriptionsView() {
   const activeSubs = subs.filter(s => s.isActive);
 
   const monthlyTotal = activeSubs.reduce((s, sub) => {
-    const amt = sub.amount;
-    if (sub.frequency === 'yearly') return s + amt / 12;
-    if (sub.frequency === 'weekly') return s + amt * 4.33;
-    return s + amt;
+    if (sub.frequency === 'yearly') return s + sub.amount / 12;
+    if (sub.frequency === 'weekly') return s + sub.amount * 4.33;
+    return s + sub.amount;
   }, 0);
 
   const yearlyTotal = monthlyTotal * 12;
@@ -70,36 +68,54 @@ export function SubscriptionsView() {
   if (error) return <ErrorAlert message={error} retry={refetch} />;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Subscriptions</h1>
-          <p className="text-sm text-muted-foreground mt-1">{activeSubs.length} active · {formatCurrency(monthlyTotal)}/mo · {formatCurrency(yearlyTotal)}/yr</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDetect} disabled={detecting}>
-            {detecting ? 'Scanning...' : '🔍 Auto-Detect'}
-          </Button>
-          <Button onClick={() => setShowAdd(!showAdd)} className="bg-navy-500 hover:bg-navy-600">{showAdd ? 'Cancel' : '+ Add'}</Button>
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="border border-border bg-surface-1 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="ticker mb-1">Recurring Charges</p>
+            <h1 className="text-xl font-bold tracking-tight">Subscriptions</h1>
+            <p className="ticker mt-0.5">{activeSubs.length} active · {formatCurrency(monthlyTotal)}/mo · {formatCurrency(yearlyTotal)}/yr</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDetect}
+              disabled={detecting}
+              className="h-9 px-4 border border-border bg-surface-2 text-sm font-medium hover:border-primary/50 hover:text-primary transition-colors disabled:opacity-40"
+            >
+              {detecting ? 'Scanning...' : 'Auto-Detect'}
+            </button>
+            <button
+              onClick={() => setShowAdd(!showAdd)}
+              className={cn(
+                'h-9 px-4 text-sm font-semibold transition-colors',
+                showAdd
+                  ? 'border border-border bg-surface-2 text-muted-foreground hover:text-foreground'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/85 shadow-[0_0_12px_hsl(var(--primary)/0.2)]'
+              )}
+            >
+              {showAdd ? '✕ Cancel' : '+ Add'}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Auto-detected candidates */}
+      {/* Auto-detected */}
       {showDetected && candidates.length > 0 && (
-        <div className="rounded-xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-950/20 p-5 space-y-3 animate-slide-down">
+        <div className="border border-primary/30 bg-primary/5 p-5 space-y-3 animate-fade-in">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Detected Subscriptions</h2>
-            <button onClick={() => setShowDetected(false)} className="text-xs text-muted-foreground hover:underline">Dismiss</button>
+            <p className="ticker text-primary">Detected Subscriptions</p>
+            <button onClick={() => setShowDetected(false)} className="ticker text-muted-foreground hover:text-foreground">Dismiss</button>
           </div>
           <div className="space-y-2">
             {candidates.map((c, i) => (
-              <div key={i} className="flex items-center justify-between bg-card rounded-lg px-4 py-3 border">
+              <div key={i} className="flex items-center justify-between border border-border bg-surface-1 px-4 py-3">
                 <div>
                   <p className="text-sm font-medium">{c.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{c.frequency} · {c.occurrences} charges found · {c.confidence}% confidence</p>
+                  <p className="ticker">{c.frequency} · {c.occurrences} charges · {c.confidence}% confidence</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold tabnum">{formatCurrency(c.amount)}</span>
+                  <span className="numeral text-sm font-bold tabnum">{formatCurrency(c.amount)}</span>
                   <Button size="sm" onClick={() => handleAddCandidate(c)}>Add</Button>
                 </div>
               </div>
@@ -108,20 +124,28 @@ export function SubscriptionsView() {
         </div>
       )}
       {showDetected && candidates.length === 0 && !detecting && (
-        <div className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">
-          No new recurring charges detected. All known patterns are already tracked.
+        <div className="border border-border bg-surface-1 p-4 text-center ticker">
+          No new recurring charges detected.
         </div>
       )}
 
+      {/* Add form */}
       {showAdd && (
-        <form onSubmit={handleCreate} className="rounded-xl border bg-card p-5 space-y-4 animate-slide-down">
+        <form onSubmit={handleCreate} className="border border-border bg-surface-1 p-5 animate-fade-in">
+          <p className="ticker text-primary mb-3">New Subscription</p>
           <div className="flex flex-wrap gap-3">
             <Input placeholder="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required className="flex-1 min-w-[150px]" />
             <Input type="number" step="0.01" min="0.01" placeholder="Amount" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} required className="w-32" />
-            <select value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value as any }))} className="h-10 rounded-lg border bg-background px-3 text-sm">
-              <option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="weekly">Weekly</option>
+            <select value={form.frequency} onChange={e => setForm(f => ({ ...f, frequency: e.target.value as any }))}
+              className="h-9 border border-border bg-surface-1 px-3 text-sm font-mono focus:outline-none focus:border-primary">
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+              <option value="weekly">Weekly</option>
             </select>
-            <Button type="submit" className="bg-navy-500 hover:bg-navy-600">Add</Button>
+            <button type="submit"
+              className="h-9 px-4 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors shadow-[0_0_12px_hsl(var(--primary)/0.2)]">
+              Add
+            </button>
           </div>
         </form>
       )}
@@ -135,23 +159,32 @@ export function SubscriptionsView() {
       ) : (
         <div className="space-y-2">
           {subs.map((sub) => (
-            <div key={sub.id} className={cn('flex items-center justify-between rounded-xl border bg-card px-5 py-4 shadow-sm transition-opacity', !sub.isActive && 'opacity-50')}>
+            <div key={sub.id} className={cn(
+              'flex items-center justify-between border border-border bg-surface-1 px-5 py-4 transition-opacity',
+              !sub.isActive && 'opacity-40'
+            )}>
               <div className="flex items-center gap-3">
-                <button onClick={() => toggleActive(sub)} className={cn('w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
-                  sub.isActive ? 'border-green-500 bg-green-500' : 'border-muted-foreground/30'
-                )}>
-                  {sub.isActive && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
+                <button
+                  onClick={() => toggleActive(sub)}
+                  className={cn(
+                    'w-5 h-5 flex items-center justify-center transition-colors border',
+                    sub.isActive ? 'border-primary bg-primary' : 'border-border bg-surface-3'
+                  )}
+                >
+                  {sub.isActive && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--primary-foreground))" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
                 </button>
                 <div>
                   <p className="text-sm font-medium">{sub.name}</p>
-                  <p className="text-[11px] text-muted-foreground capitalize">{sub.frequency}{sub.nextBillDate ? ` · Next: ${sub.nextBillDate}` : ''}</p>
+                  <p className="ticker capitalize">{sub.frequency}{sub.nextBillDate ? ` · Next: ${sub.nextBillDate}` : ''}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold tabnum">{formatCurrency(sub.amount)}</span>
-                <button onClick={async () => { if (confirm('Delete?')) { await deleteSub.mutate(sub.id); refetch(); } }}
-                  className="text-muted-foreground/30 hover:text-red-500">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                <span className="numeral text-sm font-bold tabnum">{formatCurrency(sub.amount)}</span>
+                <button
+                  onClick={async () => { if (confirm('Delete?')) { await deleteSub.mutate(sub.id); refetch(); } }}
+                  className="text-muted-foreground/30 hover:text-expense transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
                 </button>
               </div>
             </div>

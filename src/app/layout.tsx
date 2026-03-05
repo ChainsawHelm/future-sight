@@ -17,7 +17,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Future Sight — Financial Command Center',
+  title: 'Future Sight — Your Financial Companion',
   description: 'Track net worth, spending, goals, debts, and financial health — all in one place.',
   icons: { icon: '/favicon.ico' },
 };
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#070810" />
+        <meta name="theme-color" content="#F5F3FF" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
