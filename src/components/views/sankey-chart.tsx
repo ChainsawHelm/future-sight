@@ -22,47 +22,65 @@ interface Node {
   value: number;
   color: string;
   column: number;
-  y: number;       // computed pixel y (top of node)
-  h: number;       // computed pixel height
+  y: number;   // top pixel of node bar
+  h: number;   // pixel height of node bar
 }
 
 interface Link {
   sourceId: string;
   targetId: string;
   value: number;
-  color: string;
-  srcY: number;    // computed: y-center of link band at source
-  tgtY: number;    // computed: y-center of link band at target
-  thickness: number;
+  srcColor: string;
+  tgtColor: string;
+  srcY0: number;   // top of ribbon band at source
+  srcY1: number;   // bottom of ribbon band at source
+  tgtY0: number;   // top of ribbon band at target
+  tgtY1: number;   // bottom of ribbon band at target
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   COLOR HELPERS
+   COLOR PALETTE — GLASSHOUSE harmonious
 ══════════════════════════════════════════════════════════════════ */
-const INCOME_COLOR   = '#059669'; // emerald
-const ACCOUNT_COLORS = ['#7C3AED', '#8B5CF6', '#A78BFA', '#6D28D9', '#5B21B6', '#4C1D95'];
+const INCOME_COLOR   = '#4E8B62';
+const ACCOUNT_COLORS = ['#3D7A8A', '#4A90A4', '#2E7D9A', '#4A7E6E', '#5A8A7A', '#326E84'];
 const CAT_COLORS: Record<string, string> = {
-  Groceries: '#10B981', Dining: '#F59E0B', Shopping: '#3B82F6',
-  Transportation: '#6366F1', Housing: '#EC4899', Utilities: '#14B8A6',
-  Healthcare: '#EF4444', Entertainment: '#8B5CF6', Subscriptions: '#06B6D4',
-  Gas: '#F97316', Travel: '#0EA5E9', Education: '#84CC16',
-  Fitness: '#22C55E', 'Personal Care': '#F43F5E', Business: '#64748B',
-  Charity: '#EC4899', Savings: '#10B981', Phone: '#3B82F6',
-  'ATM & Fees': '#94A3B8', Uncategorized: '#CBD5E1',
+  Groceries:       '#4A8C5C',
+  Dining:          '#C4883A',
+  Shopping:        '#4A7AB0',
+  Transportation:  '#5A72B0',
+  Housing:         '#A04A72',
+  Utilities:       '#3A9A9A',
+  Healthcare:      '#B04A4A',
+  Entertainment:   '#7A5AB0',
+  Subscriptions:   '#3A9AB0',
+  Gas:             '#C47A3A',
+  Travel:          '#3A85B0',
+  Education:       '#7A9A3A',
+  Fitness:         '#4A9A5A',
+  'Personal Care': '#A04A6A',
+  Business:        '#5A7A8A',
+  Charity:         '#A04A8A',
+  Savings:         '#3A9A6A',
+  Phone:           '#4A6AB0',
+  Insurance:       '#7A6A5A',
+  Restaurants:     '#C47A5A',
+  'ATM & Fees':    '#8A9AA8',
+  Uncategorized:   '#9AA0A8',
 };
-const MERCHANT_COLOR = '#94A3B8';
+const MERCHANT_COLOR = '#7B8FA6';
 
 function catColor(cat: string): string {
-  return CAT_COLORS[cat] || '#8B5CF6';
+  return CAT_COLORS[cat] || '#6A7A9A';
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   LAYOUT COMPUTATION
+   LAYOUT CONSTANTS
 ══════════════════════════════════════════════════════════════════ */
-const GAP = 6;
-const NODE_W = 14;
-const MIN_NODE_H = 18;
-const LABEL_PAD = 8;
+const GAP         = 8;
+const NODE_W      = 12;
+const MIN_NODE_H  = 24;
+const LABEL_PAD   = 11;
+const TOP_PAD     = 30;
 
 function simplifyMerchant(desc: string): string {
   return desc
@@ -78,8 +96,7 @@ function simplifyMerchant(desc: string): string {
 }
 
 function truncate(s: string, max: number): string {
-  if (s.length <= max) return s;
-  return s.slice(0, max - 1) + '…';
+  return s.length <= max ? s : s.slice(0, max - 1) + '…';
 }
 
 function buildSankeyData(
@@ -88,7 +105,7 @@ function buildSankeyData(
   svgW: number,
   isMobile: boolean
 ): { nodes: Node[]; links: Link[] } {
-  // ── Aggregate data ───────────────────────────────────────────────
+  // ── Aggregate ────────────────────────────────────────────────────
   const incomeBySource: Record<string, number> = {};
   const incomeBySourceAccount: Record<string, Record<string, number>> = {};
   const expenseByAccount: Record<string, Record<string, number>> = {};
@@ -106,9 +123,7 @@ function buildSankeyData(
       const amt = Math.abs(t.amount);
       if (!expenseByAccount[t.account]) expenseByAccount[t.account] = {};
       expenseByAccount[t.account][t.category] = (expenseByAccount[t.account][t.category] || 0) + amt;
-
       expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + amt;
-
       const merchant = simplifyMerchant(t.description);
       if (!expenseByCategoryMerchant[t.category]) expenseByCategoryMerchant[t.category] = {};
       expenseByCategoryMerchant[t.category][merchant] =
@@ -116,40 +131,28 @@ function buildSankeyData(
     }
   }
 
-  // ── Build node lists ─────────────────────────────────────────────
-  const MAX_INCOME    = 5;
-  const MAX_ACCOUNTS  = 6;
-  const MAX_CATS      = isMobile ? 5 : 8;
-  const MAX_MERCHANTS = isMobile ? 5 : 8;
-
-  const incomeSources = Object.entries(incomeBySource)
-    .sort(([, a], [, b]) => b - a).slice(0, MAX_INCOME);
+  // ── Node lists ────────────────────────────────────────────────────
+  const incomeSources = Object.entries(incomeBySource).sort(([, a], [, b]) => b - a).slice(0, 5);
   const accounts = Object.entries(
     Object.keys(expenseByAccount).reduce((acc, acct) => {
-      const total = Object.values(expenseByAccount[acct]).reduce((s, v) => s + v, 0);
-      acc[acct] = total;
+      acc[acct] = Object.values(expenseByAccount[acct]).reduce((s, v) => s + v, 0);
       return acc;
     }, {} as Record<string, number>)
-  ).sort(([, a], [, b]) => b - a).slice(0, MAX_ACCOUNTS);
+  ).sort(([, a], [, b]) => b - a).slice(0, 6);
   const categories = Object.entries(expenseByCategory)
-    .sort(([, a], [, b]) => b - a).slice(0, MAX_CATS);
+    .sort(([, a], [, b]) => b - a).slice(0, isMobile ? 5 : 8);
   const merchants = Object.entries(
-    Object.values(expenseByCategoryMerchant).reduce((acc, merchantMap) => {
-      for (const [m, v] of Object.entries(merchantMap)) {
-        acc[m] = (acc[m] || 0) + v;
-      }
+    Object.values(expenseByCategoryMerchant).reduce((acc, m) => {
+      for (const [k, v] of Object.entries(m)) acc[k] = (acc[k] || 0) + v;
       return acc;
     }, {} as Record<string, number>)
-  ).sort(([, a], [, b]) => b - a).slice(0, MAX_MERCHANTS);
+  ).sort(([, a], [, b]) => b - a).slice(0, isMobile ? 5 : 8);
 
-  // Column x positions (as fractions of svgW)
-  const colFracs = isMobile
-    ? [0.05, 0.5]           // income → categories (2-col simplified)
-    : [0.04, 0.33, 0.62, 0.85];
+  const colFracs = isMobile ? [0.03, 0.72] : [0.03, 0.31, 0.60, 0.84];
 
-  // ── Assign nodes ─────────────────────────────────────────────────
+  // ── Assign raw nodes ─────────────────────────────────────────────
   const rawNodes: Omit<Node, 'y' | 'h'>[] = [
-    ...incomeSources.map(([label, value], i) => ({
+    ...incomeSources.map(([label, value]) => ({
       id: `inc:${label}`, label, value, color: INCOME_COLOR, column: 0,
     })),
     ...(isMobile ? [] : accounts.map(([label, value], i) => ({
@@ -163,116 +166,101 @@ function buildSankeyData(
     }))),
   ];
 
-  // ── Layout: stack nodes per column ─────────────────────────────
+  // ── Layout: stack nodes per column ───────────────────────────────
   const numCols = isMobile ? 2 : 4;
-  const totalH = svgH - 40; // vertical padding
-
+  const availH = svgH - TOP_PAD - 16;
   const nodes: Node[] = [];
+
   for (let col = 0; col < numCols; col++) {
     const colNodes = rawNodes.filter(n => n.column === col);
-    if (colNodes.length === 0) continue;
+    if (!colNodes.length) continue;
     const totalVal = colNodes.reduce((s, n) => s + n.value, 0);
     const totalGaps = GAP * (colNodes.length - 1);
-    const availH = Math.max(0, totalH - totalGaps);
-
-    // Scale so all nodes fit
-    let y = 20;
+    const drawH = Math.max(0, availH - totalGaps);
+    let y = TOP_PAD;
     for (const n of colNodes) {
-      const rawH = totalVal > 0 ? (n.value / totalVal) * availH : availH / colNodes.length;
+      const rawH = totalVal > 0 ? (n.value / totalVal) * drawH : drawH / colNodes.length;
       const h = Math.max(MIN_NODE_H, rawH);
-      const xFrac = colFracs[col];
       nodes.push({ ...n, y, h });
       y += h + GAP;
     }
   }
 
-  // ── Build links ──────────────────────────────────────────────────
-  // Track how much of each node's height has been consumed by outgoing/incoming links
-  const srcConsumed: Record<string, number> = {};
-  const tgtConsumed: Record<string, number> = {};
-
-  const rawLinks: { sourceId: string; targetId: string; value: number; color: string }[] = [];
+  // ── Build link list ───────────────────────────────────────────────
+  const rawLinks: { sourceId: string; targetId: string; value: number }[] = [];
 
   if (isMobile) {
-    // Direct income → category links
     for (const [src, srcVal] of incomeSources) {
       const srcId = `inc:${src}`;
-      const srcNode = nodes.find(n => n.id === srcId);
-      if (!srcNode) continue;
-      // Distribute proportionally to categories
+      if (!nodes.find(n => n.id === srcId)) continue;
       const totalCatVal = categories.reduce((s, [, v]) => s + v, 0);
       for (const [cat] of categories) {
         const catId = `cat:${cat}`;
         if (!nodes.find(n => n.id === catId)) continue;
-        const linkVal = totalCatVal > 0
-          ? (expenseByCategory[cat] / totalCatVal) * srcVal
-          : srcVal / categories.length;
-        rawLinks.push({ sourceId: srcId, targetId: catId, value: linkVal, color: INCOME_COLOR });
+        const linkVal = totalCatVal > 0 ? (expenseByCategory[cat] / totalCatVal) * srcVal : srcVal / categories.length;
+        rawLinks.push({ sourceId: srcId, targetId: catId, value: linkVal });
       }
     }
   } else {
-    // Income → Account links
-    for (const [src, _] of incomeSources) {
+    for (const [src] of incomeSources) {
       const srcId = `inc:${src}`;
       for (const [acct] of accounts) {
-        const tgtId = `acct:${acct}`;
         const v = incomeBySourceAccount[src]?.[acct] || 0;
-        if (v > 0) {
-          rawLinks.push({ sourceId: srcId, targetId: tgtId, value: v, color: INCOME_COLOR });
-        }
+        if (v > 0) rawLinks.push({ sourceId: srcId, targetId: `acct:${acct}`, value: v });
       }
     }
-    // Account → Category links
-    for (const [acct, i] of accounts.map((a, i) => [a[0], i] as [string, number])) {
+    for (const [acct] of accounts) {
       const srcId = `acct:${acct}`;
-      const srcNode = nodes.find(n => n.id === srcId);
-      if (!srcNode) continue;
+      if (!nodes.find(n => n.id === srcId)) continue;
       for (const [cat] of categories) {
-        const tgtId = `cat:${cat}`;
         const v = expenseByAccount[acct]?.[cat] || 0;
-        if (v > 0) {
-          rawLinks.push({ sourceId: srcId, targetId: tgtId, value: v, color: ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] });
-        }
+        if (v > 0) rawLinks.push({ sourceId: srcId, targetId: `cat:${cat}`, value: v });
       }
     }
-    // Category → Merchant links
     for (const [cat] of categories) {
       const srcId = `cat:${cat}`;
       for (const [mer] of merchants) {
-        const tgtId = `mer:${mer}`;
         const v = expenseByCategoryMerchant[cat]?.[mer] || 0;
-        if (v > 0) {
-          rawLinks.push({ sourceId: srcId, targetId: tgtId, value: v, color: catColor(cat) });
-        }
+        if (v > 0) rawLinks.push({ sourceId: srcId, targetId: `mer:${mer}`, value: v });
       }
     }
   }
 
-  // ── Position links within nodes ────────────────────────────────
+  // ── Position ribbons within nodes ────────────────────────────────
+  // Track consumed pixels at each node (outgoing from source, incoming to target)
+  const srcConsumed: Record<string, number> = {};
+  const tgtConsumed: Record<string, number> = {};
+
   const links: Link[] = [];
   for (const rl of rawLinks) {
     const srcNode = nodes.find(n => n.id === rl.sourceId);
     const tgtNode = nodes.find(n => n.id === rl.targetId);
     if (!srcNode || !tgtNode) continue;
 
-    // Compute total value flowing through source/target for scaling
     const srcTotal = rawLinks.filter(l => l.sourceId === rl.sourceId).reduce((s, l) => s + l.value, 0);
     const tgtTotal = rawLinks.filter(l => l.targetId === rl.targetId).reduce((s, l) => s + l.value, 0);
+
+    // How many pixels of the node bar this ribbon occupies
+    const srcBand = srcTotal > 0 ? (rl.value / srcTotal) * srcNode.h : 0;
+    const tgtBand = tgtTotal > 0 ? (rl.value / tgtTotal) * tgtNode.h : 0;
 
     const srcUsed = srcConsumed[rl.sourceId] || 0;
     const tgtUsed = tgtConsumed[rl.targetId] || 0;
 
-    const srcBand = srcTotal > 0 ? (rl.value / srcTotal) * srcNode.h : 0;
-    const tgtBand = tgtTotal > 0 ? (rl.value / tgtTotal) * tgtNode.h : 0;
-    const thickness = Math.max(1.5, Math.min(srcBand, tgtBand) * 0.8);
-
-    const srcY = srcNode.y + srcUsed + srcBand / 2;
-    const tgtY = tgtNode.y + tgtUsed + tgtBand / 2;
+    links.push({
+      sourceId: rl.sourceId,
+      targetId: rl.targetId,
+      value: rl.value,
+      srcColor: srcNode.color,
+      tgtColor: tgtNode.color,
+      srcY0: srcNode.y + srcUsed,
+      srcY1: srcNode.y + srcUsed + srcBand,
+      tgtY0: tgtNode.y + tgtUsed,
+      tgtY1: tgtNode.y + tgtUsed + tgtBand,
+    });
 
     srcConsumed[rl.sourceId] = srcUsed + srcBand;
     tgtConsumed[rl.targetId] = tgtUsed + tgtBand;
-
-    links.push({ ...rl, srcY, tgtY, thickness });
   }
 
   return { nodes, links };
@@ -297,18 +285,14 @@ export function SankeyChart({ transactions, period }: SankeyChartProps) {
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const ro = new ResizeObserver(entries => {
-      setWidth(entries[0].contentRect.width);
-    });
+    const ro = new ResizeObserver(entries => setWidth(entries[0].contentRect.width));
     ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
 
   const isMobile = width < 520;
-  const svgH = isMobile ? 300 : 380;
-  const colFracs = isMobile
-    ? [0.05, 0.75]
-    : [0.04, 0.34, 0.63, 0.86];
+  const svgH = isMobile ? 340 : 460;
+  const colFracs = isMobile ? [0.03, 0.72] : [0.03, 0.31, 0.60, 0.84];
   const colLabels = isMobile ? COL_LABELS_2 : COL_LABELS_4;
 
   const { nodes, links } = useMemo(
@@ -317,177 +301,159 @@ export function SankeyChart({ transactions, period }: SankeyChartProps) {
   );
 
   const handleNodeClick = (node: Node) => {
-    if (node.id.startsWith('inc:')) {
-      const src = node.id.slice(4);
-      router.push(`/transactions?search=${encodeURIComponent(src)}`);
-    } else if (node.id.startsWith('acct:')) {
-      router.push(`/transactions?account=${encodeURIComponent(node.label)}`);
-    } else if (node.id.startsWith('cat:')) {
-      router.push(`/transactions?category=${encodeURIComponent(node.label)}`);
-    } else if (node.id.startsWith('mer:')) {
-      router.push(`/transactions?search=${encodeURIComponent(node.label)}`);
-    }
+    if (node.id.startsWith('inc:'))  router.push(`/transactions?search=${encodeURIComponent(node.id.slice(4))}`);
+    if (node.id.startsWith('acct:')) router.push(`/transactions?account=${encodeURIComponent(node.label)}`);
+    if (node.id.startsWith('cat:'))  router.push(`/transactions?category=${encodeURIComponent(node.label)}`);
+    if (node.id.startsWith('mer:'))  router.push(`/transactions?search=${encodeURIComponent(node.label)}`);
   };
 
   if (transactions.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-        No transaction data for this period
-      </div>
-    );
+    return <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">No transaction data for this period</div>;
   }
-
-  const hasIncome = nodes.some(n => n.column === 0);
-  if (!hasIncome) {
-    return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-        No income/expense data in this period
-      </div>
-    );
+  if (!nodes.some(n => n.column === 0)) {
+    return <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">No income/expense data in this period</div>;
   }
 
   return (
     <div ref={containerRef} className="w-full">
-      <div className="relative">
-        {/* Column labels as a flex row above SVG */}
-        <div className="flex text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-          {colFracs.map((frac, i) => (
-            <div
-              key={i}
-              className="text-center"
-              style={{
-                width: `${((colFracs[i + 1] || 1.0) - frac) * 100}%`,
-              }}
-            >
-              {colLabels[i]}
-            </div>
+      <svg
+        width="100%"
+        height={svgH}
+        viewBox={`0 0 ${width} ${svgH}`}
+        preserveAspectRatio="none"
+        className="overflow-visible"
+      >
+        <defs>
+          {links.map((link, i) => (
+            <linearGradient key={i} id={`lg-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stopColor={link.srcColor} stopOpacity={0.50} />
+              <stop offset="100%" stopColor={link.tgtColor} stopOpacity={0.28} />
+            </linearGradient>
           ))}
-        </div>
+        </defs>
 
-        <svg
-          width="100%"
-          height={svgH}
-          viewBox={`0 0 ${width} ${svgH}`}
-          preserveAspectRatio="none"
-          className="overflow-visible"
-        >
-          <defs>
-            {links.map((link, i) => (
-              <linearGradient
-                key={i}
-                id={`lg-${i}`}
-                x1="0%" y1="0%" x2="100%" y2="0%"
-              >
-                <stop offset="0%" stopColor={link.color} stopOpacity={0.5} />
-                <stop offset="100%" stopColor={link.color} stopOpacity={0.2} />
-              </linearGradient>
-            ))}
-          </defs>
+        {/* Column headers */}
+        {colLabels.map((label, i) => (
+          <text
+            key={i}
+            x={colFracs[i] * width + NODE_W / 2}
+            y={14}
+            textAnchor="middle"
+            fontSize={9}
+            fontWeight="700"
+            letterSpacing="0.10em"
+            fontFamily="var(--font-mono), monospace"
+            style={{ fill: 'hsl(var(--muted-foreground))' }}
+            className="select-none"
+          >
+            {label.toUpperCase()}
+          </text>
+        ))}
 
-          {/* ── Links ──────────────────────────────────────────── */}
-          {links.map((link, i) => {
-            const srcNode = nodes.find(n => n.id === link.sourceId)!;
-            const tgtNode = nodes.find(n => n.id === link.targetId)!;
-            if (!srcNode || !tgtNode) return null;
-            const x1 = colFracs[srcNode.column] * width + NODE_W;
-            const x2 = colFracs[tgtNode.column] * width;
-            const cpX = (x1 + x2) / 2;
-            const isHovered = hoveredNode === link.sourceId || hoveredNode === link.targetId;
-            return (
-              <path
-                key={i}
-                d={`M${x1},${link.srcY} C${cpX},${link.srcY} ${cpX},${link.tgtY} ${x2},${link.tgtY}`}
-                fill="none"
-                stroke={`url(#lg-${i})`}
-                strokeWidth={Math.max(1.5, link.thickness)}
-                strokeOpacity={isHovered ? 0.8 : 0.4}
-                className="transition-all duration-200"
-              />
-            );
-          })}
+        {/* Ribbon links — filled paths with top + bottom bezier curves */}
+        {links.map((link, i) => {
+          const srcNode = nodes.find(n => n.id === link.sourceId)!;
+          const tgtNode = nodes.find(n => n.id === link.targetId)!;
+          if (!srcNode || !tgtNode) return null;
 
-          {/* ── Nodes ──────────────────────────────────────────── */}
-          {nodes.map(node => {
-            const x = colFracs[node.column] * width;
-            const isHovered = hoveredNode === node.id;
-            const labelRight = node.column >= (isMobile ? 1 : 2);
-            const maxLabelW = isMobile ? 80 : 110;
-            const labelLen = isMobile ? 10 : 14;
-            const label = truncate(node.label, labelLen);
+          const x1  = colFracs[srcNode.column] * width + NODE_W;
+          const x2  = colFracs[tgtNode.column] * width;
+          const cpX = (x1 + x2) / 2;
 
-            return (
-              <g
-                key={node.id}
-                onClick={() => handleNodeClick(node)}
-                onMouseEnter={() => setHoveredNode(node.id)}
-                onMouseLeave={() => setHoveredNode(null)}
-                className="cursor-pointer"
-              >
-                {/* Node rectangle */}
+          // Filled ribbon: top edge left→right, then bottom edge right→left
+          const d = [
+            `M${x1},${link.srcY0}`,
+            `C${cpX},${link.srcY0} ${cpX},${link.tgtY0} ${x2},${link.tgtY0}`,
+            `L${x2},${link.tgtY1}`,
+            `C${cpX},${link.tgtY1} ${cpX},${link.srcY1} ${x1},${link.srcY1}`,
+            'Z',
+          ].join(' ');
+
+          const isHovered = hoveredNode === link.sourceId || hoveredNode === link.targetId;
+          return (
+            <path
+              key={i}
+              d={d}
+              fill={`url(#lg-${i})`}
+              fillOpacity={isHovered ? 0.72 : 0.38}
+              className="transition-all duration-200"
+            />
+          );
+        })}
+
+        {/* Node bars */}
+        {nodes.map(node => {
+          const x = colFracs[node.column] * width;
+          const isHovered = hoveredNode === node.id;
+          const labelRight = node.column >= (isMobile ? 1 : 2);
+          const label = truncate(node.label, isMobile ? 11 : 15);
+          const showValue = isHovered || node.h > 30;
+
+          return (
+            <g
+              key={node.id}
+              onClick={() => handleNodeClick(node)}
+              onMouseEnter={() => setHoveredNode(node.id)}
+              onMouseLeave={() => setHoveredNode(null)}
+              className="cursor-pointer"
+            >
+              {/* Hover glow */}
+              {isHovered && (
                 <rect
-                  x={x}
-                  y={node.y}
-                  width={NODE_W}
-                  height={node.h}
-                  rx={3}
-                  fill={node.color}
-                  opacity={isHovered ? 1 : 0.85}
-                  className="transition-all duration-150"
+                  x={x - 3} y={node.y - 3}
+                  width={NODE_W + 6} height={node.h + 6}
+                  rx={5} fill={node.color} opacity={0.18}
                 />
-                {/* Hover ring */}
-                {isHovered && (
-                  <rect
-                    x={x - 1}
-                    y={node.y - 1}
-                    width={NODE_W + 2}
-                    height={node.h + 2}
-                    rx={4}
-                    fill="none"
-                    stroke={node.color}
-                    strokeWidth={1.5}
-                    opacity={0.6}
-                  />
-                )}
-                {/* Label */}
+              )}
+
+              {/* Node bar */}
+              <rect
+                x={x} y={node.y}
+                width={NODE_W} height={node.h}
+                rx={3}
+                fill={node.color}
+                opacity={isHovered ? 1 : 0.85}
+                className="transition-all duration-150"
+              />
+
+              {/* Label */}
+              <text
+                x={labelRight ? x - LABEL_PAD : x + NODE_W + LABEL_PAD}
+                y={node.y + node.h / 2 - (showValue ? 6 : 0)}
+                textAnchor={labelRight ? 'end' : 'start'}
+                dominantBaseline="middle"
+                fontSize={isMobile ? 9 : 11}
+                fontFamily="var(--font-sans), system-ui"
+                fontWeight={isHovered ? '700' : '500'}
+                className="select-none transition-all duration-150"
+                style={{ fill: isHovered ? node.color : 'hsl(var(--foreground) / 0.78)' }}
+              >
+                {label}
+              </text>
+
+              {/* Value */}
+              {showValue && (
                 <text
                   x={labelRight ? x - LABEL_PAD : x + NODE_W + LABEL_PAD}
-                  y={node.y + node.h / 2}
+                  y={node.y + node.h / 2 + (isMobile ? 8 : 9)}
                   textAnchor={labelRight ? 'end' : 'start'}
                   dominantBaseline="middle"
-                  fontSize={isMobile ? 8 : 10}
-                  fontFamily="var(--font-sans), system-ui"
-                  fontWeight={isHovered ? '600' : '500'}
-                  fill={isHovered ? node.color : 'currentColor'}
-                  className="select-none transition-all duration-150"
-                  style={{ fill: isHovered ? node.color : 'hsl(var(--foreground) / 0.75)' }}
+                  fontSize={isMobile ? 7.5 : 9}
+                  fontFamily="var(--font-mono), monospace"
+                  className="select-none"
+                  style={{ fill: isHovered ? node.color : 'hsl(var(--muted-foreground))' }}
                 >
-                  {label}
+                  {formatCurrency(node.value)}
                 </text>
-                {/* Value label (only on hover or large nodes) */}
-                {(isHovered || node.h > 28) && (
-                  <text
-                    x={labelRight ? x - LABEL_PAD : x + NODE_W + LABEL_PAD}
-                    y={node.y + node.h / 2 + (isMobile ? 10 : 13)}
-                    textAnchor={labelRight ? 'end' : 'start'}
-                    dominantBaseline="middle"
-                    fontSize={isMobile ? 7 : 8.5}
-                    fontFamily="var(--font-mono), monospace"
-                    style={{ fill: 'hsl(var(--muted-foreground))' }}
-                    className="select-none"
-                  >
-                    {formatCurrency(node.value)}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+              )}
+            </g>
+          );
+        })}
+      </svg>
 
-        {/* Click hint */}
-        <p className="text-[10px] text-center text-muted-foreground mt-2">
-          Click any node to view matching transactions
-        </p>
-      </div>
+      <p className="text-[10px] text-center text-muted-foreground mt-1">
+        Click any node to view matching transactions
+      </p>
     </div>
   );
 }
