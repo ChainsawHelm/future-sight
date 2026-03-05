@@ -14,6 +14,7 @@ import { SankeyChart } from './sankey-chart';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as ReTooltip, ResponsiveContainer, Legend,
+  LabelList,
   AreaChart, Area,
 } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -219,52 +220,6 @@ export function DashboardView() {
   return (
     <div className="space-y-5 animate-fade-in">
 
-      {/* ════════════ NET WORTH HERO ════════════ */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/5 via-card to-violet-50/50 dark:from-primary/10 dark:via-surface-1 dark:to-surface-1 shadow-soft">
-        {sparkPoints && (
-          <div className="absolute bottom-0 right-0 w-[200px] h-[48px] opacity-15 pointer-events-none">
-            <svg viewBox="0 0 200 40" className="w-full h-full" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              <polyline points={sparkPoints} fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />
-              <polygon points={`0,40 ${sparkPoints} 200,40`} fill="url(#spark-grad)" />
-            </svg>
-          </div>
-        )}
-
-        <div className="relative z-10 p-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <div className="status-live mb-2">Live</div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Net Worth</p>
-            <p className={cn('numeral font-bold leading-none tabnum text-4xl sm:text-5xl gradient-text')}>
-              {overview.netWorth < 0 ? '−' : ''}{formatCurrency(Math.abs(overview.netWorth))}
-            </p>
-            <p className={cn('text-xs font-mono mt-2 flex items-center gap-1', overview.netSavings >= 0 ? 'text-income' : 'text-expense')}>
-              {overview.netSavings >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(overview.netSavings))} this month
-              {savingsRate !== 0 && <span className="text-muted-foreground ml-2">{savingsRate.toFixed(1)}% savings rate</span>}
-            </p>
-          </div>
-          <div className="flex items-center gap-4 sm:gap-6">
-            {[
-              { label: 'Assets', value: overview.totalAssets, color: 'text-income' },
-              { label: 'Liabilities', value: overview.totalDebts, color: 'text-expense' },
-              { label: 'Transactions', value: null, raw: overview.totalTransactions.toLocaleString(), color: 'text-foreground' },
-            ].map((m, i) => (
-              <div key={m.label}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">{m.label}</p>
-                <p className={cn('numeral text-lg font-bold tabnum', m.color)}>
-                  {m.value !== null ? formatCurrency(m.value) : m.raw}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* ════════════ PERIOD TABS ════════════ */}
       <div className="flex items-center gap-1 bg-surface-2 rounded-xl p-1 w-fit flex-wrap">
         {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
@@ -305,6 +260,33 @@ export function DashboardView() {
           meta={`${PERIOD_LABELS[period]} · ${periodTxns.length} transactions`}
         />
         <SankeyChart transactions={periodTxns} period={period} />
+      </div>
+
+      {/* ════════════ NET WORTH STRIP ════════════ */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          {
+            label: 'Net Worth',
+            value: formatCurrency(Math.abs(overview.netWorth)),
+            prefix: overview.netWorth < 0 ? '−' : '',
+            color: overview.netWorth >= 0 ? 'text-income' : 'text-expense',
+          },
+          { label: 'Total Assets',       value: formatCurrency(overview.totalAssets), color: 'text-income' },
+          { label: 'Total Liabilities',  value: formatCurrency(overview.totalDebts),  color: 'text-expense' },
+          {
+            label: 'Monthly Δ',
+            value: formatCurrency(Math.abs(overview.netSavings)),
+            prefix: overview.netSavings >= 0 ? '▲ ' : '▼ ',
+            color: overview.netSavings >= 0 ? 'text-income' : 'text-expense',
+          },
+        ].map((m) => (
+          <div key={m.label} className="rounded-xl border border-border bg-card p-4 shadow-soft">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{m.label}</p>
+            <p className={cn('numeral text-xl font-bold tabnum', m.color)}>
+              {'prefix' in m ? m.prefix : ''}{m.value}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* ════════════ CATEGORY BARS + INCOME VS EXPENSES ════════════ */}
@@ -360,8 +342,12 @@ export function DashboardView() {
                   <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={38} />
                   <ReTooltip content={<ChartTip />} cursor={{ fill: 'hsl(var(--foreground) / 0.03)', radius: 6 }} />
                   <Legend wrapperStyle={{ fontSize: 10 }} iconSize={8} iconType="circle" />
-                  <Bar dataKey="Income" fill="hsl(var(--income))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Expenses" fill="hsl(var(--expense))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Income" fill="hsl(var(--income))" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="Income" position="top" formatter={(v: number) => v > 0 ? `$${(v/1000).toFixed(1)}k` : ''} style={{ fontSize: 9, fill: 'hsl(var(--income))', fontFamily: 'var(--font-mono)' }} />
+                  </Bar>
+                  <Bar dataKey="Expenses" fill="hsl(var(--expense))" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="Expenses" position="top" formatter={(v: number) => v > 0 ? `$${(v/1000).toFixed(1)}k` : ''} style={{ fontSize: 9, fill: 'hsl(var(--expense))', fontFamily: 'var(--font-mono)' }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
