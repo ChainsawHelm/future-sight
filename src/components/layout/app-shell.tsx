@@ -196,17 +196,17 @@ function LogoMark() {
     <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
       <defs>
         <radialGradient id="ballGrad" cx="38%" cy="32%" r="68%">
-          <stop offset="0%" stopColor="#C4B5FD" />
-          <stop offset="45%" stopColor="#8B5CF6" />
-          <stop offset="100%" stopColor="#5B21B6" />
+          <stop offset="0%" stopColor="#B8C8B1" />
+          <stop offset="45%" stopColor="#8FBC8F" />
+          <stop offset="100%" stopColor="#4A7A4A" />
         </radialGradient>
         <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0" />
+          <stop offset="0%" stopColor="#8FBC8F" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="#8FBC8F" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="shimmer" cx="50%" cy="85%" r="40%">
-          <stop offset="0%" stopColor="#DDD6FE" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#DDD6FE" stopOpacity="0" />
+          <stop offset="0%" stopColor="#F6F3EE" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#F6F3EE" stopOpacity="0" />
         </radialGradient>
       </defs>
       {/* Soft glow ring */}
@@ -216,11 +216,11 @@ function LogoMark() {
       {/* Bottom shimmer */}
       <circle cx="13" cy="13" r="10" fill="url(#shimmer)" />
       {/* Main highlight */}
-      <ellipse cx="10" cy="9.5" rx="3" ry="1.8" fill="white" opacity="0.55" transform="rotate(-15 10 9.5)" />
+      <ellipse cx="10" cy="9.5" rx="3" ry="1.8" fill="white" opacity="0.50" transform="rotate(-15 10 9.5)" />
       {/* Small sparkle dot */}
-      <circle cx="8.5" cy="8" r="1.1" fill="white" opacity="0.75" />
+      <circle cx="8.5" cy="8" r="1.1" fill="white" opacity="0.70" />
       {/* Tiny star sparkle above */}
-      <path d="M19 5 L19.4 6.6 L21 7 L19.4 7.4 L19 9 L18.6 7.4 L17 7 L18.6 6.6Z" fill="#C4B5FD" opacity="0.9" />
+      <path d="M19 5 L19.4 6.6 L21 7 L19.4 7.4 L19 9 L18.6 7.4 L17 7 L18.6 6.6Z" fill="#B8C8B1" opacity="0.9" />
     </svg>
   );
 }

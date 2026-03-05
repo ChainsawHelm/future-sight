@@ -122,12 +122,12 @@ const config: Config = {
       boxShadow: {
         'soft':       '0 1px 3px hsl(var(--foreground) / 0.06), 0 4px 16px hsl(var(--foreground) / 0.04)',
         'medium':     '0 2px 8px hsl(var(--foreground) / 0.08), 0 8px 24px hsl(var(--foreground) / 0.05)',
-        'glow-purple':'0 0 20px hsl(var(--primary) / 0.25), 0 0 40px hsl(var(--primary) / 0.1)',
+        'glow-purple':'0 0 20px hsl(120 25% 50% / 0.22), 0 0 40px hsl(120 25% 50% / 0.08)',
         'glow-green': '0 0 20px hsl(var(--income) / 0.2), 0 0 40px hsl(var(--income) / 0.08)',
         'glow-red':   '0 0 20px hsl(var(--expense) / 0.2)',
         'panel':      '0 1px 0 hsl(var(--border)), 0 0 0 1px hsl(var(--border) / 0.5)',
         'inner':      'inset 0 1px 2px hsl(var(--foreground) / 0.04)',
-        'card':       '0 1px 3px hsl(260 40% 50% / 0.06), 0 4px 12px hsl(260 40% 50% / 0.04)',
+        'card':       '0 1px 3px hsl(196 19% 15% / 0.06), 0 4px 12px hsl(196 19% 15% / 0.04)',
       },
 
       backgroundImage: {
