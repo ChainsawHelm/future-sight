@@ -3,51 +3,65 @@
 @tailwind utilities;
 
 @layer base {
+  /* ─── Dark Terminal (Default) ─── */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 210 55% 23%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 210 55% 23%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 210 55% 23%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 210 55% 23%;
-    --radius: 0.75rem;
-    --income: 142 71% 37%;
-    --expense: 0 84% 60%;
+    --background: 220 60% 4%;
+    --foreground: 214 45% 90%;
+    --card: 220 55% 7%;
+    --card-foreground: 214 45% 90%;
+    --popover: 220 55% 7%;
+    --popover-foreground: 214 45% 90%;
+    --primary: 190 100% 50%;
+    --primary-foreground: 220 60% 4%;
+    --secondary: 220 45% 12%;
+    --secondary-foreground: 214 45% 90%;
+    --muted: 220 45% 11%;
+    --muted-foreground: 214 22% 52%;
+    --accent: 220 45% 12%;
+    --accent-foreground: 214 45% 90%;
+    --destructive: 348 100% 62%;
+    --destructive-foreground: 214 45% 90%;
+    --border: 220 45% 13%;
+    --input: 220 45% 13%;
+    --ring: 190 100% 50%;
+    --radius: 0.25rem;
+    --income: 152 100% 42%;
+    --expense: 348 100% 62%;
+
+    /* Terminal accent colors */
+    --cyan: 190 100% 50%;
+    --cyan-dim: 190 80% 30%;
+    --surface-1: 220 55% 7%;
+    --surface-2: 220 50% 10%;
+    --surface-3: 220 45% 13%;
   }
 
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 207 72% 53%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 22%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 22%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 22%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 25%;
-    --input: 217 33% 25%;
-    --ring: 207 72% 53%;
+  /* ─── Light Mode Override ─── */
+  .light {
+    --background: 210 20% 98%;
+    --foreground: 220 45% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 45% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 45% 12%;
+    --primary: 210 80% 35%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 220 45% 12%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 20% 94%;
+    --accent-foreground: 220 45% 12%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 25% 88%;
+    --input: 214 25% 88%;
+    --ring: 210 80% 35%;
+    --income: 142 71% 37%;
+    --expense: 0 84% 60%;
+    --surface-1: 0 0% 100%;
+    --surface-2: 210 20% 96%;
+    --surface-3: 214 25% 88%;
   }
 }
 
@@ -55,27 +69,129 @@
   * {
     border-color: hsl(var(--border));
   }
+  html {
+    /* Force dark by default */
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Tabular numbers for financial data */
+/* ─── Tabular numbers ─── */
 .tabnum {
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono), monospace;
 }
 
-/* Custom scrollbar */
+/* ─── Terminal glow effect for accent elements ─── */
+.glow-cyan {
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+}
+.text-glow-cyan {
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+/* ─── Active nav indicator ─── */
+.nav-active {
+  border-left: 2px solid hsl(var(--cyan));
+  background: rgba(0, 212, 255, 0.06);
+}
+
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full;
+  background: hsl(var(--border));
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/40;
+  background: hsl(var(--muted-foreground) / 0.4);
 }
+
+/* ─── Stat card scan-line effect ─── */
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+.scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 212, 255, 0.015) 2px,
+    rgba(0, 212, 255, 0.015) 4px
+  );
+  pointer-events: none;
+}
+
+/* ─── Data grid lines ─── */
+.data-grid {
+  background-image:
+    linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideDown {
+  from { transform: translateY(-12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes pulse-cyan {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-fade-in { animation: fadeIn 0.25s ease-out; }
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
+.animate-slide-down { animation: slideDown 0.3s ease-out; }
+.animate-pulse-cyan { animation: pulse-cyan 2s ease-in-out infinite; }
+.animate-blink { animation: blink 1s step-end infinite; }
+
+/* ─── Number display ─── */
+.mono-num {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Ticker-style labels ─── */
+.ticker-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+/* ─── Status dot ─── */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-dot.online { background: hsl(var(--income)); box-shadow: 0 0 6px hsl(var(--income) / 0.6); }
+.status-dot.offline { background: hsl(var(--expense)); }
