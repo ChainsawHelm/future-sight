@@ -19,9 +19,12 @@ function TransactionsViewInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Read initial date filters from URL (e.g. from heatmap or calendar click)
+  // Read initial filters from URL (heatmap, calendar, Sankey click-through)
   const urlDateFrom = searchParams.get('dateFrom') || '';
   const urlDateTo   = searchParams.get('dateTo')   || '';
+  const urlCategory = searchParams.get('category') || '';
+  const urlAccount  = searchParams.get('account')  || '';
+  const urlSearch   = searchParams.get('search')   || '';
 
   const [query, setQuery] = useState<TransactionQuery>({
     page: 1,
@@ -29,21 +32,24 @@ function TransactionsViewInner() {
     sort: 'date',
     order: 'desc',
   });
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(urlSearch);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Partial<Transaction>>({});
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterAccount, setFilterAccount] = useState('');
+  const [filterCategory, setFilterCategory] = useState(urlCategory);
+  const [filterAccount, setFilterAccount] = useState(urlAccount);
   const [filterDateFrom, setFilterDateFrom] = useState(urlDateFrom);
   const [filterDateTo, setFilterDateTo] = useState(urlDateTo);
 
-  // Keep date filters in sync when URL params change (e.g. browser back/forward)
+  // Keep filters in sync when URL params change (e.g. Sankey / heatmap navigation)
   useEffect(() => {
     setFilterDateFrom(urlDateFrom);
     setFilterDateTo(urlDateTo);
+    setFilterCategory(urlCategory);
+    setFilterAccount(urlAccount);
+    setSearch(urlSearch);
     setQuery(q => ({ ...q, page: 1 }));
-  }, [urlDateFrom, urlDateTo]);
+  }, [urlDateFrom, urlDateTo, urlCategory, urlAccount, urlSearch]);
 
   const clearDateFilter = () => {
     setFilterDateFrom('');
