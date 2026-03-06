@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { evaluateAchievements, ALL_ACHIEVEMENTS } from '@/lib/achievements';
 import type { AchievementContext } from '@/lib/achievements';
 
 export async function GET() {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:read');
   if ('error' in result) return result.error;
   const userId = result.userId;
 

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { settingsUpdateSchema } from '@/lib/validations';
 import { z } from 'zod';
 
 export async function GET() {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:read');
   if ('error' in result) return result.error;
 
   const settings = await prisma.userSettings.findUnique({
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:write');
   if ('error' in result) return result.error;
 
   try {

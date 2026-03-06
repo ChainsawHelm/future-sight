@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { isRealIncome, isRealExpense } from '@/lib/classify';
 
 export async function GET() {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:read');
   if ('error' in result) return result.error;
   const { userId } = result;
 

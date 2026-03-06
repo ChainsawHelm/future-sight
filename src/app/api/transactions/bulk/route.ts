@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import {
   transactionBulkCreateSchema,
   transactionBulkUpdateSchema,
@@ -10,7 +10,7 @@ import { z } from 'zod';
 
 // POST /api/transactions/bulk — bulk create (import pipeline)
 export async function POST(req: NextRequest) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:bulk');
   if ('error' in result) return result.error;
   const { userId } = result;
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/transactions/bulk — bulk update (e.g., bulk recategorize)
 export async function PATCH(req: NextRequest) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:bulk');
   if ('error' in result) return result.error;
   const { userId } = result;
 
@@ -104,7 +104,7 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/transactions/bulk — bulk delete
 export async function DELETE(req: NextRequest) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:bulk');
   if ('error' in result) return result.error;
   const { userId } = result;
 

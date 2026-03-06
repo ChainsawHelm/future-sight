@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { plaidClient } from '@/lib/plaid';
 import { prisma } from '@/lib/prisma';
+import { decrypt } from '@/lib/encryption';
+import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
 
 // ─── Plaid category → app category ──────────
 const PLAID_CATEGORY_MAP: Record<string, string> = {
@@ -36,6 +38,15 @@ export async function POST() {
   }
   const userId = session.user.id;
 
+  // Rate limit Plaid sync
+  const rl = rateLimit(userId, 'api:plaid');
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const plaidItems = await prisma.plaidItem.findMany({
       where: { userId, isActive: true },
@@ -48,7 +59,8 @@ export async function POST() {
 
     for (const item of plaidItems) {
       // ── 1. Fetch and upsert individual accounts ──────────────────
-      const accountsRes = await plaidClient.accountsGet({ access_token: item.accessToken });
+      const decryptedToken = decrypt(item.accessToken);
+      const accountsRes = await plaidClient.accountsGet({ access_token: decryptedToken });
       const accountIdToName: Record<string, string> = {};
 
       for (const acct of accountsRes.data.accounts) {
@@ -153,7 +165,7 @@ export async function POST() {
 
       while (hasMore) {
         const response = await plaidClient.transactionsSync({
-          access_token: item.accessToken, cursor, count: 100,
+          access_token: decryptedToken, cursor, count: 100,
         });
         const { added, modified, removed, next_cursor, has_more } = response.data;
 
@@ -251,7 +263,7 @@ export async function POST() {
       removed: totalRemoved,
     });
   } catch (err: any) {
-    console.error('Plaid sync error:', err?.response?.data || err.message);
+    console.error('Plaid sync error:', err.message);
     return NextResponse.json({ error: 'Failed to sync' }, { status: 500 });
   }
 }

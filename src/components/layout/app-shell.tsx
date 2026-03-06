@@ -26,6 +26,7 @@ const NAV_GROUPS = [
     items: [
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: IconTransactions },
       { id: 'import',       label: 'Import',       href: '/import',       icon: IconImport },
+      { id: 'accounts',     label: 'Accounts',     href: '/accounts',     icon: IconPlaid },
       { id: 'calendar',     label: 'Calendar',     href: '/calendar',     icon: IconCalendar },
     ],
   },
@@ -130,6 +131,11 @@ function IconCashFlow({ size = 14 }: { size?: number }) {
 function IconAchievements({ size = 14 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="8" r="5.5"/><path d="M8.56 13.89L7 22l5-3 5 3-1.56-8.11"/>
+  </svg>;
+}
+function IconPlaid({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="7" y1="15" x2="11" y2="15"/>
   </svg>;
 }
 function IconSettings({ size = 14 }: { size?: number }) {

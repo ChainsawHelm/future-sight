@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { snapshotCreateSchema } from '@/lib/validations';
 import { z } from 'zod';
 
@@ -15,7 +15,7 @@ function serializeSnapshot(s: any) {
 }
 
 export async function GET() {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:read');
   if ('error' in result) return result.error;
 
   const snapshots = await prisma.netWorthSnapshot.findMany({
@@ -27,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:write');
   if ('error' in result) return result.error;
 
   try {

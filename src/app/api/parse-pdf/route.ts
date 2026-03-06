@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 
 /**
  * POST /api/parse-pdf
@@ -7,7 +7,7 @@ import { requireAuth } from '@/lib/api-auth';
  * Returns parsed rows for the client to review before importing.
  */
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireAuthWithLimit('api:write');
   if ('error' in auth) return auth.error;
 
   try {

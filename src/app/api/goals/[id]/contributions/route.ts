@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { contributionCreateSchema } from '@/lib/validations';
 import { z } from 'zod';
 
@@ -9,7 +9,7 @@ interface Params {
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:write');
   if ('error' in result) return result.error;
 
   try {

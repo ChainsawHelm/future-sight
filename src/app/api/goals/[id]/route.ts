@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { goalUpdateSchema, contributionCreateSchema } from '@/lib/validations';
 import { z } from 'zod';
 
@@ -23,7 +23,7 @@ function serialize(g: any) {
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:read');
   if ('error' in result) return result.error;
 
   const goal = await prisma.savingsGoal.findFirst({
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:write');
   if ('error' in result) return result.error;
 
   try {
@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:write');
   if ('error' in result) return result.error;
 
   const existing = await prisma.savingsGoal.findFirst({

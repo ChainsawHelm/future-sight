@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 
 // GET /api/backup — export all user data as JSON
 export async function GET() {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:backup');
   if ('error' in result) return result.error;
   const { userId } = result;
 
@@ -80,7 +80,7 @@ export async function GET() {
 
 // POST /api/backup — restore from backup JSON
 export async function POST(req: NextRequest) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:backup');
   if ('error' in result) return result.error;
   const { userId } = result;
 

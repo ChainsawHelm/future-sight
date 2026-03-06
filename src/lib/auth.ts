@@ -5,10 +5,14 @@ import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: 'jwt' },
+  session: {
+    strategy: 'jwt',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+  },
   pages: {
     signIn: '/login',
     newUser: '/login',
@@ -25,11 +29,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const email = (credentials.email as string).toLowerCase().trim();
+
+        // Account lockout: 5 failed attempts per email per 15 minutes
+        const lockoutCheck = rateLimit(email, 'auth:lockout');
+        if (!lockoutCheck.allowed) return null;
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email },
         });
 
-        if (!user || !user.hashedPassword) return null;
+        if (!user || !user.hashedPassword) {
+          // Still consume a lockout attempt to prevent user enumeration timing
+          return null;
+        }
 
         const isValid = await bcrypt.compare(
           credentials.password as string,

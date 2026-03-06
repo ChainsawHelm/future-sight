@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { goalCreateSchema } from '@/lib/validations';
 import { z } from 'zod';
 
@@ -19,7 +19,7 @@ function serializeGoal(g: any) {
 }
 
 export async function GET() {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:read');
   if ('error' in result) return result.error;
 
   const [goals, assets] = await Promise.all([
@@ -41,7 +41,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const result = await requireAuth();
+  const result = await requireAuthWithLimit('api:write');
   if ('error' in result) return result.error;
 
   try {

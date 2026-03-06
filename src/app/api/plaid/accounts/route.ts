@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { plaidClient } from '@/lib/plaid';
+import { decrypt } from '@/lib/encryption';
 
 export async function GET() {
   const session = await auth();
@@ -60,7 +61,7 @@ export async function DELETE(req: any) {
   const item = await prisma.plaidItem.findFirst({ where: { id, userId: session.user.id } });
   if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  try { await plaidClient.itemRemove({ access_token: item.accessToken }); } catch {}
+  try { await plaidClient.itemRemove({ access_token: decrypt(item.accessToken) }); } catch {}
   await prisma.plaidItem.delete({ where: { id } });
 
   return NextResponse.json({ success: true });

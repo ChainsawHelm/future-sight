@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthWithLimit } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma';
  * Returns candidates that aren't already tracked as subscriptions.
  */
 export async function POST() {
-  const auth = await requireAuth();
+  const auth = await requireAuthWithLimit('api:write');
   if ('error' in auth) return auth.error;
   const { userId } = auth;
 

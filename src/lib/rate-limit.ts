@@ -29,6 +29,8 @@ const LIMITS: Record<string, RateLimitConfig> = {
   // Auth routes — strict
   'auth:login': { maxRequests: 10, windowSecs: 60 },
   'auth:register': { maxRequests: 5, windowSecs: 60 },
+  // Account lockout — 5 failed attempts per 15 min per email
+  'auth:lockout': { maxRequests: 5, windowSecs: 900 },
   // API reads — generous
   'api:read': { maxRequests: 120, windowSecs: 60 },
   // API writes — moderate
@@ -37,6 +39,8 @@ const LIMITS: Record<string, RateLimitConfig> = {
   'api:bulk': { maxRequests: 10, windowSecs: 60 },
   // Backup — very tight
   'api:backup': { maxRequests: 5, windowSecs: 300 },
+  // Plaid operations — tight
+  'api:plaid': { maxRequests: 10, windowSecs: 60 },
 };
 
 export interface RateLimitResult {

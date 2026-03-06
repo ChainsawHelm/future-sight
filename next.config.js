@@ -1,3 +1,5 @@
+const isDev = process.env.NODE_ENV === 'development';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -23,13 +25,13 @@ const nextConfig = {
         // Restrict browser features
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
         // Force HTTPS for 1 year
-        { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
-        // Content Security Policy
+        { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+        // Content Security Policy — unsafe-eval only in dev (Next.js HMR needs it)
         {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plaid.com", // Next.js needs inline scripts
+            `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://cdn.plaid.com`,
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: blob: https:",
@@ -39,9 +41,10 @@ const nextConfig = {
             "form-action 'self'",
             "base-uri 'self'",
             "object-src 'none'",
+            "upgrade-insecure-requests",
           ].join('; '),
         },
-        // Prevent embedding in other sites
+        // DNS prefetch
         { key: 'X-DNS-Prefetch-Control', value: 'on' },
       ],
     },
