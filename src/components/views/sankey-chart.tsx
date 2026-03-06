@@ -265,12 +265,14 @@ function buildSankeyData(
 interface SankeyChartProps {
   transactions: TxnForSankey[];
   period: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 const COL_LABELS_4 = ['Income', 'Accounts', 'Categories', 'Merchants'];
 const COL_LABELS_2 = ['Income', 'Spending'];
 
-export function SankeyChart({ transactions, period }: SankeyChartProps) {
+export function SankeyChart({ transactions, period, dateFrom, dateTo }: SankeyChartProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
@@ -294,10 +296,16 @@ export function SankeyChart({ transactions, period }: SankeyChartProps) {
   );
 
   const handleNodeClick = (node: Node) => {
-    if (node.id.startsWith('inc:'))  router.push(`/transactions?search=${encodeURIComponent(node.id.slice(4))}`);
-    if (node.id.startsWith('acct:')) router.push(`/transactions?account=${encodeURIComponent(node.label)}`);
-    if (node.id.startsWith('cat:'))  router.push(`/transactions?category=${encodeURIComponent(node.label)}`);
-    if (node.id.startsWith('mer:'))  router.push(`/transactions?search=${encodeURIComponent(node.label)}`);
+    const dateParts = [
+      dateFrom ? `dateFrom=${encodeURIComponent(dateFrom)}` : '',
+      dateTo   ? `dateTo=${encodeURIComponent(dateTo)}`     : '',
+    ].filter(Boolean).join('&');
+    const dateSuffix = dateParts ? `&${dateParts}` : '';
+
+    if (node.id.startsWith('inc:'))  router.push(`/transactions?search=${encodeURIComponent(node.id.slice(4))}${dateSuffix}`);
+    if (node.id.startsWith('acct:')) router.push(`/transactions?account=${encodeURIComponent(node.label)}${dateSuffix}`);
+    if (node.id.startsWith('cat:'))  router.push(`/transactions?category=${encodeURIComponent(node.label)}${dateSuffix}`);
+    if (node.id.startsWith('mer:'))  router.push(`/transactions?search=${encodeURIComponent(node.label)}${dateSuffix}`);
   };
 
   if (transactions.length === 0) {
