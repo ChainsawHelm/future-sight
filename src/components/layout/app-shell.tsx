@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { settingsApi } from '@/lib/api-client';
 import { KeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { MatrixRain } from '@/components/shared/matrix-rain';
 import { cn } from '@/lib/utils';
 
 /* ══════════════════════════════════════════
@@ -166,6 +167,7 @@ export function AppShell({ user, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [activeTheme, setActiveTheme] = useState('default');
 
   // Dark-first initialization + theme restore
   useEffect(() => {
@@ -175,6 +177,7 @@ export function AppShell({ user, children }: AppShellProps) {
     if (savedTheme && savedTheme !== 'default') {
       document.documentElement.dataset.theme = savedTheme;
     }
+    setActiveTheme(savedTheme || 'default');
     const load = async () => {
       try {
         const res = await settingsApi.get();
@@ -184,6 +187,18 @@ export function AppShell({ user, children }: AppShellProps) {
       } catch { /* keep dark */ }
     };
     load();
+  }, []);
+
+  // Listen for theme changes (from settings page)
+  useEffect(() => {
+    const onStorage = () => setActiveTheme(localStorage.getItem('fs-theme') || 'default');
+    window.addEventListener('storage', onStorage);
+    // Also poll the attribute for same-tab changes
+    const observer = new MutationObserver(() => {
+      setActiveTheme(document.documentElement.dataset.theme || 'default');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => { window.removeEventListener('storage', onStorage); observer.disconnect(); };
   }, []);
 
   useEffect(() => { setMoreOpen(false); }, [pathname]);
@@ -201,6 +216,7 @@ export function AppShell({ user, children }: AppShellProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <KeyboardShortcuts />
+      {activeTheme === 'matrix' && darkMode && <MatrixRain />}
 
       {/* ════════════════════════════════
           SIDEBAR — TERMINAL
