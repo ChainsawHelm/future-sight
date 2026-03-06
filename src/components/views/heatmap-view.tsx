@@ -118,7 +118,7 @@ export function HeatmapView() {
           { label: 'Average spend day', value: formatCurrency(avgDaily), color: 'text-foreground' },
           { label: 'Busiest day', value: busiestDate ? busiestDate[0] : '—', color: 'text-primary' },
         ].map((s) => (
-          <div key={s.label} className="rounded-xl border border-border bg-card p-4 shadow-soft">
+          <div key={s.label} className="border border-border bg-card p-4 shadow-soft">
             <p className="ticker mb-1">{s.label}</p>
             <p className={cn('numeral text-lg font-bold', s.color)}>{s.value}</p>
           </div>
@@ -126,7 +126,7 @@ export function HeatmapView() {
       </div>
 
       {/* Heatmap grid */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-soft overflow-x-auto">
+      <div className="border border-border bg-card p-5 shadow-soft overflow-x-auto">
         <div className="min-w-[700px]">
           {/* Month labels */}
           <div className="flex gap-1 mb-1 ml-8">
@@ -192,7 +192,7 @@ export function HeatmapView() {
 
       {/* Top spending days */}
       {Object.keys(dailySpend).length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-soft">
+        <div className="border border-border bg-card p-5 shadow-soft">
           <h3 className="text-sm font-semibold mb-4">Top Spending Days</h3>
           <div className="space-y-2">
             {Object.entries(dailySpend)
@@ -219,9 +219,9 @@ export function HeatmapView() {
                         </span>
                       </div>
                     </div>
-                    <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-surface-2 overflow-hidden">
                       <div
-                        className="h-full bg-violet-500 rounded-full transition-all duration-500 group-hover:bg-primary"
+                        className="h-full bg-violet-500 transition-all duration-500 group-hover:bg-primary"
                         style={{ width: `${pct}%` }}
                       />
                     </div>

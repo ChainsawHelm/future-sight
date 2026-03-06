@@ -160,20 +160,20 @@ export function SettingsView() {
               <button
                 key={t.id}
                 onClick={() => applyTheme(t.id)}
-                className={`relative text-left p-3 rounded-lg border-2 transition-all ${
+                className={`relative text-left p-3 border-2 transition-all ${
                   activeTheme === t.id
                     ? 'border-primary bg-primary/5'
                     : 'border-border bg-surface-2 hover:border-primary/40'
                 }`}
               >
                 {activeTheme === t.id && (
-                  <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-primary flex items-center justify-center">
                     <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5"><path d="M2 6l3 3 5-5"/></svg>
                   </span>
                 )}
                 <div className="flex gap-1 mb-2">
                   {t.colors.map((c, i) => (
-                    <span key={i} className="w-5 h-5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: c }} />
+                    <span key={i} className="w-5 h-5 border border-black/10 shrink-0" style={{ backgroundColor: c }} />
                   ))}
                 </div>
                 <p className="text-xs font-semibold">{t.name}</p>
@@ -253,7 +253,7 @@ export function SettingsView() {
               /* ── Success state ── */
               <>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 bg-income/10 flex items-center justify-center shrink-0">
                     <svg className="w-5 h-5 text-income" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M5 13l4 4L19 7" /></svg>
                   </div>
                   <div>
@@ -285,7 +285,7 @@ export function SettingsView() {
               /* ── Confirmation state ── */
               <>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-expense/10 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 bg-expense/10 flex items-center justify-center shrink-0">
                     <svg className="w-5 h-5 text-expense" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
                   </div>
                   <div>

@@ -76,13 +76,13 @@ export function AchievementsView() {
       </div>
 
       {/* Progress bar */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <div className="border bg-card p-5 shadow-sm">
         <div className="flex justify-between text-sm mb-2">
           <span className="font-medium">Progress</span>
           <span className="tabnum">{unlocked.length}/{ACHIEVEMENTS.length}</span>
         </div>
-        <div className="h-3 rounded-full bg-muted overflow-hidden">
-          <div className="h-full rounded-full bg-yellow-500 transition-all" style={{ width: `${(unlocked.length / ACHIEVEMENTS.length) * 100}%` }} />
+        <div className="h-3 bg-muted overflow-hidden">
+          <div className="h-full bg-yellow-500 transition-all" style={{ width: `${(unlocked.length / ACHIEVEMENTS.length) * 100}%` }} />
         </div>
       </div>
 
@@ -92,7 +92,7 @@ export function AchievementsView() {
           <h2 className="text-sm font-semibold mb-3 text-green-600">✓ Unlocked</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {unlocked.map(a => (
-              <div key={a.key} className="rounded-xl border bg-card p-4 shadow-sm border-green-200 dark:border-green-900/50">
+              <div key={a.key} className="border bg-card p-4 shadow-sm border-green-200 dark:border-green-900/50">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{a.icon}</span>
                   <div>
@@ -112,7 +112,7 @@ export function AchievementsView() {
           <h2 className="text-sm font-semibold mb-3 text-muted-foreground">🔒 Locked</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {locked.map(a => (
-              <div key={a.key} className="rounded-xl border bg-card p-4 shadow-sm opacity-50">
+              <div key={a.key} className="border bg-card p-4 shadow-sm opacity-50">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl grayscale">{a.icon}</span>
                   <div>

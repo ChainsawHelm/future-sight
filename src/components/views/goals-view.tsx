@@ -237,7 +237,7 @@ export function GoalsView() {
             {/* Account header */}
             <div className="flex items-center justify-between px-5 py-3 bg-surface-2 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="w-8 h-8 bg-primary/10 flex items-center justify-center">
                   <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
@@ -264,7 +264,7 @@ export function GoalsView() {
                 return (
                   <div key={g.id} className={cn('px-5 py-4 flex items-center gap-4', g.isComplete && 'bg-income/3')}>
                     {/* Position badge */}
-                    <div className="w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold"
+                    <div className="w-7 h-7 border-2 flex items-center justify-center shrink-0 text-xs font-bold"
                       style={{ borderColor: color, color: g.isComplete ? 'white' : color, backgroundColor: g.isComplete ? color : 'transparent' }}>
                       {g.isComplete ? '✓' : idx + 1}
                     </div>
@@ -277,8 +277,8 @@ export function GoalsView() {
                           {formatCurrency(g.effectiveSaved)} <span className="text-muted-foreground font-normal text-xs">/ {formatCurrency(g.targetAmount)}</span>
                         </p>
                       </div>
-                      <div className="h-1.5 bg-surface-3 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700"
+                      <div className="h-1.5 bg-surface-3 overflow-hidden">
+                        <div className="h-full transition-all duration-700"
                           style={{ width: `${g.progress * 100}%`, backgroundColor: color }} />
                       </div>
                       {!g.isComplete && (

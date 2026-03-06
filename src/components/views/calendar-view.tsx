@@ -132,7 +132,7 @@ export function CalendarView() {
 
       {/* Add event form */}
       {showAdd && (
-        <form onSubmit={handleCreate} className="rounded-xl border border-border bg-card shadow-soft p-5 space-y-4 animate-slide-down">
+        <form onSubmit={handleCreate} className="border border-border bg-card shadow-soft p-5 space-y-4 animate-slide-down">
           <h3 className="font-semibold text-sm">New Calendar Event</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
@@ -152,7 +152,7 @@ export function CalendarView() {
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}
-                className="flex h-10 w-full rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="flex h-10 w-full border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
                 <optgroup label="Income Events">
                   <option value="payday">💰 Payday</option>
@@ -177,7 +177,7 @@ export function CalendarView() {
               <select
                 value={form.recurring}
                 onChange={e => setForm(f => ({ ...f, recurring: e.target.value }))}
-                className="flex h-10 w-full rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="flex h-10 w-full border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
                 <option value="">One-time</option>
                 <option value="weekly">Weekly</option>
@@ -193,17 +193,17 @@ export function CalendarView() {
 
       {/* Month navigation */}
       <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="p-2 hover:bg-surface-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+        <button onClick={prevMonth} className="p-2 hover:bg-surface-2 transition-colors text-muted-foreground hover:text-foreground">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
         </button>
         <h2 className="text-lg font-bold">{monthName}</h2>
-        <button onClick={nextMonth} className="p-2 hover:bg-surface-2 rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+        <button onClick={nextMonth} className="p-2 hover:bg-surface-2 transition-colors text-muted-foreground hover:text-foreground">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
         </button>
       </div>
 
       {/* Calendar grid */}
-      <div className="rounded-xl border border-border bg-card shadow-soft overflow-hidden">
+      <div className="border border-border bg-card shadow-soft overflow-hidden">
         <div className="grid grid-cols-7 text-center text-xs font-semibold text-muted-foreground border-b border-border bg-surface-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
             <div key={d} className="py-2.5">{d}</div>
@@ -236,7 +236,7 @@ export function CalendarView() {
               >
                 {/* Day number */}
                 <div className={cn(
-                  'text-xs font-bold mb-1 w-6 h-6 flex items-center justify-center rounded-full transition-colors',
+                  'text-xs font-bold mb-1 w-6 h-6 flex items-center justify-center transition-colors',
                   isToday(day)
                     ? 'bg-primary text-primary-foreground'
                     : 'text-foreground/60 group-hover:text-primary'

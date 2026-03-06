@@ -14,7 +14,7 @@ export default async function RegisterPage() {
   return (
     <div className="flex justify-center">
       <Suspense fallback={
-        <div className="w-full max-w-md h-[600px] animate-pulse bg-card rounded-xl" />
+        <div className="w-full max-w-md h-[600px] animate-pulse bg-card border border-border" />
       }>
         <RegisterForm />
       </Suspense>

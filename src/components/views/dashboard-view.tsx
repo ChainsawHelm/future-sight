@@ -66,7 +66,7 @@ function filterByPeriod<T extends { date: string }>(txns: T[], period: Period): 
 const ChartTip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-medium">
+    <div className="border border-border bg-card px-3 py-2 shadow-medium">
       {label && <p className="text-xs font-semibold text-foreground mb-1">{label}</p>}
       {payload.map((p: any, i: number) => (
         <p key={i} className="tabnum text-xs" style={{ color: p.color || p.fill }}>
@@ -123,7 +123,7 @@ function ActivityItem({ t, index }: { t: any; index: number }) {
   return (
     <div className="flex items-center gap-3 py-2.5 border-b border-border/50 last:border-0 animate-fade-in" style={{ animationDelay: `${index * 25}ms` }}>
       <div className={cn(
-        'w-7 h-7 shrink-0 flex items-center justify-center text-xs font-bold rounded-lg',
+        'w-7 h-7 shrink-0 flex items-center justify-center text-xs font-bold',
         isCredit ? 'bg-income/10 text-income' : 'bg-expense/10 text-expense'
       )}>
         {isCredit ? '+' : '−'}
@@ -149,7 +149,7 @@ function SectionHeader({ label, meta, action }: { label: string; meta?: string; 
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2">
         <h3 className="text-sm font-semibold text-foreground">{label}</h3>
-        {meta && <span className="text-[10px] text-muted-foreground font-mono bg-surface-2 px-2 py-0.5 rounded-full">{meta}</span>}
+        {meta && <span className="text-[10px] text-muted-foreground font-mono bg-surface-2 px-2 py-0.5">{meta}</span>}
       </div>
       {action}
     </div>
@@ -221,13 +221,13 @@ export function DashboardView() {
     <div className="space-y-5 animate-fade-in">
 
       {/* ════════════ PERIOD TABS ════════════ */}
-      <div className="flex items-center gap-1 bg-surface-2 rounded-xl p-1 w-fit flex-wrap">
+      <div className="flex items-center gap-1 bg-surface-2 p-1 w-fit flex-wrap">
         {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
             className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150',
+              'px-3 py-1.5 text-xs font-semibold transition-all duration-150',
               period === p
                 ? 'bg-card text-primary shadow-soft border border-border'
                 : 'text-muted-foreground hover:text-foreground'
@@ -246,7 +246,7 @@ export function DashboardView() {
           { label: 'Net', value: formatCurrency(periodNet), color: periodNet >= 0 ? 'text-income' : 'text-expense' },
           { label: 'Savings Rate', value: `${Math.max(0, periodSavings).toFixed(1)}%`, color: periodSavings >= 10 ? 'text-income' : 'text-muted-foreground' },
         ].map((m) => (
-          <div key={m.label} className="rounded-xl border border-border bg-card p-4 shadow-soft">
+          <div key={m.label} className="border border-border bg-card p-4 shadow-soft">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{m.label}</p>
             <p className={cn('numeral text-xl font-bold tabnum', m.color)}>{m.value}</p>
           </div>
@@ -254,7 +254,7 @@ export function DashboardView() {
       </div>
 
       {/* ════════════ SANKEY — CENTERPIECE ════════════ */}
-      <div className="rounded-2xl border border-border bg-card shadow-soft p-5">
+      <div className="border border-border bg-card shadow-soft p-5">
         <SectionHeader
           label="Money Flow"
           meta={`${PERIOD_LABELS[period]} · ${periodTxns.length} transactions`}
@@ -280,7 +280,7 @@ export function DashboardView() {
             color: overview.netSavings >= 0 ? 'text-income' : 'text-expense',
           },
         ].map((m) => (
-          <div key={m.label} className="rounded-xl border border-border bg-card p-4 shadow-soft">
+          <div key={m.label} className="border border-border bg-card p-4 shadow-soft">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{m.label}</p>
             <p className={cn('numeral text-xl font-bold tabnum', m.color)}>
               {'prefix' in m ? m.prefix : ''}{m.value}
@@ -292,7 +292,7 @@ export function DashboardView() {
       {/* ════════════ CATEGORY BARS + INCOME VS EXPENSES ════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Category spending bars */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="border border-border bg-card p-5 shadow-soft">
           <SectionHeader
             label="Spending by Category"
             meta={totalSpend > 0 ? formatCurrency(totalSpend) : undefined}
@@ -315,9 +315,9 @@ export function DashboardView() {
                         <span className="tabnum text-xs font-semibold w-20 text-right">{formatCurrency(d.value)}</span>
                       </div>
                     </div>
-                    <div className="h-2 bg-surface-2 overflow-hidden rounded-full">
+                    <div className="h-2 bg-surface-2 overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all duration-700"
+                        className="h-full transition-all duration-700"
                         style={{ width: `${pct}%`, backgroundColor: d.fill }}
                       />
                     </div>
@@ -329,7 +329,7 @@ export function DashboardView() {
         </div>
 
         {/* Monthly bar chart (always all-time last 6 months) */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="border border-border bg-card p-5 shadow-soft">
           <SectionHeader label="Income vs Expenses" meta="Last 6 months" />
           {barData.length === 0 ? (
             <p className="text-xs text-muted-foreground py-8 text-center">No data yet</p>
@@ -357,7 +357,7 @@ export function DashboardView() {
 
       {/* ════════════ ACTIVITY FEED + GOAL RINGS ════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="border border-border bg-card p-5 shadow-soft">
           <SectionHeader label="Recent Activity" meta={`${recentTxns.length} transactions`} />
           {recentTxns.length === 0 ? (
             <p className="text-xs text-muted-foreground py-8 text-center">No transactions yet</p>
@@ -366,7 +366,7 @@ export function DashboardView() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="border border-border bg-card p-5 shadow-soft">
           <SectionHeader label="Savings Goals" meta={`${goals.length} active`} />
           {goals.length === 0 ? (
             <p className="text-xs text-muted-foreground py-8 text-center">No active goals</p>
@@ -381,10 +381,10 @@ export function DashboardView() {
       </div>
 
       {/* ════════════ NET WORTH TREND ════════════ */}
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+      <div className="border border-border bg-card p-5 shadow-soft">
         <SectionHeader label="Net Worth Trend" meta={`${nwData.length} snapshots`} />
         {nwData.length < 2 ? (
-          <div className="flex items-center justify-center py-10 rounded-xl border border-dashed border-border">
+          <div className="flex items-center justify-center py-10 border border-dashed border-border">
             <p className="text-xs text-muted-foreground text-center">Take snapshots on the Net Worth page to see your trend</p>
           </div>
         ) : (
@@ -411,7 +411,7 @@ export function DashboardView() {
 
       {/* ════════════ DEBTS ════════════ */}
       {debts.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="border border-border bg-card p-5 shadow-soft">
           <SectionHeader label="Debt Tracker" meta={`${debts.length} accounts`} />
           <div className="space-y-4">
             {debts.map((debt: any, i: number) => {
@@ -420,7 +420,7 @@ export function DashboardView() {
                 <div key={debt.name} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-5 bg-expense rounded-full shrink-0" />
+                      <div className="w-1.5 h-5 bg-expense shrink-0" />
                       <span className="text-sm font-medium">{debt.name}</span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -428,8 +428,8 @@ export function DashboardView() {
                       <span className="tabnum text-sm font-bold text-expense">{formatCurrency(debt.balance)}</span>
                     </div>
                   </div>
-                  <div className="h-2 bg-surface-2 overflow-hidden rounded-full">
-                    <div className="h-full bg-expense rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                  <div className="h-2 bg-surface-2 overflow-hidden">
+                    <div className="h-full bg-expense transition-all duration-700" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );

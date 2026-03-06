@@ -14,7 +14,7 @@ export default async function LoginPage() {
   return (
     <div className="flex justify-center">
       <Suspense fallback={
-        <div className="w-full max-w-md h-96 animate-pulse bg-card rounded-xl" />
+        <div className="w-full max-w-md h-96 animate-pulse bg-card border border-border" />
       }>
         <LoginForm />
       </Suspense>

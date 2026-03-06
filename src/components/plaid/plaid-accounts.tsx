@@ -79,7 +79,7 @@ export function PlaidAccounts({ onSync }: { onSync?: () => void }) {
   if (institutions.length === 0) return null;
 
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">
+    <div className="border bg-card p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Linked Bank Accounts</h2>
         <Button size="sm" onClick={handleSync} disabled={syncing}>
@@ -88,7 +88,7 @@ export function PlaidAccounts({ onSync }: { onSync?: () => void }) {
       </div>
 
       {syncResult && (
-        <p className="text-xs text-muted-foreground bg-muted rounded-lg px-3 py-2">{syncResult}</p>
+        <p className="text-xs text-muted-foreground bg-muted px-3 py-2">{syncResult}</p>
       )}
 
       <div className="space-y-4">
@@ -114,7 +114,7 @@ export function PlaidAccounts({ onSync }: { onSync?: () => void }) {
                   const balance = acct.currentBalance ?? acct.availableBalance;
                   const isDebt = acct.type === 'credit' || acct.type === 'loan';
                   return (
-                    <div key={acct.id} className="flex items-center justify-between bg-background rounded-lg px-3 py-2 border">
+                    <div key={acct.id} className="flex items-center justify-between bg-background px-3 py-2 border">
                       <div className="flex items-center gap-2 min-w-0">
                         <AccountTypeBadge type={acct.type} subtype={acct.subtype} />
                         <div className="min-w-0">

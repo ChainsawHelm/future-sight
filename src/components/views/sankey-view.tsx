@@ -170,13 +170,13 @@ export function SankeyView() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-xl border bg-card p-5 shadow-sm text-center">
+        <div className="border bg-card p-5 shadow-sm text-center">
           <p className="text-[11px] text-muted-foreground">Total Income</p>
           <p className="text-xl font-bold tabnum text-green-600">
             {formatCurrency(Object.values(incomeByCategory).reduce((s, v) => s + v, 0))}
           </p>
         </div>
-        <div className="rounded-xl border bg-card p-5 shadow-sm text-center">
+        <div className="border bg-card p-5 shadow-sm text-center">
           <p className="text-[11px] text-muted-foreground">Total Expenses</p>
           <p className="text-xl font-bold tabnum text-red-600">
             {formatCurrency(Object.values(expenseByCategory).reduce((s, v) => s + v, 0))}
@@ -185,7 +185,7 @@ export function SankeyView() {
       </div>
 
       {/* Sankey diagram */}
-      <div className="rounded-xl border bg-card p-5 shadow-sm overflow-x-auto">
+      <div className="border bg-card p-5 shadow-sm overflow-x-auto">
         <svg ref={svgRef} className="w-full" style={{ minHeight: 400, minWidth: 600 }} />
       </div>
     </div>

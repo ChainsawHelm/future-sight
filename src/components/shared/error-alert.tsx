@@ -1,6 +1,6 @@
 export function ErrorAlert({ message, retry }: { message: string; retry?: () => void }) {
   return (
-    <div className="border border-expense/30 bg-expense/[0.06] p-4 rounded-xl animate-fade-in">
+    <div className="border border-expense/30 bg-expense/[0.06] p-4 animate-fade-in font-mono">
       <div className="flex items-start gap-3">
         <svg className="w-4 h-4 text-expense shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
           <circle cx="12" cy="12" r="10" />

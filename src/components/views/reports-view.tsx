@@ -50,7 +50,7 @@ export function ReportsView() {
           <p className="text-sm text-muted-foreground mt-1">Summary by {period}</p>
         </div>
         <div className="flex gap-2">
-          <div className="flex rounded-lg border overflow-hidden">
+          <div className="flex border overflow-hidden">
             {(['month', 'year'] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
                 className={`px-3 py-1.5 text-xs font-medium transition-colors ${period === p ? 'bg-navy-500 text-white' : 'hover:bg-muted'}`}>
@@ -76,7 +76,7 @@ export function ReportsView() {
           const topCats = Object.entries(catBreakdown).sort(([, a], [, b]) => b - a).slice(0, 5);
 
           return (
-            <div key={p} className="rounded-xl border bg-card p-5 shadow-sm">
+            <div key={p} className="border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold">{p}</h2>
                 <span className="text-xs text-muted-foreground">{periodTxns.length} transactions</span>
