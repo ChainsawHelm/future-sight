@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head><title>Future Sight Logo Generator</title></head>
+<body style="background:#222;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:20px">
+<canvas id="c" width="1024" height="1024"></canvas>
+<a id="dl" download="future-sight-icon.png" style="color:#33ff33;font-family:monospace;font-size:18px;cursor:pointer">Click here to download PNG</a>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const W = 1024;
+const cx = W/2, cy = W/2;
+
+// Background — deep CRT black
+ctx.fillStyle = '#060a06';
+ctx.fillRect(0, 0, W, W);
+
+// ── Old-style border (outer glow + inner line) ──
+ctx.strokeStyle = '#33ff3330';
+ctx.lineWidth = 24;
+ctx.strokeRect(40, 40, W-80, W-80);
+
+ctx.strokeStyle = '#33ff3318';
+ctx.lineWidth = 48;
+ctx.strokeRect(16, 16, W-32, W-32);
+
+ctx.strokeStyle = '#33ff3360';
+ctx.lineWidth = 3;
+ctx.strokeRect(64, 64, W-128, W-128);
+
+// Corner accents
+[[80,80],[W-80,80],[80,W-80],[W-80,W-80]].forEach(([x,y]) => {
+  ctx.fillStyle = '#33ff3380';
+  ctx.fillRect(x-4, y-4, 8, 8);
+});
+
+// Subtle radial glow behind the icon
+const glow = ctx.createRadialGradient(cx, cy - 40, 50, cx, cy - 40, 460);
+glow.addColorStop(0, '#33ff3312');
+glow.addColorStop(0.6, '#33ff3306');
+glow.addColorStop(1, 'transparent');
+ctx.fillStyle = glow;
+ctx.fillRect(0, 0, W, W);
+
+// ── Upward trend line (finance motif) ──
+ctx.beginPath();
+ctx.moveTo(160, 620);
+ctx.lineTo(340, 540);
+ctx.lineTo(480, 580);
+ctx.lineTo(620, 420);
+ctx.lineTo(760, 340);
+ctx.lineTo(860, 280);
+ctx.strokeStyle = '#33ff3325';
+ctx.lineWidth = 4;
+ctx.stroke();
+
+// Trend line dots
+[{x:160,y:620},{x:340,y:540},{x:480,y:580},{x:620,y:420},{x:760,y:340},{x:860,y:280}].forEach(p => {
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 6, 0, Math.PI*2);
+  ctx.fillStyle = '#33ff3340';
+  ctx.fill();
+});
+
+// ── Dollar sign — stylized, monospace terminal feel ──
+ctx.save();
+ctx.translate(cx, cy - 60);
+
+ctx.shadowColor = '#33ff3360';
+ctx.shadowBlur = 40;
+
+ctx.font = 'bold 420px monospace';
+ctx.fillStyle = '#33ff33';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('$', 0, 0);
+
+ctx.shadowBlur = 0;
+ctx.restore();
+
+// ── Terminal cursor blink bar ──
+ctx.fillStyle = '#33ff33cc';
+ctx.fillRect(cx + 155, cy - 210, 24, 300);
+
+// ── "FUTURE SIGHT" text ──
+ctx.font = 'bold 64px monospace';
+ctx.fillStyle = '#33ff33aa';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('FUTURE SIGHT', cx, cy + 280);
+
+// ── Catchphrase ──
+ctx.font = '30px monospace';
+ctx.fillStyle = '#33ff3358';
+ctx.fillText('>_ your financial command center', cx, cy + 340);
+
+// ── Scanline overlay ──
+ctx.fillStyle = '#00000015';
+for (let y = 0; y < W; y += 4) {
+  ctx.fillRect(0, y, W, 2);
+}
+
+// ── Tiny status bar at bottom ──
+ctx.fillStyle = '#33ff3330';
+ctx.fillRect(80, W - 56, W - 160, 1);
+ctx.font = '20px monospace';
+ctx.fillStyle = '#33ff3340';
+ctx.textAlign = 'left';
+ctx.fillText('SYS:ONLINE', 90, W - 36);
+ctx.textAlign = 'right';
+ctx.fillText('v1.3.0', W - 90, W - 36);
+
+// Download link
+const dl = document.getElementById('dl');
+dl.href = c.toDataURL('image/png');
+</script>
+</body>
+</html>

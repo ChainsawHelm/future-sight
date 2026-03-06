@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
 
 /**
@@ -56,6 +57,20 @@ export async function requireAuthWithLimit(
   if (!userId) {
     return {
       error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  // Block access if account is scheduled for deletion
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { scheduledDeletion: true },
+  });
+  if (user?.scheduledDeletion) {
+    return {
+      error: NextResponse.json(
+        { error: 'Account is scheduled for deletion. Cancel deletion to regain access.' },
+        { status: 403 }
+      ),
     };
   }
 

@@ -57,6 +57,7 @@ const NAV_GROUPS = [
     divider: true,
     items: [
       { id: 'labs',  label: 'Labs',  href: '/labs',  icon: IconLabs },
+      { id: 'launch-checklist', label: 'Launch', href: '/launch-checklist', icon: IconChecklist },
     ],
   },
 ];
@@ -149,6 +150,11 @@ function IconPlaid({ size = 14 }: { size?: number }) {
 function IconLabs({ size = 14 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 3h6M10 3v6l-5 8.5a1 1 0 00.85 1.5h12.3a1 1 0 00.85-1.5L14 9V3"/><path d="M8.5 14h7"/>
+  </svg>;
+}
+function IconChecklist({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
   </svg>;
 }
 function IconSettings({ size = 14 }: { size?: number }) {
