@@ -51,7 +51,7 @@
     "next": "^14.2.21",
     "next-auth": "^5.0.0-beta.25",
     "papaparse": "^5.4.1",
-    "pdf-parse": "^1.1.1",
+    "pdf-parse": "^2.4.5",
     "plaid": "^41.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
