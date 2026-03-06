@@ -1,197 +1,74 @@
 'use client';
 
+import { useState } from 'react';
 import { useFetch } from '@/hooks/use-fetch';
-import { dashboardApi, transactionsApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
+import { ErrorAlert } from '@/components/shared/error-alert';
+import { ALL_ACHIEVEMENTS, CATEGORY_LABELS, TIER_LABELS } from '@/lib/achievements';
+import type { AchievementDef } from '@/lib/achievements';
 import { cn } from '@/lib/utils';
 
-// ─── ASCII Art Icons ──────────────────────────────────────────────────────────
+const TIER_COLORS = ['', 'text-amber-600', 'text-slate-400', 'text-yellow-400', 'text-cyan-300', 'text-fuchsia-300'];
+const TIER_BG = ['', 'bg-amber-600/10', 'bg-slate-400/10', 'bg-yellow-400/10', 'bg-cyan-300/10', 'bg-fuchsia-300/10'];
+const TIER_BORDER = ['', 'border-amber-600/30', 'border-slate-400/30', 'border-yellow-400/30', 'border-cyan-300/30', 'border-fuchsia-300/30'];
 
-const ASCII_ICONS: Record<string, string> = {
-  first_import: [
-    '  ┌───┐ ',
-    '  │ ▼ │ ',
-    '  └─┬─┘ ',
-    ' ───┴───',
-  ].join('\n'),
-
-  txn_100: [
-    ' ╔═══╗ ',
-    ' ║100║ ',
-    ' ╚═══╝ ',
-    '  ▓▓▓  ',
-  ].join('\n'),
-
-  txn_500: [
-    '   ╱╲   ',
-    '  ╱  ╲  ',
-    ' ╱ ★★ ╲ ',
-    ' ╲ 500╱ ',
-    '  ╲  ╱  ',
-    '   ╲╱   ',
-  ].join('\n'),
-
-  positive_month: [
-    '   ┌─┐  ',
-    '   │$│  ',
-    ' ──┤ ├──',
-    '   │+│  ',
-    '   └─┘  ',
-  ].join('\n'),
-
-  savings_10pct: [
-    '  ╭───╮ ',
-    '  │10%│ ',
-    ' ╭┤   ├╮',
-    ' │╰───╯│',
-    ' ╰─────╯',
-  ].join('\n'),
-
-  savings_20pct: [
-    ' ┌─────┐',
-    ' │ $$$ │',
-    ' │ 20% │',
-    ' │ $$$ │',
-    ' └─────┘',
-  ].join('\n'),
-
-  debt_free: [
-    '  ╔═══╗ ',
-    '  ║ 0 ║ ',
-    '  ║   ║ ',
-    '  ╚═╤═╝ ',
-    ' ───┴───',
-    '  FREE! ',
-  ].join('\n'),
-
-  goal_complete: [
-    '    ◎    ',
-    '   ╱│╲   ',
-    '  ╱ │ ╲  ',
-    ' ╱  │  ╲ ',
-    ' ‾‾‾‾‾‾‾',
-  ].join('\n'),
-
-  budget_master: [
-    ' ┌──┬──┐',
-    ' │▓▓│░░│',
-    ' │▓▓│░░│',
-    ' │▓▓│  │',
-    ' └──┴──┘',
-  ].join('\n'),
-
-  net_worth_positive: [
-    '      ╱ ',
-    '    ╱   ',
-    '  ╱     ',
-    ' ╱   +$ ',
-    ' ───────',
-  ].join('\n'),
-
-  diversified: [
-    '  ╱▓╲   ',
-    ' ╱▓▓▓╲  ',
-    ' ──┬──  ',
-    ' ░░│▒▒  ',
-    ' ░░│▒▒  ',
-  ].join('\n'),
-
-  streak_7: [
-    ' ╔═╦═╦═╗',
-    ' ║█║█║█║',
-    ' ╠═╬═╬═╣',
-    ' ║█║█║█║',
-    ' ╚═╩═╩═╝',
-    '  7 DAYS ',
-  ].join('\n'),
-};
-
-// ─── Achievement Definitions ──────────────────────────────────────────────────
-
-interface AchievementDef {
-  key: string;
-  title: string;
-  description: string;
-  check: (ctx: any) => boolean;
-}
-
-const ACHIEVEMENTS: AchievementDef[] = [
-  { key: 'first_import', title: 'INIT_COMPLETE', description: 'Import your first transactions', check: (c) => c.totalTxns > 0 },
-  { key: 'txn_100', title: 'CENTURY_LOG', description: 'Track 100 transactions', check: (c) => c.totalTxns >= 100 },
-  { key: 'txn_500', title: 'DATA_HOARDER', description: 'Track 500 transactions', check: (c) => c.totalTxns >= 500 },
-  { key: 'positive_month', title: 'GREEN_STATUS', description: 'Finish a month with positive savings', check: (c) => c.netSavings > 0 },
-  { key: 'savings_10pct', title: 'PENNY_DAEMON', description: 'Save 10% of your income in a month', check: (c) => c.savingsRate >= 0.1 },
-  { key: 'savings_20pct', title: 'SUPER_SAVER', description: 'Save 20% of your income in a month', check: (c) => c.savingsRate >= 0.2 },
-  { key: 'debt_free', title: 'ZERO_BALANCE', description: 'Pay off all debts', check: (c) => c.totalDebts === 0 && c.hasDebts },
-  { key: 'goal_complete', title: 'TARGET_HIT', description: 'Complete a savings goal', check: (c) => c.completedGoals > 0 },
-  { key: 'budget_master', title: 'BUDGET_ROOT', description: 'Stay under budget in all categories', check: (c) => c.allOnBudget },
-  { key: 'net_worth_positive', title: 'NET_POSITIVE', description: 'Achieve a positive net worth', check: (c) => c.netWorth > 0 },
-  { key: 'diversified', title: 'MULTI_THREAD', description: 'Track 3+ asset types', check: (c) => c.assetTypes >= 3 },
-  { key: 'streak_7', title: 'UPTIME_7D', description: 'Track spending for 7 consecutive days', check: (c) => c.streak >= 7 },
-];
+const CATEGORIES = Object.keys(CATEGORY_LABELS) as (keyof typeof CATEGORY_LABELS)[];
 
 // ─── Achievement Card ─────────────────────────────────────────────────────────
 
-function AchievementCard({ achievement, unlocked }: { achievement: AchievementDef; unlocked: boolean }) {
-  const ascii = ASCII_ICONS[achievement.key] || '  [?]  ';
-
+function AchievementCard({ a, unlocked }: { a: AchievementDef; unlocked: boolean }) {
   return (
     <div className={cn(
       'border bg-surface-1 overflow-hidden transition-all',
       unlocked
-        ? 'border-primary/30 shadow-[0_0_12px_hsl(var(--primary)/0.08)]'
-        : 'border-border opacity-40',
+        ? `${TIER_BORDER[a.tier]} shadow-[0_0_10px_hsl(var(--primary)/0.06)]`
+        : 'border-border opacity-35',
     )}>
-      {/* Terminal header */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-surface-2">
-        <span className="text-[9px] font-mono tracking-[0.1em] text-primary/60 uppercase">
-          [{unlocked ? 'UNLOCKED' : 'LOCKED'}]
-        </span>
-        <span className={cn(
-          'text-[9px] font-mono',
-          unlocked ? 'text-income' : 'text-muted-foreground/40',
+      {/* Header */}
+      <div className="flex items-center justify-between px-2.5 py-1 border-b border-border bg-surface-2">
+        <span className={cn('text-[8px] font-mono tracking-[0.1em] uppercase',
+          unlocked ? TIER_COLORS[a.tier] : 'text-muted-foreground/40'
         )}>
-          {unlocked ? '● ACTIVE' : '○ INACTIVE'}
+          {TIER_LABELS[a.tier]}
+        </span>
+        <span className={cn('text-[8px] font-mono',
+          unlocked ? 'text-income' : 'text-muted-foreground/30'
+        )}>
+          {unlocked ? '●' : '○'}
         </span>
       </div>
 
-      <div className="p-4 flex gap-4">
-        {/* ASCII art icon */}
+      <div className="p-3 flex gap-3">
+        {/* ASCII art */}
         <div className={cn(
-          'shrink-0 flex items-center justify-center',
-          'border border-border bg-surface-2 p-2',
-          unlocked && 'border-primary/20',
+          'shrink-0 border p-1.5 flex items-center justify-center',
+          unlocked ? `${TIER_BORDER[a.tier]} ${TIER_BG[a.tier]}` : 'border-border bg-surface-2',
         )}>
           <pre className={cn(
-            'text-[8px] leading-[10px] font-mono select-none whitespace-pre',
-            unlocked ? 'text-primary' : 'text-muted-foreground/30',
+            'text-[7px] leading-[9px] font-mono select-none whitespace-pre',
+            unlocked ? TIER_COLORS[a.tier] : 'text-muted-foreground/20',
           )}>
-            {ascii}
+            {a.ascii}
           </pre>
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <p className={cn(
-            'text-xs font-bold font-mono tracking-wider',
-            unlocked ? 'text-primary' : 'text-muted-foreground',
+            'text-[10px] font-bold font-mono tracking-wider leading-tight',
+            unlocked ? 'text-foreground' : 'text-muted-foreground/50',
           )}>
-            {achievement.title}
+            {a.title}
           </p>
-          <p className="ticker text-[10px] mt-1">
-            {achievement.description}
+          <p className="text-[9px] font-mono text-muted-foreground mt-0.5 leading-snug">
+            {a.description}
           </p>
           {unlocked && (
-            <div className="mt-2 flex items-center gap-1.5">
-              <span className="text-[8px] font-mono text-income tracking-wider">[COMPLETE]</span>
-              <div className="flex-1 h-px bg-income/20" />
-            </div>
-          )}
-          {!unlocked && (
-            <div className="mt-2 flex items-center gap-1.5">
-              <span className="text-[8px] font-mono text-muted-foreground/40 tracking-wider">[PENDING]</span>
-              <div className="flex-1 h-line" />
-            </div>
+            <span className={cn('inline-block mt-1.5 text-[7px] font-mono tracking-wider px-1.5 py-px border',
+              TIER_COLORS[a.tier], TIER_BORDER[a.tier], TIER_BG[a.tier]
+            )}>
+              COMPLETE
+            </span>
           )}
         </div>
       </div>
@@ -201,46 +78,73 @@ function AchievementCard({ achievement, unlocked }: { achievement: AchievementDe
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+async function fetchAchievements() {
+  const res = await fetch('/api/achievements');
+  if (!res.ok) throw new Error('Failed to load achievements');
+  return res.json();
+}
+
 export function AchievementsView() {
-  const { data: dash, isLoading: l1 } = useFetch(() => dashboardApi.get(), []);
-  const { data: txnData, isLoading: l2 } = useFetch(() => transactionsApi.list({ limit: 200 }), []);
+  const { data, error, isLoading, refetch } = useFetch<{
+    total: number;
+    unlocked: number;
+    unlockedKeys: string[];
+  }>(fetchAchievements, []);
 
-  if (l1 || l2) return <PageLoader message="Checking achievements..." />;
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [showOnly, setShowOnly] = useState<'all' | 'unlocked' | 'locked'>('all');
+  const [search, setSearch] = useState('');
 
-  const overview = dash?.overview || { totalTransactions: 0, monthlyIncome: 0, netSavings: 0, totalDebts: 0, netWorth: 0, totalAssets: 0 };
-  const goals = dash?.goals || [];
-  const debts = dash?.debts || [];
-  const txns = txnData?.transactions || [];
+  if (isLoading) return <PageLoader message="Scanning achievements..." />;
+  if (error) return <ErrorAlert message={error} retry={refetch} />;
 
-  // Build context for achievement checks
-  const ctx = {
-    totalTxns: overview.totalTransactions,
-    netSavings: overview.netSavings,
-    savingsRate: overview.monthlyIncome > 0 ? overview.netSavings / overview.monthlyIncome : 0,
-    totalDebts: overview.totalDebts,
-    hasDebts: debts.length > 0,
-    completedGoals: goals.filter((g: any) => g.progress >= 1).length,
-    allOnBudget: false,
-    netWorth: overview.netWorth,
-    assetTypes: new Set(txns.map((t: any) => t.account)).size,
-    streak: 0,
-  };
+  const unlockedSet = new Set(data?.unlockedKeys || []);
+  const totalUnlocked = data?.unlocked || 0;
+  const totalAchievements = ALL_ACHIEVEMENTS.length;
+  const progress = (totalUnlocked / totalAchievements) * 100;
 
-  // Calculate streak
-  const dates = [...new Set(txns.map((t: any) => t.date))].sort().reverse();
-  let streak = 0;
-  const today = new Date();
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(today); d.setDate(d.getDate() - i);
-    const ds = d.toISOString().slice(0, 10);
-    if (dates.includes(ds)) streak++;
-    else if (i > 0) break;
+  // Filter achievements
+  let filtered = ALL_ACHIEVEMENTS;
+  if (activeCategory !== 'all') {
+    filtered = filtered.filter(a => a.category === activeCategory);
   }
-  ctx.streak = streak;
+  if (showOnly === 'unlocked') {
+    filtered = filtered.filter(a => unlockedSet.has(a.key));
+  } else if (showOnly === 'locked') {
+    filtered = filtered.filter(a => !unlockedSet.has(a.key));
+  }
+  if (search) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter(a =>
+      a.title.toLowerCase().includes(q) ||
+      a.description.toLowerCase().includes(q) ||
+      a.key.toLowerCase().includes(q)
+    );
+  }
 
-  const unlocked = ACHIEVEMENTS.filter(a => a.check(ctx));
-  const locked = ACHIEVEMENTS.filter(a => !a.check(ctx));
-  const progress = (unlocked.length / ACHIEVEMENTS.length) * 100;
+  // Sort: unlocked first, then by tier desc
+  const sorted = [...filtered].sort((a, b) => {
+    const aUnlocked = unlockedSet.has(a.key) ? 1 : 0;
+    const bUnlocked = unlockedSet.has(b.key) ? 1 : 0;
+    if (aUnlocked !== bUnlocked) return bUnlocked - aUnlocked;
+    return b.tier - a.tier;
+  });
+
+  // Category counts
+  const categoryCounts: Record<string, { total: number; unlocked: number }> = {};
+  for (const a of ALL_ACHIEVEMENTS) {
+    if (!categoryCounts[a.category]) categoryCounts[a.category] = { total: 0, unlocked: 0 };
+    categoryCounts[a.category].total++;
+    if (unlockedSet.has(a.key)) categoryCounts[a.category].unlocked++;
+  }
+
+  // Tier breakdown
+  const tierCounts = [0, 0, 0, 0, 0, 0];
+  const tierUnlocked = [0, 0, 0, 0, 0, 0];
+  for (const a of ALL_ACHIEVEMENTS) {
+    tierCounts[a.tier]++;
+    if (unlockedSet.has(a.key)) tierUnlocked[a.tier]++;
+  }
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -250,14 +154,14 @@ export function AchievementsView() {
           <div>
             <p className="ticker mb-1">System Achievements</p>
             <h1 className="text-xl font-bold tracking-tight">
-              {unlocked.length}<span className="text-muted-foreground font-normal">/{ACHIEVEMENTS.length}</span>
+              {totalUnlocked}<span className="text-muted-foreground font-normal">/{totalAchievements}</span>
               <span className="text-muted-foreground font-normal text-sm ml-2">unlocked</span>
             </h1>
           </div>
           <div className="text-right">
             <p className="ticker mb-1">Completion</p>
             <p className={cn('numeral font-bold text-lg tabnum', progress === 100 && 'text-income')}>
-              {progress.toFixed(0)}%
+              {progress.toFixed(1)}%
             </p>
           </div>
         </div>
@@ -267,48 +171,102 @@ export function AchievementsView() {
           <div className="h-2 bg-surface-3 overflow-hidden">
             <div
               className="h-full bg-primary transition-all duration-700"
-              style={{
-                width: `${progress}%`,
-                boxShadow: '0 0 8px hsl(var(--primary) / 0.4)',
-              }}
+              style={{ width: `${progress}%`, boxShadow: '0 0 8px hsl(var(--primary) / 0.4)' }}
             />
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-[8px] font-mono text-muted-foreground">0%</span>
-            <span className="text-[8px] font-mono text-muted-foreground">100%</span>
-          </div>
+        </div>
+
+        {/* Tier breakdown */}
+        <div className="flex gap-3 mt-3 flex-wrap">
+          {[1, 2, 3, 4, 5].map(tier => (
+            <div key={tier} className="flex items-center gap-1.5">
+              <span className={cn('text-[9px] font-mono font-bold', TIER_COLORS[tier])}>
+                {TIER_LABELS[tier]}
+              </span>
+              <span className="text-[9px] font-mono text-muted-foreground">
+                {tierUnlocked[tier]}/{tierCounts[tier]}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Unlocked */}
-      {unlocked.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="ticker text-income">[UNLOCKED]</span>
-            <div className="flex-1 h-px bg-income/20" />
-            <span className="ticker text-income">{unlocked.length}</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {unlocked.map(a => (
-              <AchievementCard key={a.key} achievement={a} unlocked />
-            ))}
-          </div>
+      {/* Filters */}
+      <div className="border border-border bg-surface-1 px-4 py-3 space-y-3">
+        {/* Category tabs */}
+        <div className="flex flex-wrap gap-1">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={cn(
+              'px-2.5 py-1 text-[10px] font-mono border transition-colors',
+              activeCategory === 'all'
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border bg-surface-2 text-muted-foreground hover:border-primary/40'
+            )}
+          >
+            ALL ({totalAchievements})
+          </button>
+          {CATEGORIES.map(cat => {
+            const c = categoryCounts[cat];
+            if (!c) return null;
+            return (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={cn(
+                  'px-2.5 py-1 text-[10px] font-mono border transition-colors',
+                  activeCategory === cat
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-surface-2 text-muted-foreground hover:border-primary/40'
+                )}
+              >
+                {CATEGORY_LABELS[cat]} ({c.unlocked}/{c.total})
+              </button>
+            );
+          })}
         </div>
-      )}
 
-      {/* Locked */}
-      {locked.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="ticker text-muted-foreground">[LOCKED]</span>
-            <div className="flex-1 h-line" />
-            <span className="ticker text-muted-foreground">{locked.length}</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {locked.map(a => (
-              <AchievementCard key={a.key} achievement={a} unlocked={false} />
+        {/* Status filter + search */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1">
+            {(['all', 'unlocked', 'locked'] as const).map(s => (
+              <button
+                key={s}
+                onClick={() => setShowOnly(s)}
+                className={cn(
+                  'px-2.5 py-1 text-[10px] font-mono border transition-colors',
+                  showOnly === s
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-surface-2 text-muted-foreground hover:border-primary/40'
+                )}
+              >
+                {s === 'all' ? 'Show All' : s === 'unlocked' ? 'Unlocked' : 'Locked'}
+              </button>
             ))}
           </div>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search achievements..."
+            className="flex-1 min-w-[180px] h-7 px-2.5 text-[10px] font-mono border border-border bg-surface-1 text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+          />
+          <span className="text-[10px] font-mono text-muted-foreground">
+            {sorted.length} shown
+          </span>
+        </div>
+      </div>
+
+      {/* Achievement Grid */}
+      {sorted.length === 0 ? (
+        <div className="border border-border bg-surface-1 px-5 py-12 text-center">
+          <p className="ticker text-muted-foreground">No achievements match your filters</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+          {sorted.map(a => (
+            <AchievementCard key={a.key} a={a} unlocked={unlockedSet.has(a.key)} />
+          ))}
         </div>
       )}
     </div>
