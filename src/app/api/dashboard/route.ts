@@ -28,7 +28,7 @@ export async function GET() {
         userId,
         date: { gte: startOfMonth, lte: endOfMonth },
       },
-      select: { amount: true, category: true, transferPairId: true },
+      select: { amount: true, category: true, transferPairId: true, returnPairId: true, description: true },
     }),
     // Active goals summary
     prisma.savingsGoal.findMany({
@@ -60,7 +60,7 @@ export async function GET() {
   const categorySpending: Record<string, number> = {};
 
   for (const t of monthTxns) {
-    const txn = { amount: Number(t.amount), category: t.category, transferPairId: t.transferPairId };
+    const txn = { amount: Number(t.amount), category: t.category, transferPairId: t.transferPairId, returnPairId: t.returnPairId, description: t.description };
     if (isRealIncome(txn)) {
       monthlyIncome += txn.amount;
     } else if (isRealExpense(txn)) {

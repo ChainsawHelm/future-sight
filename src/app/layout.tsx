@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { CookieConsent } from '@/components/shared/cookie-consent';
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${jetbrainsMono.variable} font-mono antialiased`}>
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

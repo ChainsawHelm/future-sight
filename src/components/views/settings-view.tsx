@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
 import { settingsApi, backupApi, resetApi, accountApi } from '@/lib/api-client';
+
 import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import type { UserSettings } from '@/types/models';
@@ -74,10 +75,6 @@ export function SettingsView() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [pwStatus, setPwStatus] = useState('');
 
   const updateSettings = useMutation(useCallback((d: any) => settingsApi.update(d), []));
 
@@ -154,19 +151,6 @@ export function SettingsView() {
       alert('Account deletion failed: ' + err.message);
     } finally {
       setDeleting(false);
-    }
-  };
-
-  const handlePasswordChange = async () => {
-    setPwStatus('');
-    try {
-      await accountApi.changePassword(currentPw, newPw);
-      setPwStatus('Password changed successfully');
-      setCurrentPw('');
-      setNewPw('');
-      setTimeout(() => { setShowPasswordChange(false); setPwStatus(''); }, 2000);
-    } catch (err: any) {
-      setPwStatus(err.message || 'Password change failed');
     }
   };
 
@@ -270,33 +254,11 @@ export function SettingsView() {
       {/* Account */}
       <div className="border border-border bg-surface-1 p-5 space-y-4">
         <p className="ticker text-primary">Account</p>
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setShowPasswordChange(!showPasswordChange)}
-            className="flex items-center gap-2 h-9 px-4 border border-border bg-surface-2 text-sm font-medium hover:border-primary/50 hover:text-primary transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-            Change Password
-          </button>
-          <button onClick={() => signOut({ callbackUrl: '/login' })}
-            className="flex items-center gap-2 h-9 px-4 border border-expense/30 bg-expense/5 text-expense text-sm font-medium hover:bg-expense/10 transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            Sign Out
-          </button>
-        </div>
-        {showPasswordChange && (
-          <div className="border border-border bg-surface-2 p-4 space-y-3">
-            <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)}
-              placeholder="Current password" className="w-full h-9 px-3 border border-border bg-background text-sm font-mono focus:outline-none focus:border-primary" />
-            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
-              placeholder="New password (8+ chars, upper, lower, number)" className="w-full h-9 px-3 border border-border bg-background text-sm font-mono focus:outline-none focus:border-primary" />
-            <div className="flex items-center gap-3">
-              <button onClick={handlePasswordChange} disabled={!currentPw || !newPw}
-                className="h-8 px-4 bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors">
-                Update Password
-              </button>
-              {pwStatus && <p className={`text-xs ${pwStatus.includes('success') ? 'text-income' : 'text-expense'}`}>{pwStatus}</p>}
-            </div>
-          </div>
-        )}
+        <button onClick={() => signOut({ callbackUrl: '/login' })}
+          className="flex items-center gap-2 h-9 px-4 border border-expense/30 bg-expense/5 text-expense text-sm font-medium hover:bg-expense/10 transition-colors">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          Sign Out
+        </button>
       </div>
 
       {/* Danger Zone */}

@@ -20,6 +20,7 @@ export interface ProcessedTransaction extends RawTransaction {
   autoMatched: boolean;
   flagged: boolean;
   transferPairId?: string;
+  returnPairId?: string;
 }
 
 /**
@@ -92,6 +93,53 @@ export function detectTransfers(transactions: ProcessedTransaction[]): Processed
 }
 
 /**
+ * Detect return/refund pairs: a positive credit that matches a prior negative charge
+ * from the same merchant within 30 days.
+ */
+const RETURN_SIGNALS = ['RETURN', 'REFUND', 'CREDIT', 'REVERSAL', 'REIMBURSE', 'REBATE', 'CHARGEBACK'];
+
+export function detectReturns(transactions: ProcessedTransaction[]): ProcessedTransaction[] {
+  const result = [...transactions];
+  let pairCount = 0;
+  const used = new Set<number>();
+
+  for (let i = 0; i < result.length; i++) {
+    if (used.has(i)) continue;
+    const t = result[i];
+    // Only look at positive amounts with return-like descriptions
+    if (t.amount <= 0 || t.transferPairId) continue;
+    const desc = t.description.toUpperCase();
+    const hasSignal = RETURN_SIGNALS.some(kw => desc.includes(kw));
+    if (!hasSignal) continue;
+
+    // Try to find the original charge: same merchant prefix, opposite sign, within 30 days
+    const merchantPrefix = desc.replace(/RETURN|REFUND|CREDIT|REVERSAL|REIMBURSE|REBATE|CHARGEBACK/gi, '').trim().slice(0, 12);
+    for (let j = 0; j < result.length; j++) {
+      if (i === j || used.has(j)) continue;
+      const candidate = result[j];
+      if (candidate.amount >= 0 || candidate.transferPairId) continue;
+      const dayDiff = Math.abs((new Date(t.date).getTime() - new Date(candidate.date).getTime()) / 86400000);
+      if (dayDiff > 30) continue;
+      if (Math.abs(t.amount + candidate.amount) < 0.01 && candidate.description.toUpperCase().includes(merchantPrefix.slice(0, 8))) {
+        pairCount++;
+        const pairId = `return-import-${pairCount}`;
+        result[i] = { ...result[i], returnPairId: pairId, category: 'Returns' };
+        result[j] = { ...result[j], returnPairId: pairId };
+        used.add(i);
+        used.add(j);
+        break;
+      }
+    }
+
+    // Even without a pair match, still classify as return if description has signal
+    if (!used.has(i)) {
+      result[i] = { ...result[i], category: 'Returns' };
+    }
+  }
+  return result;
+}
+
+/**
  * Detect potential duplicates against existing transactions.
  */
 export function flagDuplicates(
@@ -128,13 +176,15 @@ export function processImport(
   existingTransactions: { date: string; amount: number; description: string }[]
 ): {
   transactions: ProcessedTransaction[];
-  stats: { total: number; autoMatched: number; transfers: number; duplicates: number };
+  stats: { total: number; autoMatched: number; transfers: number; returns: number; duplicates: number };
 } {
   let processed = applyMerchantRules(raw, merchantRules);
   processed = detectTransfers(processed);
+  processed = detectReturns(processed);
   processed = flagDuplicates(processed, existingTransactions);
   const autoMatched = processed.filter(t => t.autoMatched).length;
   const transfers = processed.filter(t => t.transferPairId).length;
+  const returns = processed.filter(t => t.returnPairId || t.category === 'Returns').length;
   const duplicates = processed.filter(t => t.flagged).length;
-  return { transactions: processed, stats: { total: processed.length, autoMatched, transfers, duplicates } };
+  return { transactions: processed, stats: { total: processed.length, autoMatched, transfers, returns, duplicates } };
 }

@@ -115,31 +115,38 @@ export async function POST(req: NextRequest) {
 
     // Restore in a transaction for atomicity
     await prisma.$transaction(async (tx) => {
-      // Transactions
+      // Transactions — whitelist fields to prevent injection
       if (d.transactions?.length) {
-        // Clear existing first
         await tx.transaction.deleteMany({ where: { userId } });
         await tx.transaction.createMany({
           data: d.transactions.map((t: any) => ({
-            ...t,
             userId,
             date: new Date(t.date),
-            id: undefined, // Let DB assign new IDs
-            createdAt: undefined,
-            updatedAt: undefined,
+            description: String(t.description || ''),
+            originalDescription: t.originalDescription ? String(t.originalDescription) : null,
+            amount: Number(t.amount),
+            category: String(t.category || 'Uncategorized'),
+            account: String(t.account || 'Default'),
+            autoMatched: Boolean(t.autoMatched),
+            flagged: Boolean(t.flagged),
+            transferPairId: t.transferPairId ? String(t.transferPairId) : null,
+            returnPairId: t.returnPairId ? String(t.returnPairId) : null,
+            note: t.note ? String(t.note) : null,
           })),
         });
         counts.transactions = d.transactions.length;
       }
 
-      // Categories
+      // Categories — whitelist fields
       if (d.categories?.length) {
         await tx.category.deleteMany({ where: { userId } });
         await tx.category.createMany({
           data: d.categories.map((c: any) => ({
-            ...c,
             userId,
-            id: undefined,
+            name: String(c.name),
+            type: ['income', 'expense', 'system'].includes(c.type) ? c.type : 'expense',
+            color: c.color ? String(c.color) : null,
+            sortOrder: Number(c.sortOrder) || 0,
           })),
         });
         counts.categories = d.categories.length;
@@ -160,13 +167,19 @@ export async function POST(req: NextRequest) {
         counts.budgets = d.budgets.length;
       }
 
-      // Settings
+      // Settings — whitelist fields
       if (d.settings) {
-        const { id, userId: _, ...settingsData } = d.settings;
+        const safeSettings: any = {};
+        if (typeof d.settings.darkMode === 'boolean') safeSettings.darkMode = d.settings.darkMode;
+        if (typeof d.settings.currency === 'string') safeSettings.currency = d.settings.currency;
+        if (typeof d.settings.locale === 'string') safeSettings.locale = d.settings.locale;
+        if (typeof d.settings.dashPeriod === 'string') safeSettings.dashPeriod = d.settings.dashPeriod;
+        if (typeof d.settings.sidebarOpen === 'boolean') safeSettings.sidebarOpen = d.settings.sidebarOpen;
+        if (typeof d.settings.budgetRollover === 'boolean') safeSettings.budgetRollover = d.settings.budgetRollover;
         await tx.userSettings.upsert({
           where: { userId },
-          create: { userId, ...settingsData },
-          update: settingsData,
+          create: { userId, ...safeSettings },
+          update: safeSettings,
         });
         counts.settings = 1;
       }

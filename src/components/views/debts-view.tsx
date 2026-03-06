@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -18,6 +18,10 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip as ReTooltip, ResponsiveContainer, Legend,
+} from 'recharts';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
 import { debtsApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
@@ -25,6 +29,12 @@ import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, cn } from '@/lib/utils';
+import {
+  compareStrategies,
+  buildTimeline,
+  type StrategyResult,
+  type AmortizationRow,
+} from '@/lib/debt-calculator';
 import type { Debt } from '@/types/models';
 
 // ─── Amortization helpers ─────────────────────────────────────────────────────
@@ -321,6 +331,310 @@ function DebtCardInner({
         <div className="flex items-center justify-center py-1 border-t border-income/20 bg-income/5">
           <span className="ticker text-income text-[10px]">▼ freed payment cascades to next debt</span>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Strategy Comparison Panel ────────────────────────────────────────────────
+
+function StrategyComparisonPanel({ debts }: { debts: Debt[] }) {
+  const comparison = useMemo(() => compareStrategies(debts), [debts]);
+  const [activeStrategy, setActiveStrategy] = useState<'snowball' | 'avalanche'>('avalanche');
+  const [expandedDebt, setExpandedDebt] = useState<string | null>(null);
+
+  const activeResult = activeStrategy === 'snowball' ? comparison.snowball : comparison.avalanche;
+  const timeline = useMemo(() => buildTimeline(activeResult), [activeResult]);
+
+  // Generate distinct colors for each debt line
+  const COLORS = [
+    'hsl(var(--expense))',
+    'hsl(var(--primary))',
+    'hsl(var(--income))',
+    'hsl(210, 70%, 55%)',
+    'hsl(280, 60%, 55%)',
+    'hsl(30, 80%, 55%)',
+    'hsl(180, 60%, 45%)',
+    'hsl(340, 65%, 55%)',
+  ];
+
+  if (debts.length < 2) return null;
+
+  return (
+    <div className="space-y-4">
+      {/* ── Strategy Comparison Header ── */}
+      <div className="border border-border bg-surface-1">
+        <div className="px-5 py-4 border-b border-border">
+          <p className="ticker text-primary mb-1">Payoff Projections</p>
+          <h2 className="text-lg font-bold tracking-tight">Snowball vs Avalanche</h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+          {/* Snowball column */}
+          <button
+            onClick={() => setActiveStrategy('snowball')}
+            className={cn(
+              'text-left px-5 py-4 transition-colors',
+              activeStrategy === 'snowball' ? 'bg-primary/5' : 'hover:bg-surface-2'
+            )}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn(
+                'w-2 h-2 rounded-full',
+                activeStrategy === 'snowball' ? 'bg-primary' : 'bg-muted-foreground/30'
+              )} />
+              <p className="ticker">Snowball</p>
+              {comparison.winner === 'snowball' && (
+                <span className="ticker text-income text-[10px] px-1.5 py-0.5 border border-income/30 bg-income/10">WINNER</span>
+              )}
+            </div>
+            <p className="ticker text-[10px] text-muted-foreground mb-3">Smallest balance first — quick wins for motivation</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <p className="ticker text-[10px] mb-0.5">Months</p>
+                <p className="numeral font-bold tabnum">{comparison.snowball.totalMonths}</p>
+              </div>
+              <div>
+                <p className="ticker text-[10px] mb-0.5">Interest</p>
+                <p className="numeral font-bold tabnum text-expense">{formatCurrency(comparison.snowball.totalInterest)}</p>
+              </div>
+              <div>
+                <p className="ticker text-[10px] mb-0.5">Total Paid</p>
+                <p className="numeral font-bold tabnum">{formatCurrency(comparison.snowball.totalPaid)}</p>
+              </div>
+            </div>
+          </button>
+
+          {/* Avalanche column */}
+          <button
+            onClick={() => setActiveStrategy('avalanche')}
+            className={cn(
+              'text-left px-5 py-4 transition-colors',
+              activeStrategy === 'avalanche' ? 'bg-primary/5' : 'hover:bg-surface-2'
+            )}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn(
+                'w-2 h-2 rounded-full',
+                activeStrategy === 'avalanche' ? 'bg-primary' : 'bg-muted-foreground/30'
+              )} />
+              <p className="ticker">Avalanche</p>
+              {comparison.winner === 'avalanche' && (
+                <span className="ticker text-income text-[10px] px-1.5 py-0.5 border border-income/30 bg-income/10">WINNER</span>
+              )}
+            </div>
+            <p className="ticker text-[10px] text-muted-foreground mb-3">Highest interest first — mathematically optimal</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <p className="ticker text-[10px] mb-0.5">Months</p>
+                <p className="numeral font-bold tabnum">{comparison.avalanche.totalMonths}</p>
+              </div>
+              <div>
+                <p className="ticker text-[10px] mb-0.5">Interest</p>
+                <p className="numeral font-bold tabnum text-expense">{formatCurrency(comparison.avalanche.totalInterest)}</p>
+              </div>
+              <div>
+                <p className="ticker text-[10px] mb-0.5">Total Paid</p>
+                <p className="numeral font-bold tabnum">{formatCurrency(comparison.avalanche.totalPaid)}</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Savings callout */}
+        {comparison.winner !== 'tie' && comparison.interestSaved > 1 && (
+          <div className="px-5 py-3 border-t border-border bg-income/5">
+            <p className="text-xs font-mono text-income">
+              {comparison.winner === 'avalanche' ? 'Avalanche' : 'Snowball'} saves you{' '}
+              <span className="font-bold">{formatCurrency(comparison.interestSaved)}</span> in interest
+              {comparison.monthsSaved > 0 && (
+                <> and finishes <span className="font-bold">{comparison.monthsSaved} month{comparison.monthsSaved !== 1 ? 's' : ''}</span> sooner</>
+              )}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Visual Timeline ── */}
+      {timeline.length > 1 && (
+        <div className="border border-border bg-surface-1">
+          <div className="px-5 py-3 border-b border-border">
+            <p className="ticker text-primary mb-0.5">Balance Timeline</p>
+            <p className="ticker text-[10px] text-muted-foreground">
+              {activeStrategy === 'snowball' ? 'Snowball' : 'Avalanche'} strategy — each line shows a debt converging to zero
+            </p>
+          </div>
+          <div className="px-4 py-4">
+            <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={timeline} margin={{ top: 8, right: 12, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fontFamily: 'var(--font-mono)', fill: 'hsl(var(--muted-foreground))' }}
+                    tickLine={false}
+                    axisLine={{ stroke: 'hsl(var(--border))' }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fontFamily: 'var(--font-mono)', fill: 'hsl(var(--muted-foreground))' }}
+                    tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`}
+                    tickLine={false}
+                    axisLine={false}
+                    width={52}
+                  />
+                  <ReTooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--surface-1))',
+                      border: '1px solid hsl(var(--border))',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 11,
+                    }}
+                    formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: 10, fontFamily: 'var(--font-mono)' }}
+                  />
+                  {activeResult.debts.map((debt, i) => (
+                    <Line
+                      key={debt.debtId}
+                      type="monotone"
+                      dataKey={debt.debtName}
+                      stroke={COLORS[i % COLORS.length]}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 3, strokeWidth: 0 }}
+                    />
+                  ))}
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke="hsl(var(--foreground))"
+                    strokeWidth={2}
+                    strokeDasharray="6 3"
+                    dot={false}
+                    activeDot={{ r: 3, strokeWidth: 0 }}
+                    name="Total"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Payoff Order ── */}
+      <div className="border border-border bg-surface-1">
+        <div className="px-5 py-3 border-b border-border">
+          <p className="ticker text-primary mb-0.5">Payoff Order — {activeStrategy === 'snowball' ? 'Snowball' : 'Avalanche'}</p>
+          <p className="ticker text-[10px] text-muted-foreground">Click a debt to expand its amortization schedule</p>
+        </div>
+
+        <div className="divide-y divide-border">
+          {activeResult.debts.map((debt, idx) => {
+            const isExpanded = expandedDebt === debt.debtId;
+            const payoffDate = new Date();
+            payoffDate.setMonth(payoffDate.getMonth() + debt.months);
+            const dateStr = isFinite(debt.months)
+              ? payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+              : 'Never';
+
+            return (
+              <div key={debt.debtId}>
+                {/* Summary row */}
+                <button
+                  onClick={() => setExpandedDebt(isExpanded ? null : debt.debtId)}
+                  className="w-full text-left px-5 py-3 hover:bg-surface-2 transition-colors flex items-center gap-3"
+                >
+                  <span className="w-5 h-5 flex items-center justify-center bg-surface-3 text-muted-foreground font-mono text-[10px] font-bold shrink-0">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate">{debt.debtName}</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-right shrink-0">
+                    <div>
+                      <p className="ticker text-[10px]">Payoff</p>
+                      <p className="numeral text-xs font-bold tabnum">{dateStr}</p>
+                    </div>
+                    <div>
+                      <p className="ticker text-[10px]">Interest</p>
+                      <p className="numeral text-xs font-bold tabnum text-expense">{formatCurrency(debt.totalInterest)}</p>
+                    </div>
+                    <div>
+                      <p className="ticker text-[10px]">Total</p>
+                      <p className="numeral text-xs font-bold tabnum">{formatCurrency(debt.totalPaid)}</p>
+                    </div>
+                  </div>
+                  <span className={cn(
+                    'text-muted-foreground/50 transition-transform text-xs',
+                    isExpanded && 'rotate-180'
+                  )}>
+                    ▼
+                  </span>
+                </button>
+
+                {/* Amortization table (collapsible) */}
+                {isExpanded && debt.amortization.length > 0 && (
+                  <AmortizationTable rows={debt.amortization} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Amortization Table ──────────────────────────────────────────────────────
+
+function AmortizationTable({ rows }: { rows: AmortizationRow[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const display = showAll ? rows : rows.slice(0, 24);
+  const hasMore = rows.length > 24;
+
+  return (
+    <div className="border-t border-border bg-surface-2/50">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs font-mono">
+          <thead>
+            <tr className="border-b border-border text-muted-foreground">
+              <th className="px-4 py-2 text-left ticker">Month</th>
+              <th className="px-4 py-2 text-right ticker">Payment</th>
+              <th className="px-4 py-2 text-right ticker">Principal</th>
+              <th className="px-4 py-2 text-right ticker">Interest</th>
+              <th className="px-4 py-2 text-right ticker">Balance</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/50">
+            {display.map((row) => {
+              const date = new Date();
+              date.setMonth(date.getMonth() + row.month);
+              const label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+              return (
+                <tr key={row.month} className="hover:bg-surface-3/50 transition-colors">
+                  <td className="px-4 py-1.5 text-muted-foreground">
+                    <span className="tabnum">{row.month}</span>
+                    <span className="ml-2 text-[10px]">{label}</span>
+                  </td>
+                  <td className="px-4 py-1.5 text-right numeral tabnum">{formatCurrency(row.payment)}</td>
+                  <td className="px-4 py-1.5 text-right numeral tabnum text-income">{formatCurrency(row.principal)}</td>
+                  <td className="px-4 py-1.5 text-right numeral tabnum text-expense">{formatCurrency(row.interest)}</td>
+                  <td className="px-4 py-1.5 text-right numeral tabnum font-bold">{formatCurrency(row.balance)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full px-4 py-2 text-xs font-mono text-primary hover:bg-surface-3 transition-colors border-t border-border"
+        >
+          {showAll ? `Show first 24 of ${rows.length} months` : `Show all ${rows.length} months`}
+        </button>
       )}
     </div>
   );
@@ -629,17 +943,22 @@ export function DebtsView() {
           description="Add your debts to see payoff schedules and snowball/avalanche projections."
         />
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={sortedDebts.map(d => d.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {debtCards}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={sortedDebts.map(d => d.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {debtCards}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          {/* Payoff Projections — Snowball vs Avalanche */}
+          <StrategyComparisonPanel debts={debts} />
+        </>
       )}
     </div>
   );

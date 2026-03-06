@@ -60,23 +60,3 @@ export async function requireAuthWithLimit(
   return { userId };
 }
 
-/**
- * Rate limit by IP for unauthenticated routes (login/register).
- */
-export function rateLimitByIp(
-  req: NextRequest,
-  limitType: 'auth:login' | 'auth:register'
-): NextResponse | null {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || req.headers.get('x-real-ip')
-    || 'unknown';
-
-  const result = rateLimit(ip, limitType);
-  if (!result.allowed) {
-    return NextResponse.json(
-      { error: 'Too many attempts. Please try again later.' },
-      { status: 429, headers: getRateLimitHeaders(result) }
-    );
-  }
-  return null;
-}

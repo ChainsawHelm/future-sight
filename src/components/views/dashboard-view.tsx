@@ -439,10 +439,38 @@ export function DashboardView() {
       )}
 
       {overview.totalTransactions === 0 && (
-        <EmptyState
-          title="Welcome to Future Sight!"
-          description="Import a CSV or PDF bank statement to get started with your financial overview."
-        />
+        <div className="border border-primary/20 bg-surface-1 p-6 space-y-5 animate-fade-in">
+          <div>
+            <p className="text-lg font-bold text-primary tracking-tight">Welcome to Future Sight</p>
+            <p className="ticker mt-1">Get your financial command center up and running in a few steps.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <a href="/import" className="group border border-border bg-surface-2 p-4 hover:border-primary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-6 h-6 bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">1</span>
+                <p className="text-sm font-semibold group-hover:text-primary transition-colors">Import Transactions</p>
+              </div>
+              <p className="ticker">Upload a CSV or PDF bank statement to load your spending history.</p>
+            </a>
+            <a href="/budget" className="group border border-border bg-surface-2 p-4 hover:border-primary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-6 h-6 bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">2</span>
+                <p className="text-sm font-semibold group-hover:text-primary transition-colors">Set Budgets</p>
+              </div>
+              <p className="ticker">Create spending limits per category, or auto-build from your history.</p>
+            </a>
+            <a href="/goals" className="group border border-border bg-surface-2 p-4 hover:border-primary/40 transition-colors">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-6 h-6 bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">3</span>
+                <p className="text-sm font-semibold group-hover:text-primary transition-colors">Track Goals</p>
+              </div>
+              <p className="ticker">Set savings goals and track your progress toward financial targets.</p>
+            </a>
+          </div>
+          <p className="text-[10px] text-muted-foreground/50 font-mono">
+            TIP: Connect your bank via Accounts for automatic transaction syncing.
+          </p>
+        </div>
       )}
     </div>
   );

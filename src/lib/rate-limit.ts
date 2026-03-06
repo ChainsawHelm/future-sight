@@ -26,11 +26,6 @@ interface RateLimitConfig {
 }
 
 const LIMITS: Record<string, RateLimitConfig> = {
-  // Auth routes — strict
-  'auth:login': { maxRequests: 10, windowSecs: 60 },
-  'auth:register': { maxRequests: 5, windowSecs: 60 },
-  // Account lockout — 5 failed attempts per 15 min per email
-  'auth:lockout': { maxRequests: 5, windowSecs: 900 },
   // API reads — generous
   'api:read': { maxRequests: 120, windowSecs: 60 },
   // API writes — moderate

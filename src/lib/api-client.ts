@@ -214,11 +214,6 @@ export const accountApi = {
       method: 'DELETE',
       body: JSON.stringify({ confirmation: 'DELETE MY ACCOUNT' }),
     }),
-  changePassword: (currentPassword: string, newPassword: string) =>
-    request<any>('/api/account/password', {
-      method: 'PUT',
-      body: JSON.stringify({ currentPassword, newPassword }),
-    }),
 };
 
 export { ApiError };

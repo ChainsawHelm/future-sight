@@ -456,6 +456,33 @@ function TransactionsViewInner() {
                               auto
                             </span>
                           )}
+                          {/* Transfer badge */}
+                          {(t.category === 'Transfer' || t.transferPairId) && (
+                            <span
+                              title={t.transferPairId ? `Transfer pair: ${t.transferPairId}` : 'Transfer'}
+                              className="shrink-0 text-[8px] font-mono bg-blue-500/10 text-blue-400 px-1 rounded-sm"
+                            >
+                              xfer
+                            </span>
+                          )}
+                          {/* Return badge */}
+                          {(t.category === 'Returns' || t.returnPairId) && (
+                            <span
+                              title={t.returnPairId ? `Return pair: ${t.returnPairId}` : 'Return/Refund'}
+                              className="shrink-0 text-[8px] font-mono bg-orange-500/10 text-orange-400 px-1 rounded-sm"
+                            >
+                              return
+                            </span>
+                          )}
+                          {/* Flagged badge */}
+                          {t.flagged && (
+                            <span
+                              title="Flagged as potential duplicate"
+                              className="shrink-0 text-[8px] font-mono bg-yellow-500/15 text-yellow-500 px-1 rounded-sm"
+                            >
+                              dupe?
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
