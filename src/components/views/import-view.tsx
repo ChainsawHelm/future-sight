@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
 import { useCategories } from '@/hooks/use-data';
 import { transactionsApi, importApi, merchantRulesApi } from '@/lib/api-client';
-import { processImport, type RawTransaction, type ProcessedTransaction } from '@/lib/import-engine';
+import { processImport, extractMerchant, type RawTransaction, type ProcessedTransaction } from '@/lib/import-engine';
 import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { Amount } from '@/components/shared/amount';
@@ -32,6 +32,8 @@ export function ImportView() {
   const [isParsing, setIsParsing] = useState(false);
   const [sortField, setSortField] = useState<'date' | 'category' | 'amount' | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [rulePrompt, setRulePrompt] = useState<{ merchant: string; category: string; matchCount: number; matchingIndices: number[] } | null>(null);
+  const [sessionRules, setSessionRules] = useState<{ merchant: string; category: string }[]>([]);
 
   const { data: categories } = useCategories();
   const { data: rulesData } = useFetch<{ rules: Record<string, string> }>(() => merchantRulesApi.list(), []);
@@ -155,7 +157,48 @@ export function ImportView() {
   };
 
   const handleCategoryChange = (idx: number, category: string) => {
+    // Update this single transaction immediately
     setProcessed(prev => { const next = [...prev]; next[idx] = { ...next[idx], category, autoMatched: false }; return next; });
+
+    // Extract merchant keyword and find all matching transactions
+    const row = processed[idx];
+    const merchant = extractMerchant(row.description);
+    if (!merchant || merchant.length < 2) return;
+
+    const matchingIndices = processed
+      .map((t, i) => i)
+      .filter(i => i !== idx && extractMerchant(processed[i].description) === merchant && processed[i].category !== category);
+
+    if (matchingIndices.length > 0) {
+      setRulePrompt({ merchant, category, matchCount: matchingIndices.length, matchingIndices });
+    }
+  };
+
+  const applyRuleToAll = async () => {
+    if (!rulePrompt) return;
+    const { merchant, category, matchingIndices } = rulePrompt;
+    // Update all matching transactions
+    setProcessed(prev => {
+      const next = [...prev];
+      for (const i of matchingIndices) next[i] = { ...next[i], category, autoMatched: true };
+      return next;
+    });
+    // Save rule to DB
+    try {
+      await merchantRulesApi.upsert({ merchant, category });
+      setSessionRules(prev => [...prev.filter(r => r.merchant !== merchant), { merchant, category }]);
+    } catch {}
+    setRulePrompt(null);
+  };
+
+  const saveRuleOnly = async () => {
+    if (!rulePrompt) return;
+    const { merchant, category } = rulePrompt;
+    try {
+      await merchantRulesApi.upsert({ merchant, category });
+      setSessionRules(prev => [...prev.filter(r => r.merchant !== merchant), { merchant, category }]);
+    } catch {}
+    setRulePrompt(null);
   };
 
   const handleConfirmImport = async () => {
@@ -183,7 +226,7 @@ export function ImportView() {
   };
 
   const handleDeleteImport = async (id: string) => { if (!confirm('Delete this import and all its transactions?')) return; await importApi.delete(id); refetchImports(); };
-  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); };
+  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); setRulePrompt(null); setSessionRules([]); };
   const importCount = excludeDupes ? processed.filter(t => !t.flagged).length : processed.length;
 
   const toggleSort = (field: 'date' | 'category' | 'amount') => {
@@ -354,6 +397,57 @@ export function ImportView() {
           </div>
 
           {importMutation.error && <ErrorAlert message={importMutation.error} />}
+
+          {/* Merchant rule prompt */}
+          {rulePrompt && (
+            <div className="border border-primary/40 bg-primary/5 p-4 animate-fade-in">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold">
+                    Create rule for <span className="font-mono text-primary">{rulePrompt.merchant}</span>?
+                  </p>
+                  <p className="ticker mt-1">
+                    Found <span className="font-semibold text-foreground">{rulePrompt.matchCount}</span> other transaction{rulePrompt.matchCount !== 1 ? 's' : ''} matching this merchant.
+                    Apply <span className="font-semibold text-foreground">{rulePrompt.category}</span> to all?
+                  </p>
+                </div>
+                <button onClick={() => setRulePrompt(null)} className="text-muted-foreground hover:text-foreground shrink-0 text-xs mt-0.5">✕</button>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button onClick={applyRuleToAll}
+                  className="h-8 px-4 bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/85 transition-colors">
+                  Apply to All {rulePrompt.matchCount + 1} & Save Rule
+                </button>
+                <button onClick={saveRuleOnly}
+                  className="h-8 px-4 border border-border bg-surface-2 text-xs font-semibold hover:bg-surface-3 transition-colors">
+                  Save Rule Only
+                </button>
+                <button onClick={() => setRulePrompt(null)}
+                  className="h-8 px-4 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  Skip
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Session rules created during this import */}
+          {sessionRules.length > 0 && (
+            <div className="border border-border bg-surface-1 overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+                <p className="ticker">Rules Created This Session</p>
+                <span className="ticker text-[10px] text-primary font-semibold">{sessionRules.length} rule{sessionRules.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex flex-wrap gap-2 px-4 py-2.5">
+                {sessionRules.map(r => (
+                  <span key={r.merchant} className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-1 bg-surface-2 border border-border">
+                    <span className="text-muted-foreground">{r.merchant}</span>
+                    <span className="text-muted-foreground/40">&rarr;</span>
+                    <span className="text-primary font-semibold">{r.category}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="border border-border bg-surface-1 overflow-hidden">
             <div className="overflow-x-auto max-h-[500px]">
