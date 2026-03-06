@@ -19,12 +19,17 @@ export async function POST() {
   }
 
   try {
+    // Build redirect URI for OAuth banks (Capital One, Chase, etc.)
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const redirectUri = `${baseUrl}/accounts`;
+
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: session.user.id },
       client_name: 'Future Sight',
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: 'en',
+      redirect_uri: redirectUri,
     });
     return NextResponse.json({ link_token: response.data.link_token });
   } catch (err: any) {
