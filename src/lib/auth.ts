@@ -55,6 +55,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       : []),
   ],
   callbacks: {
+    async signIn({ user }) {
+      const allowedEmails = ['shawn.m.neleber@gmail.com'];
+      return allowedEmails.includes(user.email ?? '');
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
