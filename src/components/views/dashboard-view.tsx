@@ -22,15 +22,22 @@ import { cn } from '@/lib/utils';
 /* ══════════════════════════════════════════
    PERIOD HELPERS
 ══════════════════════════════════════════ */
-type Period = 'month' | 'last_month' | '3months' | 'ytd' | 'all';
+type Period = 'today' | 'week' | 'month' | 'last_month' | '3months' | 'ytd' | 'all' | `year:${number}`;
 
-const PERIOD_LABELS: Record<Period, string> = {
+const BASE_PERIOD_LABELS: Record<string, string> = {
+  today:      'Today',
+  week:       'This Week',
   month:      'This Month',
   last_month: 'Last Month',
   '3months':  '3 Months',
   ytd:        'Year to Date',
   all:        'All Time',
 };
+
+function getPeriodLabel(period: Period): string {
+  if (period.startsWith('year:')) return period.slice(5);
+  return BASE_PERIOD_LABELS[period] || period;
+}
 
 function getPeriodRange(period: Period): { from: string; to: string } | null {
   const now = new Date();
@@ -39,6 +46,18 @@ function getPeriodRange(period: Period): { from: string; to: string } | null {
 
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
+  if (period === 'today') {
+    const today = fmt(now);
+    return { from: today, to: today };
+  }
+  if (period === 'week') {
+    const day = now.getDay();
+    const start = new Date(now);
+    start.setDate(now.getDate() - day);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { from: fmt(start), to: fmt(end) };
+  }
   if (period === 'month') {
     return { from: fmt(new Date(y, m, 1)), to: fmt(new Date(y, m + 1, 0)) };
   }
@@ -51,6 +70,10 @@ function getPeriodRange(period: Period): { from: string; to: string } | null {
   if (period === 'ytd') {
     return { from: fmt(new Date(y, 0, 1)), to: fmt(now) };
   }
+  if (period.startsWith('year:')) {
+    const yr = parseInt(period.slice(5));
+    return { from: `${yr}-01-01`, to: `${yr}-12-31` };
+  }
   return null; // all time
 }
 
@@ -58,6 +81,15 @@ function filterByPeriod<T extends { date: string }>(txns: T[], period: Period): 
   const range = getPeriodRange(period);
   if (!range) return txns;
   return txns.filter(t => t.date >= range.from && t.date <= range.to);
+}
+
+function getTransactionYears(txns: { date: string }[]): number[] {
+  const years = new Set<number>();
+  for (const t of txns) {
+    const yr = parseInt(t.date.slice(0, 4));
+    if (!isNaN(yr)) years.add(yr);
+  }
+  return Array.from(years).sort((a, b) => b - a);
 }
 
 /* ══════════════════════════════════════════
@@ -220,6 +252,7 @@ export function DashboardView() {
 
   const { overview, goals, debts, recentNetWorth, healthMetrics, wealthMetrics, flexibilityMetrics } = data as any;
   const allTxns = txnData?.transactions || [];
+  const txnYears = getTransactionYears(allTxns);
 
   // Period-filtered transactions (for Sankey, charts, and period stats)
   const periodTxns = filterByPeriod(allTxns, period);
@@ -269,28 +302,48 @@ export function DashboardView() {
     <div className="space-y-5 animate-fade-in">
 
       {/* ════════════ PERIOD TABS ════════════ */}
-      <div className="flex items-center gap-1 bg-surface-2 p-1 w-fit flex-wrap">
-        {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={cn(
-              'px-3 py-1.5 text-xs font-semibold transition-all duration-150',
-              period === p
-                ? 'bg-card text-primary shadow-soft border border-border'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {PERIOD_LABELS[p]}
-          </button>
-        ))}
+      <div className="flex items-start gap-3 flex-wrap">
+        <div className="flex items-center gap-1 bg-surface-2 p-1 flex-wrap">
+          {(['today', 'week', 'month', 'last_month', '3months', 'ytd', 'all'] as Period[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={cn(
+                'px-3 py-1.5 text-xs font-semibold transition-all duration-150',
+                period === p
+                  ? 'bg-card text-primary shadow-soft border border-border'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {getPeriodLabel(p)}
+            </button>
+          ))}
+        </div>
+        {txnYears.length > 0 && (
+          <div className="flex items-center gap-1 bg-surface-2 p-1">
+            {txnYears.map(yr => (
+              <button
+                key={yr}
+                onClick={() => setPeriod(`year:${yr}`)}
+                className={cn(
+                  'px-2.5 py-1.5 text-xs font-mono font-semibold transition-all duration-150',
+                  period === `year:${yr}`
+                    ? 'bg-card text-primary shadow-soft border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {yr}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ════════════ PERIOD METRIC STRIP ════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: `${PERIOD_LABELS[period]} Income`, value: formatCurrency(periodIncome), color: 'text-income' },
-          { label: `${PERIOD_LABELS[period]} Spending`, value: formatCurrency(periodExpenses), color: 'text-expense' },
+          { label: `${getPeriodLabel(period)} Income`, value: formatCurrency(periodIncome), color: 'text-income' },
+          { label: `${getPeriodLabel(period)} Spending`, value: formatCurrency(periodExpenses), color: 'text-expense' },
           { label: 'Net', value: formatCurrency(periodNet), color: periodNet >= 0 ? 'text-income' : 'text-expense' },
           { label: 'Savings Rate', value: `${Math.max(0, periodSavings).toFixed(1)}%`, color: periodSavings >= 10 ? 'text-income' : 'text-muted-foreground' },
         ].map((m) => (
@@ -305,7 +358,7 @@ export function DashboardView() {
       <div className="border border-border bg-card shadow-soft p-5">
         <SectionHeader
           label="Money Flow"
-          meta={`${PERIOD_LABELS[period]} · ${periodTxns.length} transactions`}
+          meta={`${getPeriodLabel(period)} · ${periodTxns.length} transactions`}
         />
         <SankeyChart transactions={periodTxns} period={period} dateFrom={getPeriodRange(period)?.from} dateTo={getPeriodRange(period)?.to} />
       </div>
