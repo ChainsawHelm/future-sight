@@ -336,7 +336,7 @@ export function SankeyChart({ transactions, period }: SankeyChartProps) {
           width="100%"
           height={svgH}
           viewBox={`0 0 ${width} ${svgH}`}
-          preserveAspectRatio="none"
+          preserveAspectRatio="xMinYMin meet"
         >
           <defs>
             {links.map((link, i) => (
