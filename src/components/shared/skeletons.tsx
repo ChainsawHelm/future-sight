@@ -121,7 +121,7 @@ export function GoalRingsSkeleton() {
       <div className="flex flex-wrap gap-4 justify-center pt-2">
         {[0, 1, 2, 3].map(i => (
           <div key={i} className="flex flex-col items-center gap-2 w-[72px]">
-            <Skeleton className="w-[72px] h-[72px] rounded-full" />
+            <Skeleton className="w-[72px] h-[72px]" />
             <Skeleton className="h-2 w-14" />
             <Skeleton className="h-2 w-10" />
           </div>

@@ -16,7 +16,7 @@ export function PageLoader({ message }: { message?: string }) {
     <div className="flex flex-col items-center justify-center py-24 gap-4">
       <div className="relative">
         <Spinner size="lg" />
-        <div className="absolute inset-0 rounded-full border border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
+        <div className="absolute inset-0 border border-primary/20 animate-ping" style={{ animationDuration: '2s' }} />
       </div>
       {message && <p className="ticker">{message}</p>}
     </div>
