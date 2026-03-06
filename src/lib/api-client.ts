@@ -192,6 +192,17 @@ export const dashboardApi = {
   get: () => request<any>('/api/dashboard'),
 };
 
+// ─── Wait List ──────────────────────────────
+
+export const waitlistApi = {
+  list: () => request<any>('/api/waitlist'),
+  create: (data: { name: string; amount: number; category?: string; url?: string }) =>
+    request<any>('/api/waitlist', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, status: 'bought' | 'skipped') =>
+    request<any>('/api/waitlist', { method: 'PATCH', body: JSON.stringify({ id, status }) }),
+  delete: (id: string) => request<any>(`/api/waitlist?id=${id}`, { method: 'DELETE' }),
+};
+
 // ─── Backup ─────────────────────────────────
 
 export const backupApi = {

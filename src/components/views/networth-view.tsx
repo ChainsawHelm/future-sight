@@ -98,6 +98,87 @@ export function NetWorthView() {
         <StatCard title="Net Worth" value={netWorth} trend={netWorth >= 0 ? 'up' : 'down'} index={2} />
       </div>
 
+      {/* Net Worth Growth */}
+      {snapshots.length >= 2 && (() => {
+        const sorted = snapshots.slice().sort((a, b) => a.date.localeCompare(b.date));
+        const latest = sorted[sorted.length - 1];
+        const prev = sorted[sorted.length - 2];
+
+        const momDelta = latest.netWorth - prev.netWorth;
+        const momPct = prev.netWorth !== 0 ? (momDelta / Math.abs(prev.netWorth)) * 100 : 0;
+
+        const yearAgo = sorted.find(s => {
+          const sDate = new Date(s.date);
+          const target = new Date(latest.date);
+          target.setFullYear(target.getFullYear() - 1);
+          return Math.abs(sDate.getTime() - target.getTime()) < 45 * 86400000;
+        });
+
+        const yoyDelta = yearAgo ? latest.netWorth - yearAgo.netWorth : null;
+        const yoyPct = yearAgo && yearAgo.netWorth !== 0
+          ? ((latest.netWorth - yearAgo.netWorth) / Math.abs(yearAgo.netWorth)) * 100
+          : null;
+
+        // Asset vs liability change
+        const prevAssets = prev.assets || 0;
+        const prevLiab = prev.liabilities || 0;
+        const assetDelta = totalAssets - prevAssets;
+        const liabDelta = totalLiabilities - prevLiab;
+
+        return (
+          <div className="border border-border bg-surface-1 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="ticker">Net Worth Growth</p>
+              <p className="text-[9px] text-muted-foreground font-mono">Since last snapshot</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <p className="text-[10px] text-muted-foreground font-mono mb-1">Period Change</p>
+                <p className={`numeral text-xl font-bold tabnum ${momDelta >= 0 ? 'text-primary' : 'text-expense'}`}>
+                  {momDelta >= 0 ? '+' : ''}{formatCurrency(momDelta)}
+                </p>
+                <p className={`text-[10px] font-mono ${momDelta >= 0 ? 'text-primary' : 'text-expense'}`}>
+                  {momDelta >= 0 ? '▲' : '▼'} {Math.abs(momPct).toFixed(1)}%
+                </p>
+              </div>
+
+              {yoyDelta !== null && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-mono mb-1">Year-over-Year</p>
+                  <p className={`numeral text-xl font-bold tabnum ${yoyDelta >= 0 ? 'text-primary' : 'text-expense'}`}>
+                    {yoyDelta >= 0 ? '+' : ''}{formatCurrency(yoyDelta)}
+                  </p>
+                  <p className={`text-[10px] font-mono ${yoyDelta >= 0 ? 'text-primary' : 'text-expense'}`}>
+                    {yoyDelta >= 0 ? '▲' : '▼'} {Math.abs(yoyPct!).toFixed(1)}%
+                  </p>
+                </div>
+              )}
+
+              {prevAssets > 0 && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-mono mb-1">Asset Change</p>
+                  <p className={`numeral text-lg font-bold tabnum ${assetDelta >= 0 ? 'text-primary' : 'text-expense'}`}>
+                    {assetDelta >= 0 ? '+' : ''}{formatCurrency(assetDelta)}
+                  </p>
+                </div>
+              )}
+
+              {prevLiab > 0 && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-mono mb-1">Liability Change</p>
+                  <p className={`numeral text-lg font-bold tabnum ${liabDelta <= 0 ? 'text-primary' : 'text-expense'}`}>
+                    {liabDelta >= 0 ? '+' : ''}{formatCurrency(liabDelta)}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground font-mono">
+                    {liabDelta <= 0 ? 'Debt reduced' : 'Debt increased'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Assets */}
       <div className="border border-border bg-surface-1 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">

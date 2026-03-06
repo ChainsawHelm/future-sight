@@ -46,6 +46,7 @@ model User {
   settings          UserSettings?
   plaidItems        PlaidItem[]
   plaidAccounts     PlaidAccount[]
+  waitListItems     WaitListItem[]
 
   @@map("users")
 }
@@ -397,6 +398,26 @@ model PlaidAccount {
 
   @@index([userId])
   @@map("plaid_accounts")
+}
+
+// ─── Wait List (30-Day Rule) ────────────────
+
+model WaitListItem {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  amount      Decimal  @db.Decimal(12, 2)
+  category    String?
+  url         String?
+  addedAt     DateTime @default(now())
+  expiresAt   DateTime // 30 days after addedAt
+  status      String   @default("waiting") // "waiting", "bought", "skipped"
+  resolvedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("wait_list_items")
 }
 
 // ─── Audit Log ─────────────────────────────

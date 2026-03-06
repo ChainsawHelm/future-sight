@@ -157,6 +157,54 @@ function SectionHeader({ label, meta, action }: { label: string; meta?: string; 
 }
 
 /* ══════════════════════════════════════════
+   HEALTH GAUGE
+══════════════════════════════════════════ */
+function HealthGauge({ label, value, suffix, target, invert, description, status, benchmark, positiveFlow }: {
+  label: string; value: number | null; suffix: string; target: number; invert?: boolean;
+  description: string; status: 'good' | 'warn' | 'bad'; benchmark: string; positiveFlow?: boolean;
+}) {
+  const colors = { good: 'text-income', warn: 'text-yellow-400', bad: 'text-expense' };
+  const bgColors = { good: 'bg-income', warn: 'bg-yellow-400', bad: 'bg-expense' };
+  const icons = { good: '●', warn: '◐', bad: '○' };
+
+  // For the fill bar
+  let fillPct = 0;
+  if (positiveFlow) {
+    fillPct = 100;
+  } else if (value !== null && target > 0) {
+    fillPct = invert
+      ? Math.max(0, Math.min(100, ((target - value) / target) * 100))
+      : Math.min(100, (value / target) * 100);
+  }
+
+  const displayValue = value === null
+    ? '∞'
+    : positiveFlow
+      ? 'Positive'
+      : value.toFixed(1);
+
+  return (
+    <div className="space-y-2.5 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <span className={cn('text-[10px]', colors[status])}>{icons[status]}</span>
+      </div>
+      <p className={cn('numeral text-2xl font-bold tabnum', colors[status])}>
+        {displayValue}{!positiveFlow && value !== null ? suffix : ''}
+      </p>
+      <div className="h-1.5 bg-surface-2 overflow-hidden">
+        <div
+          className={cn('h-full transition-all duration-700', bgColors[status])}
+          style={{ width: `${fillPct}%`, opacity: 0.7 }}
+        />
+      </div>
+      <p className="text-[10px] text-muted-foreground font-mono leading-snug">{description}</p>
+      <p className="text-[9px] text-muted-foreground/60 font-mono">{benchmark}</p>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
    MAIN VIEW
 ══════════════════════════════════════════ */
 export function DashboardView() {
@@ -170,7 +218,7 @@ export function DashboardView() {
   if (error) return <ErrorAlert message={error} retry={refetch} />;
   if (!data) return null;
 
-  const { overview, goals, debts, recentNetWorth } = data;
+  const { overview, goals, debts, recentNetWorth, healthMetrics, wealthMetrics, flexibilityMetrics } = data as any;
   const allTxns = txnData?.transactions || [];
 
   // Period-filtered transactions (for Sankey, charts, and period stats)
@@ -288,6 +336,58 @@ export function DashboardView() {
           </div>
         ))}
       </div>
+
+      {/* ════════════ FINANCIAL HEALTH GAUGES ════════════ */}
+      {healthMetrics && (
+        <div className="border border-border bg-card p-5 shadow-soft">
+          <SectionHeader label="Financial Health" meta="Key ratios" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Emergency Fund */}
+            <HealthGauge
+              label="Emergency Fund"
+              value={healthMetrics.emergencyFundMonths}
+              suffix=" mo"
+              target={6}
+              description={`${formatCurrency(healthMetrics.liquidAssets)} liquid`}
+              status={healthMetrics.emergencyFundMonths >= 6 ? 'good' : healthMetrics.emergencyFundMonths >= 3 ? 'warn' : 'bad'}
+              benchmark="Target: 3–6 months"
+            />
+            {/* Debt-to-Income */}
+            <HealthGauge
+              label="Debt-to-Income"
+              value={healthMetrics.dti}
+              suffix="%"
+              target={36}
+              invert
+              description={`${formatCurrency(healthMetrics.totalMinPayments)}/mo payments`}
+              status={healthMetrics.dti <= 20 ? 'good' : healthMetrics.dti <= 36 ? 'warn' : 'bad'}
+              benchmark="Target: < 36%"
+            />
+            {/* Housing Ratio */}
+            <HealthGauge
+              label="Housing Cost"
+              value={healthMetrics.housingRatio}
+              suffix="%"
+              target={28}
+              invert
+              description={`${formatCurrency(healthMetrics.housingCost)}/mo`}
+              status={healthMetrics.housingRatio <= 28 ? 'good' : healthMetrics.housingRatio <= 35 ? 'warn' : 'bad'}
+              benchmark="Target: < 28%"
+            />
+            {/* Cash Flow Runway */}
+            <HealthGauge
+              label="Cash Flow"
+              value={flexibilityMetrics.cashFlowRunwayMonths === -1 ? null : flexibilityMetrics.cashFlowRunwayMonths}
+              suffix={flexibilityMetrics.netMonthlyCashFlow >= 0 ? '' : ' mo left'}
+              target={0}
+              description={`${flexibilityMetrics.netMonthlyCashFlow >= 0 ? '+' : ''}${formatCurrency(flexibilityMetrics.netMonthlyCashFlow)}/mo net`}
+              status={flexibilityMetrics.netMonthlyCashFlow >= 0 ? 'good' : flexibilityMetrics.cashFlowRunwayMonths > 6 ? 'warn' : 'bad'}
+              benchmark={flexibilityMetrics.netMonthlyCashFlow >= 0 ? 'Positive cash flow' : 'Spending > Income'}
+              positiveFlow={flexibilityMetrics.netMonthlyCashFlow >= 0}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ════════════ CATEGORY BARS + INCOME VS EXPENSES ════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

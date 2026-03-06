@@ -163,6 +163,41 @@ export interface DashboardData {
     totalDebts: number;
     netWorth: number;
   };
+  healthMetrics: {
+    emergencyFundMonths: number;
+    liquidAssets: number;
+    dti: number;
+    totalMinPayments: number;
+    housingRatio: number;
+    housingCost: number;
+    expenseGrowthMoM: number;
+    expenseGrowthYoY: number;
+    lastMonthExpenses: number;
+    yoyExpenses: number;
+    yoyIncome: number;
+    lastMonthIncome: number;
+  };
+  wealthMetrics: {
+    fireNumber: number;
+    fireProgress: number;
+    annualExpenses: number;
+    investmentAssets: number;
+    investmentRate: number;
+    investmentContributions: number;
+    passiveIncomeRatio: number;
+    passiveIncome: number;
+    nwGrowthMoM: { current: number; previous: number } | null;
+    nwGrowthYoY: { current: number; yearAgo: number } | null;
+  };
+  flexibilityMetrics: {
+    recurringExpenses: number;
+    discretionaryExpenses: number;
+    recurringRatio: number;
+    incomeStreams: number;
+    incomeBySource: Record<string, number>;
+    cashFlowRunwayMonths: number;
+    netMonthlyCashFlow: number;
+  };
   categorySpending: Record<string, number>;
   goals: {
     name: string;
@@ -179,6 +214,8 @@ export interface DashboardData {
   recentNetWorth: {
     date: string;
     netWorth: number;
+    assets?: number;
+    liabilities?: number;
   }[];
 }
 

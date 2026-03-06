@@ -51,6 +51,14 @@ const NAV_GROUPS = [
       { id: 'achievements',  label: 'Achievements', href: '/achievements',  icon: IconAchievements },
     ],
   },
+  {
+    id: 'labs',
+    label: 'LAB',
+    divider: true,
+    items: [
+      { id: 'labs',  label: 'Labs',  href: '/labs',  icon: IconLabs },
+    ],
+  },
 ];
 
 const ALL_ITEMS = NAV_GROUPS.flatMap(g => g.items);
@@ -136,6 +144,11 @@ function IconAchievements({ size = 14 }: { size?: number }) {
 function IconPlaid({ size = 14 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="5" width="18" height="14" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="7" y1="15" x2="11" y2="15"/>
+  </svg>;
+}
+function IconLabs({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 3h6M10 3v6l-5 8.5a1 1 0 00.85 1.5h12.3a1 1 0 00.85-1.5L14 9V3"/><path d="M8.5 14h7"/>
   </svg>;
 }
 function IconSettings({ size = 14 }: { size?: number }) {
@@ -253,17 +266,23 @@ export function AppShell({ user, children }: AppShellProps) {
 
         {/* ── Navigation ── */}
         <nav className="flex-1 overflow-y-auto py-2">
-          {NAV_GROUPS.map((group, gi) => (
+          {NAV_GROUPS.map((group: any, gi: number) => (
             <div key={group.id} className={gi > 0 ? 'mt-3' : ''}>
+              {/* Divider line for Labs section */}
+              {group.divider && (
+                <div className="mx-3 mb-3 mt-1 border-t border-dashed border-primary/20" />
+              )}
               {sidebarOpen && (
                 <div className="flex items-center gap-1.5 px-3 mb-1">
-                  <span className="text-[9px] font-mono font-bold text-primary/40 tracking-[0.2em]">
+                  <span className={cn('text-[9px] font-mono font-bold tracking-[0.2em]',
+                    group.divider ? 'text-yellow-500/50' : 'text-primary/40'
+                  )}>
                     [{group.label}]
                   </span>
-                  <div className="flex-1 h-px bg-border" />
+                  <div className={cn('flex-1 h-px', group.divider ? 'bg-yellow-500/20' : 'bg-border')} />
                 </div>
               )}
-              {!sidebarOpen && gi > 0 && (
+              {!sidebarOpen && gi > 0 && !group.divider && (
                 <div className="h-px mx-2 bg-border mb-2" />
               )}
               <div className="px-1.5 space-y-px">

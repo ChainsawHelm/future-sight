@@ -1,7 +1,7 @@
 'use client';
 
 import { useFetch } from '@/hooks/use-fetch';
-import { transactionsApi, budgetsApi, subscriptionsApi } from '@/lib/api-client';
+import { transactionsApi, budgetsApi, subscriptionsApi, dashboardApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -10,9 +10,9 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { isRealExpense, isRealIncome } from '@/lib/classify';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
-  ResponsiveContainer, LineChart, Line,
+  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts';
-import type { Transaction } from '@/types/models';
+import type { Transaction, DashboardData } from '@/types/models';
 
 // ─── BLS Consumer Expenditure Survey 2022 — % of after-tax income ──────────
 const BENCHMARKS: { label: string; blsPct: number; categories: string[] }[] = [
@@ -70,6 +70,7 @@ export function InsightsView() {
   );
   const { data: budgetData } = useFetch<any>(() => budgetsApi.list(), []);
   const { data: subData } = useFetch<any>(() => subscriptionsApi.list(), []);
+  const { data: dashData } = useFetch<DashboardData>(() => dashboardApi.get(), []);
 
   if (txLoading) return <PageLoader message="Analyzing your finances..." />;
   if (txError) return <ErrorAlert message={txError} retry={refetch} />;
@@ -626,6 +627,446 @@ export function InsightsView() {
           </div>
         </div>
       </div>
+
+      {/* ════════════ WEALTH BUILDING METRICS ════════════ */}
+      {dashData && (dashData as any).wealthMetrics && (() => {
+        const wm = (dashData as any).wealthMetrics;
+        const hm = (dashData as any).healthMetrics;
+        const fm = (dashData as any).flexibilityMetrics;
+        const ov = (dashData as any).overview;
+        return (
+          <>
+            {/* FIRE Progress + Investment + Passive Income */}
+            <div className="border border-border bg-surface-1 p-4">
+              <p className="ticker mb-1">Wealth Building</p>
+              <p className="text-[10px] text-muted-foreground font-mono mb-4">Financial independence metrics</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                {/* FIRE Progress */}
+                <div className="space-y-2">
+                  <p className="ticker">FIRE Progress</p>
+                  <p className="numeral text-2xl font-bold tabnum text-primary">
+                    {wm.fireProgress > 0 ? `${wm.fireProgress.toFixed(1)}%` : '—'}
+                  </p>
+                  <div className="h-2 bg-surface-3 overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-700"
+                      style={{ width: `${Math.min(wm.fireProgress, 100)}%`, opacity: 0.8 }}
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      FIRE Number: {formatCurrency(wm.fireNumber)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      Net Worth: {formatCurrency(ov.netWorth)}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/60 font-mono">
+                      25× annual expenses ({formatCurrency(wm.annualExpenses)}/yr)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Investment Rate */}
+                <div className="space-y-2">
+                  <p className="ticker">Investment Rate</p>
+                  <p className={cn('numeral text-2xl font-bold tabnum',
+                    wm.investmentRate >= 15 ? 'text-income' : wm.investmentRate >= 5 ? 'text-yellow-400' : 'text-muted-foreground'
+                  )}>
+                    {wm.investmentRate.toFixed(1)}%
+                  </p>
+                  <div className="h-2 bg-surface-3 overflow-hidden">
+                    <div
+                      className={cn('h-full transition-all duration-700',
+                        wm.investmentRate >= 15 ? 'bg-income' : wm.investmentRate >= 5 ? 'bg-yellow-400' : 'bg-muted-foreground'
+                      )}
+                      style={{ width: `${Math.min(wm.investmentRate / 20 * 100, 100)}%`, opacity: 0.7 }}
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      {formatCurrency(wm.investmentContributions)}/mo to investments
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      {formatCurrency(wm.investmentAssets)} total invested
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/60 font-mono">Target: 15–20% of income</p>
+                  </div>
+                </div>
+
+                {/* Passive Income Ratio */}
+                <div className="space-y-2">
+                  <p className="ticker">Passive Income</p>
+                  <p className={cn('numeral text-2xl font-bold tabnum',
+                    wm.passiveIncomeRatio >= 50 ? 'text-income' : wm.passiveIncomeRatio >= 10 ? 'text-yellow-400' : 'text-muted-foreground'
+                  )}>
+                    {wm.passiveIncomeRatio.toFixed(1)}%
+                  </p>
+                  <div className="h-2 bg-surface-3 overflow-hidden">
+                    <div
+                      className={cn('h-full transition-all duration-700',
+                        wm.passiveIncomeRatio >= 50 ? 'bg-income' : wm.passiveIncomeRatio >= 10 ? 'bg-yellow-400' : 'bg-muted-foreground'
+                      )}
+                      style={{ width: `${Math.min(wm.passiveIncomeRatio, 100)}%`, opacity: 0.7 }}
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      {formatCurrency(wm.passiveIncome)}/mo passive
+                    </p>
+                    <p className="text-[10px] text-muted-foreground font-mono">
+                      {formatCurrency(ov.monthlyIncome)}/mo total income
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/60 font-mono">FI = 100% passive coverage</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Net Worth Growth */}
+              {(wm.nwGrowthMoM || wm.nwGrowthYoY) && (
+                <div className="border-t border-border pt-4 mt-2">
+                  <p className="ticker mb-3">Net Worth Growth</p>
+                  <div className="flex flex-wrap gap-6">
+                    {wm.nwGrowthMoM && (() => {
+                      const delta = wm.nwGrowthMoM.current - wm.nwGrowthMoM.previous;
+                      const pct = wm.nwGrowthMoM.previous !== 0
+                        ? (delta / Math.abs(wm.nwGrowthMoM.previous)) * 100
+                        : 0;
+                      return (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground font-mono mb-1">Month-over-Month</p>
+                          <p className={cn('numeral text-lg font-bold tabnum', delta >= 0 ? 'text-income' : 'text-expense')}>
+                            {delta >= 0 ? '+' : ''}{formatCurrency(delta)}
+                          </p>
+                          <p className={cn('text-[10px] font-mono', delta >= 0 ? 'text-income' : 'text-expense')}>
+                            {delta >= 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
+                          </p>
+                        </div>
+                      );
+                    })()}
+                    {wm.nwGrowthYoY && (() => {
+                      const delta = wm.nwGrowthYoY.current - wm.nwGrowthYoY.yearAgo;
+                      const pct = wm.nwGrowthYoY.yearAgo !== 0
+                        ? (delta / Math.abs(wm.nwGrowthYoY.yearAgo)) * 100
+                        : 0;
+                      return (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground font-mono mb-1">Year-over-Year</p>
+                          <p className={cn('numeral text-lg font-bold tabnum', delta >= 0 ? 'text-income' : 'text-expense')}>
+                            {delta >= 0 ? '+' : ''}{formatCurrency(delta)}
+                          </p>
+                          <p className={cn('text-[10px] font-mono', delta >= 0 ? 'text-income' : 'text-expense')}>
+                            {delta >= 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ════════════ EXPENSE GROWTH + YoY ════════════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="border border-border bg-surface-1 p-4">
+                <p className="ticker mb-1">Expense Growth</p>
+                <p className="text-[10px] text-muted-foreground font-mono mb-4">How your spending is changing</p>
+                <div className="space-y-4">
+                  {/* MoM */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-mono text-foreground/80">Month-over-Month</span>
+                      <span className={cn('font-mono text-sm font-bold tabnum',
+                        hm.expenseGrowthMoM > 5 ? 'text-expense' : hm.expenseGrowthMoM < -5 ? 'text-income' : 'text-muted-foreground'
+                      )}>
+                        {hm.expenseGrowthMoM >= 0 ? '+' : ''}{hm.expenseGrowthMoM.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground">
+                      <span>Last month: {formatCurrency(hm.lastMonthExpenses)}</span>
+                      <span>→</span>
+                      <span>This month: {formatCurrency(ov.monthlyExpenses)}</span>
+                    </div>
+                    <div className="h-1.5 bg-surface-3 overflow-hidden mt-2">
+                      <div
+                        className={cn('h-full transition-all duration-700',
+                          hm.expenseGrowthMoM > 5 ? 'bg-expense' : hm.expenseGrowthMoM < -5 ? 'bg-income' : 'bg-muted-foreground'
+                        )}
+                        style={{ width: `${Math.min(Math.abs(hm.expenseGrowthMoM), 100)}%`, opacity: 0.6 }}
+                      />
+                    </div>
+                  </div>
+                  {/* YoY */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-mono text-foreground/80">Year-over-Year</span>
+                      <span className={cn('font-mono text-sm font-bold tabnum',
+                        hm.expenseGrowthYoY > 5 ? 'text-expense' : hm.expenseGrowthYoY < -5 ? 'text-income' : 'text-muted-foreground'
+                      )}>
+                        {hm.yoyExpenses > 0 ? `${hm.expenseGrowthYoY >= 0 ? '+' : ''}${hm.expenseGrowthYoY.toFixed(1)}%` : 'No data'}
+                      </span>
+                    </div>
+                    {hm.yoyExpenses > 0 && (
+                      <>
+                        <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground">
+                          <span>Same month last year: {formatCurrency(hm.yoyExpenses)}</span>
+                          <span>→</span>
+                          <span>This month: {formatCurrency(ov.monthlyExpenses)}</span>
+                        </div>
+                        <div className="h-1.5 bg-surface-3 overflow-hidden mt-2">
+                          <div
+                            className={cn('h-full transition-all duration-700',
+                              hm.expenseGrowthYoY > 5 ? 'bg-expense' : hm.expenseGrowthYoY < -5 ? 'bg-income' : 'bg-muted-foreground'
+                            )}
+                            style={{ width: `${Math.min(Math.abs(hm.expenseGrowthYoY), 100)}%`, opacity: 0.6 }}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Year-over-Year Income */}
+              <div className="border border-border bg-surface-1 p-4">
+                <p className="ticker mb-1">Year-over-Year Comparison</p>
+                <p className="text-[10px] text-muted-foreground font-mono mb-4">Same month, this year vs last year</p>
+                {hm.yoyIncome > 0 || hm.yoyExpenses > 0 ? (
+                  <div className="space-y-4">
+                    {[
+                      {
+                        label: 'Income',
+                        current: ov.monthlyIncome,
+                        previous: hm.yoyIncome,
+                        color: 'income',
+                      },
+                      {
+                        label: 'Expenses',
+                        current: ov.monthlyExpenses,
+                        previous: hm.yoyExpenses,
+                        color: 'expense',
+                      },
+                      {
+                        label: 'Net Savings',
+                        current: ov.monthlyIncome - ov.monthlyExpenses,
+                        previous: hm.yoyIncome - hm.yoyExpenses,
+                        color: 'primary',
+                      },
+                    ].map(item => {
+                      const delta = item.previous > 0
+                        ? ((item.current - item.previous) / item.previous) * 100
+                        : 0;
+                      const improved = item.label === 'Expenses' ? delta < 0 : delta > 0;
+                      return (
+                        <div key={item.label}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-mono text-foreground/80">{item.label}</span>
+                            {item.previous > 0 && (
+                              <span className={cn('font-mono text-xs font-semibold tabnum',
+                                improved ? 'text-income' : 'text-expense'
+                              )}>
+                                {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-3">
+                            <div className="flex-1">
+                              <p className="text-[9px] text-muted-foreground font-mono mb-1">Last Year</p>
+                              <div className="h-5 bg-surface-3 overflow-hidden flex items-center px-2">
+                                <span className="text-[10px] font-mono font-semibold tabnum text-muted-foreground">
+                                  {item.previous > 0 ? formatCurrency(item.previous) : '—'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-[9px] text-muted-foreground font-mono mb-1">This Year</p>
+                              <div className={cn('h-5 overflow-hidden flex items-center px-2',
+                                `bg-${item.color}/10`
+                              )}>
+                                <span className={cn('text-[10px] font-mono font-semibold tabnum', `text-${item.color}`)}>
+                                  {formatCurrency(item.current)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-6 font-mono">
+                    No data from the same month last year
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ════════════ INCOME DIVERSIFICATION + RECURRING VS DISCRETIONARY ════════════ */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* Income Diversification */}
+              <div className="border border-border bg-surface-1 p-4">
+                <p className="ticker mb-1">Income Diversification</p>
+                <p className="text-[10px] text-muted-foreground font-mono mb-4">
+                  {fm.incomeStreams} income {fm.incomeStreams === 1 ? 'source' : 'sources'} this month
+                </p>
+
+                {fm.incomeStreams === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-6 font-mono">No income recorded this month</p>
+                ) : (
+                  <>
+                    <div className="space-y-3 mb-4">
+                      {Object.entries(fm.incomeBySource as Record<string, number>)
+                        .sort(([, a], [, b]) => (b as number) - (a as number))
+                        .map(([source, amount]) => {
+                          const pct = ov.monthlyIncome > 0 ? ((amount as number) / ov.monthlyIncome) * 100 : 0;
+                          const isConcentrated = pct > 80;
+                          return (
+                            <div key={source}>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <CategoryDot category={source} />
+                                  <span className="text-xs font-mono text-foreground/80">{source}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-[10px] text-muted-foreground">{pct.toFixed(0)}%</span>
+                                  <span className="font-mono text-xs font-semibold tabnum text-income">{formatCurrency(amount as number)}</span>
+                                </div>
+                              </div>
+                              <div className="h-1.5 bg-surface-3 overflow-hidden">
+                                <div
+                                  className={cn('h-full transition-all duration-700', isConcentrated ? 'bg-yellow-400' : 'bg-income')}
+                                  style={{ width: `${pct}%`, opacity: 0.7 }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    {/* Concentration warning */}
+                    {fm.incomeStreams === 1 && (
+                      <div className="border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 flex gap-2 items-start">
+                        <span className="text-yellow-400 text-xs mt-0.5">⚠</span>
+                        <div>
+                          <p className="text-[10px] font-semibold font-mono text-yellow-400">Single income source</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">100% income concentration creates risk. Consider diversifying.</p>
+                        </div>
+                      </div>
+                    )}
+                    {fm.incomeStreams >= 3 && (
+                      <div className="border border-green-500/30 bg-green-500/5 px-3 py-2 flex gap-2 items-start">
+                        <span className="text-green-400 text-xs mt-0.5">✓</span>
+                        <div>
+                          <p className="text-[10px] font-semibold font-mono text-green-400">Well diversified</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{fm.incomeStreams} income streams reduce financial risk.</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Recurring vs Discretionary */}
+              <div className="border border-border bg-surface-1 p-4">
+                <p className="ticker mb-1">Recurring vs Discretionary</p>
+                <p className="text-[10px] text-muted-foreground font-mono mb-4">How flexible is your spending?</p>
+
+                {ov.monthlyExpenses > 0 ? (
+                  <>
+                    {/* Visual split bar */}
+                    <div className="h-8 flex overflow-hidden mb-4">
+                      <div
+                        className="bg-expense/60 flex items-center justify-center transition-all duration-700"
+                        style={{ width: `${fm.recurringRatio}%` }}
+                      >
+                        {fm.recurringRatio > 15 && (
+                          <span className="text-[10px] font-mono font-bold text-white/90">
+                            {fm.recurringRatio.toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="bg-primary/50 flex items-center justify-center transition-all duration-700"
+                        style={{ width: `${100 - fm.recurringRatio}%` }}
+                      >
+                        {100 - fm.recurringRatio > 15 && (
+                          <span className="text-[10px] font-mono font-bold text-white/90">
+                            {(100 - fm.recurringRatio).toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-2 h-2 bg-expense/60" />
+                          <span className="ticker">Fixed / Recurring</span>
+                        </div>
+                        <p className="numeral text-lg font-bold tabnum text-expense">
+                          {formatCurrency(fm.recurringExpenses)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          Rent, utilities, insurance, subs
+                        </p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-2 h-2 bg-primary/50" />
+                          <span className="ticker">Discretionary</span>
+                        </div>
+                        <p className="numeral text-lg font-bold tabnum text-primary">
+                          {formatCurrency(fm.discretionaryExpenses)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          Shopping, dining, entertainment
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Flexibility assessment */}
+                    <div className={cn(
+                      'border px-3 py-2 flex gap-2 items-start',
+                      fm.recurringRatio > 70 ? 'border-expense/30 bg-expense/5' :
+                      fm.recurringRatio > 50 ? 'border-yellow-500/30 bg-yellow-500/5' :
+                      'border-green-500/30 bg-green-500/5'
+                    )}>
+                      <span className={cn('text-xs mt-0.5',
+                        fm.recurringRatio > 70 ? 'text-expense' :
+                        fm.recurringRatio > 50 ? 'text-yellow-400' :
+                        'text-green-400'
+                      )}>
+                        {fm.recurringRatio > 70 ? '⚠' : fm.recurringRatio > 50 ? '◐' : '✓'}
+                      </span>
+                      <div>
+                        <p className={cn('text-[10px] font-semibold font-mono',
+                          fm.recurringRatio > 70 ? 'text-expense' :
+                          fm.recurringRatio > 50 ? 'text-yellow-400' :
+                          'text-green-400'
+                        )}>
+                          {fm.recurringRatio > 70 ? 'Low flexibility' :
+                           fm.recurringRatio > 50 ? 'Moderate flexibility' :
+                           'High flexibility'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {fm.recurringRatio > 70
+                            ? `${fm.recurringRatio.toFixed(0)}% of spending is fixed. You have limited room to cut costs quickly.`
+                            : fm.recurringRatio > 50
+                            ? `${fm.recurringRatio.toFixed(0)}% fixed obligations. Some room to adjust in a pinch.`
+                            : `Only ${fm.recurringRatio.toFixed(0)}% is locked in. You can quickly adjust spending if needed.`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-6 font-mono">No expenses recorded this month</p>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
