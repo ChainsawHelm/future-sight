@@ -30,6 +30,8 @@ export function ImportView() {
   const [parseError, setParseError] = useState('');
   const [excludeDupes, setExcludeDupes] = useState(true);
   const [isParsing, setIsParsing] = useState(false);
+  const [sortField, setSortField] = useState<'date' | 'category' | 'amount' | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const { data: categories } = useCategories();
   const { data: rulesData } = useFetch<{ rules: Record<string, string> }>(() => merchantRulesApi.list(), []);
@@ -183,6 +185,23 @@ export function ImportView() {
   const handleDeleteImport = async (id: string) => { if (!confirm('Delete this import and all its transactions?')) return; await importApi.delete(id); refetchImports(); };
   const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); };
   const importCount = excludeDupes ? processed.filter(t => !t.flagged).length : processed.length;
+
+  const toggleSort = (field: 'date' | 'category' | 'amount') => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+  };
+
+  const sortedProcessed = sortField
+    ? processed.map((t, i) => ({ ...t, _origIdx: i })).sort((a, b) => {
+        let cmp = 0;
+        if (sortField === 'date') cmp = a.date.localeCompare(b.date);
+        else if (sortField === 'category') cmp = a.category.localeCompare(b.category);
+        else if (sortField === 'amount') cmp = a.amount - b.amount;
+        return sortDir === 'desc' ? -cmp : cmp;
+      })
+    : processed.map((t, i) => ({ ...t, _origIdx: i }));
+
+  const sortIcon = (field: string) => sortField === field ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -342,16 +361,16 @@ export function ImportView() {
                 <thead className="sticky top-0 bg-surface-2 border-b border-border">
                   <tr>
                     <th className="text-left px-3 py-2.5 w-16"><span className="ticker">Status</span></th>
-                    <th className="text-left px-3 py-2.5"><span className="ticker">Date</span></th>
+                    <th className="text-left px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('date')}><span className="ticker">Date{sortIcon('date')}</span></th>
                     <th className="text-left px-3 py-2.5"><span className="ticker">Description</span></th>
-                    <th className="text-left px-3 py-2.5"><span className="ticker">Category</span></th>
+                    <th className="text-left px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('category')}><span className="ticker">Category{sortIcon('category')}</span></th>
                     <th className="text-left px-3 py-2.5"><span className="ticker">Account</span></th>
-                    <th className="text-right px-3 py-2.5"><span className="ticker">Amount</span></th>
+                    <th className="text-right px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('amount')}><span className="ticker">Amount{sortIcon('amount')}</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {processed.map((row, i) => (
-                    <tr key={i} className={cn(
+                  {sortedProcessed.map((row) => (
+                    <tr key={row._origIdx} className={cn(
                       'border-b border-border last:border-0 hover:bg-surface-2/60',
                       row.flagged && 'bg-yellow-500/5 opacity-60',
                       row.transferPairId && !row.flagged && 'bg-purple-500/5'
@@ -365,7 +384,7 @@ export function ImportView() {
                       <td className="px-3 py-2 text-xs font-mono text-muted-foreground tabnum whitespace-nowrap">{row.date}</td>
                       <td className="px-3 py-2 text-xs max-w-[200px] truncate" title={row.originalDescription}>{row.description}</td>
                       <td className="px-3 py-2">
-                        <select value={row.category} onChange={e => handleCategoryChange(i, e.target.value)}
+                        <select value={row.category} onChange={e => handleCategoryChange(row._origIdx, e.target.value)}
                           className="h-7 border border-border bg-surface-2 px-2 text-xs font-mono focus:outline-none focus:border-primary w-full max-w-[160px]">
                           {categories?.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </select>
