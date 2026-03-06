@@ -2,7 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireAuthWithLimit } from '@/lib/api-auth';
+import { sanitizeString } from '@/lib/sanitize';
 import { audit } from '@/lib/audit';
+
+/** Parse a number safely — returns 0 instead of NaN */
+function safeNumber(val: any): number {
+  const n = Number(val);
+  return isFinite(n) ? n : 0;
+}
+
+/** Parse a date safely — returns current date if invalid */
+function safeDate(val: any): Date {
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
 
 // GET /api/backup — export all user data as JSON
 export async function GET() {
@@ -115,51 +128,51 @@ export async function POST(req: NextRequest) {
 
     // Restore in a transaction for atomicity
     await prisma.$transaction(async (tx) => {
-      // Transactions — whitelist fields to prevent injection
+      // Transactions — whitelist + sanitize + validate
       if (d.transactions?.length) {
         await tx.transaction.deleteMany({ where: { userId } });
         await tx.transaction.createMany({
           data: d.transactions.map((t: any) => ({
             userId,
-            date: new Date(t.date),
-            description: String(t.description || ''),
-            originalDescription: t.originalDescription ? String(t.originalDescription) : null,
-            amount: Number(t.amount),
-            category: String(t.category || 'Uncategorized'),
-            account: String(t.account || 'Default'),
+            date: safeDate(t.date),
+            description: sanitizeString(String(t.description || '')),
+            originalDescription: t.originalDescription ? sanitizeString(String(t.originalDescription)) : null,
+            amount: safeNumber(t.amount),
+            category: sanitizeString(String(t.category || 'Uncategorized')),
+            account: sanitizeString(String(t.account || 'Default')),
             autoMatched: Boolean(t.autoMatched),
             flagged: Boolean(t.flagged),
             transferPairId: t.transferPairId ? String(t.transferPairId) : null,
             returnPairId: t.returnPairId ? String(t.returnPairId) : null,
-            note: t.note ? String(t.note) : null,
+            note: t.note ? sanitizeString(String(t.note)) : null,
           })),
         });
         counts.transactions = d.transactions.length;
       }
 
-      // Categories — whitelist fields
+      // Categories — whitelist + sanitize
       if (d.categories?.length) {
         await tx.category.deleteMany({ where: { userId } });
         await tx.category.createMany({
           data: d.categories.map((c: any) => ({
             userId,
-            name: String(c.name),
+            name: sanitizeString(String(c.name)),
             type: ['income', 'expense', 'system'].includes(c.type) ? c.type : 'expense',
-            color: c.color ? String(c.color) : null,
-            sortOrder: Number(c.sortOrder) || 0,
+            color: c.color ? String(c.color).slice(0, 20) : null,
+            sortOrder: safeNumber(c.sortOrder),
           })),
         });
         counts.categories = d.categories.length;
       }
 
-      // Budgets
+      // Budgets — validate numbers
       if (d.budgets?.length) {
         await tx.budget.deleteMany({ where: { userId } });
         await tx.budget.createMany({
           data: d.budgets.map((b: any) => ({
             userId,
-            category: b.category,
-            monthlyLimit: b.monthlyLimit,
+            category: sanitizeString(String(b.category || '')),
+            monthlyLimit: safeNumber(b.monthlyLimit),
             rollover: b.rollover ?? false,
           })),
           skipDuplicates: true,

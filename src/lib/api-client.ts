@@ -20,6 +20,7 @@ async function request<T>(
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-Requested-With': 'FutureSight', // CSRF protection — verified server-side
       ...options?.headers,
     },
   });

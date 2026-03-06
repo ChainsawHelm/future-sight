@@ -6,6 +6,7 @@ import {
   transactionBulkUpdateSchema,
   transactionBulkDeleteSchema,
 } from '@/lib/validations';
+import { sanitizeString } from '@/lib/sanitize';
 import { z } from 'zod';
 
 // POST /api/transactions/bulk — bulk create (import pipeline)
@@ -39,21 +40,21 @@ export async function POST(req: NextRequest) {
       importRecordId = record.id;
     }
 
-    // Bulk insert transactions
+    // Bulk insert transactions (sanitize string inputs)
     const created = await prisma.transaction.createMany({
       data: data.transactions.map((t) => ({
         userId,
         date: new Date(t.date),
-        description: t.description,
-        originalDescription: t.originalDescription,
+        description: sanitizeString(t.description),
+        originalDescription: t.originalDescription ? sanitizeString(t.originalDescription) : null,
         amount: t.amount,
-        category: t.category,
-        account: t.account,
+        category: sanitizeString(t.category),
+        account: sanitizeString(t.account),
         autoMatched: t.autoMatched,
         flagged: t.flagged,
         transferPairId: t.transferPairId,
         returnPairId: t.returnPairId,
-        note: t.note,
+        note: t.note ? sanitizeString(t.note) : null,
         importRecordId,
       })),
     });

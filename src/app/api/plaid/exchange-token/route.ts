@@ -1,30 +1,30 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/lib/auth';
 import { plaidClient } from '@/lib/plaid';
 import { prisma } from '@/lib/prisma';
-import { encrypt } from '@/lib/encryption';
+import { encrypt, isEncrypted } from '@/lib/encryption';
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
+import { requireFreshSession } from '@/lib/sensitive-action';
 import { audit } from '@/lib/audit';
 
 const exchangeSchema = z.object({
   public_token: z.string().min(1).max(500),
   metadata: z.object({
     institution: z.object({
-      institution_id: z.string().optional(),
-      name: z.string().optional(),
+      institution_id: z.string().max(100).optional(),
+      name: z.string().max(200).optional(),
     }).optional(),
   }).optional(),
 });
 
 export async function POST(req: any) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Require fresh session for bank connections (sensitive operation)
+  const authResult = await requireFreshSession();
+  if ('error' in authResult) return authResult.error;
+  const { userId } = authResult;
 
   // Rate limit Plaid operations
-  const rl = rateLimit(session.user.id, 'api:plaid');
+  const rl = rateLimit(userId, 'api:plaid');
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Too many requests' },
@@ -46,22 +46,29 @@ export async function POST(req: any) {
     }
     const encryptedToken = encrypt(access_token);
 
+    // Verify encryption actually produced the expected format
+    if (!isEncrypted(encryptedToken)) {
+      console.error('[SECURITY] Encryption produced unexpected format — refusing to store');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     await prisma.plaidItem.create({
       data: {
-        userId: session.user.id,
+        userId,
         itemId: item_id,
         accessToken: encryptedToken,
         institutionId: metadata?.institution?.institution_id || null,
         institutionName: metadata?.institution?.name || null,
       },
     });
-    await audit('plaid_connect', session.user.id, metadata?.institution?.name || 'unknown');
+    await audit('plaid_connect', userId, metadata?.institution?.name || 'unknown');
     return NextResponse.json({ success: true });
   } catch (err: any) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
     }
-    console.error('Plaid exchange error:', err.message);
+    // Don't log full error — could contain token data
+    console.error('Plaid exchange error:', err.name || 'unknown');
     return NextResponse.json({ error: 'Failed to exchange token' }, { status: 500 });
   }
 }

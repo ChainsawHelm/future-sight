@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuthWithLimit } from '@/lib/api-auth';
+import { requireFreshSession } from '@/lib/sensitive-action';
 import { prisma } from '@/lib/prisma';
 import { audit } from '@/lib/audit';
+
+const DELETION_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const deleteSchema = z.object({
   confirmation: z.literal('DELETE MY ACCOUNT'),
 });
 
+// DELETE — schedule account deletion (24h cooldown)
 export async function DELETE(req: NextRequest) {
+  // Require fresh session for this sensitive operation
+  const freshResult = await requireFreshSession();
+  if ('error' in freshResult) return freshResult.error;
+
   const result = await requireAuthWithLimit('api:backup');
   if ('error' in result) return result.error;
   const { userId } = result;
@@ -23,35 +31,58 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Log before deletion since the user record will be gone after
-    await audit('delete_account', userId);
+    // Schedule deletion for 24h from now instead of immediate deletion
+    const deletionDate = new Date(Date.now() + DELETION_COOLDOWN_MS);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { scheduledDeletion: deletionDate },
+    });
 
-    // Delete everything in dependency order, then the user record itself
-    await prisma.$transaction([
-      prisma.achievement.deleteMany({ where: { userId } }),
-      prisma.goalContribution.deleteMany({ where: { goal: { userId } } }),
-      prisma.transaction.deleteMany({ where: { userId } }),
-      prisma.importRecord.deleteMany({ where: { userId } }),
-      prisma.plaidAccount.deleteMany({ where: { userId } }),
-      prisma.plaidItem.deleteMany({ where: { userId } }),
-      prisma.netWorthSnapshot.deleteMany({ where: { userId } }),
-      prisma.savingsGoal.deleteMany({ where: { userId } }),
-      prisma.debt.deleteMany({ where: { userId } }),
-      prisma.asset.deleteMany({ where: { userId } }),
-      prisma.budget.deleteMany({ where: { userId } }),
-      prisma.calendarEvent.deleteMany({ where: { userId } }),
-      prisma.subscription.deleteMany({ where: { userId } }),
-      prisma.merchantRule.deleteMany({ where: { userId } }),
-      prisma.category.deleteMany({ where: { userId } }),
-      prisma.userSettings.deleteMany({ where: { userId } }),
-      prisma.session.deleteMany({ where: { userId } }),
-      prisma.account.deleteMany({ where: { userId } }),
-      prisma.user.delete({ where: { id: userId } }),
-    ]);
+    await audit('delete_account', userId, `Scheduled for ${deletionDate.toISOString()}`);
 
-    return NextResponse.json({ deleted: true });
+    return NextResponse.json({
+      scheduled: true,
+      deletionDate: deletionDate.toISOString(),
+      message: 'Account deletion scheduled. You have 24 hours to cancel by signing back in.',
+    });
   } catch (error) {
     console.error('Account deletion error:', (error as Error).message);
     return NextResponse.json({ error: 'Account deletion failed' }, { status: 500 });
   }
+}
+
+// PATCH — cancel scheduled deletion
+export async function PATCH() {
+  const result = await requireAuthWithLimit('api:backup');
+  if ('error' in result) return result.error;
+  const { userId } = result;
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { scheduledDeletion: null },
+    });
+
+    await audit('delete_account', userId, 'Cancelled scheduled deletion');
+    return NextResponse.json({ cancelled: true });
+  } catch (error) {
+    console.error('Cancel deletion error:', (error as Error).message);
+    return NextResponse.json({ error: 'Failed to cancel deletion' }, { status: 500 });
+  }
+}
+
+// GET — check deletion status
+export async function GET() {
+  const result = await requireAuthWithLimit('api:read');
+  if ('error' in result) return result.error;
+  const { userId } = result;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { scheduledDeletion: true },
+  });
+
+  return NextResponse.json({
+    scheduledDeletion: user?.scheduledDeletion?.toISOString() || null,
+  });
 }

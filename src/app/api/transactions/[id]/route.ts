@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuthWithLimit } from '@/lib/api-auth';
+import { validateId } from '@/lib/validate-id';
 import { transactionUpdateSchema } from '@/lib/validations';
 import { z } from 'zod';
 
@@ -12,8 +13,11 @@ export async function GET(req: NextRequest, { params }: Params) {
   const result = await requireAuthWithLimit('api:read');
   if ('error' in result) return result.error;
 
+  const id = validateId(params.id);
+  if (id instanceof NextResponse) return id;
+
   const transaction = await prisma.transaction.findFirst({
-    where: { id: params.id, userId: result.userId },
+    where: { id, userId: result.userId },
   });
 
   if (!transaction) {
@@ -37,9 +41,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const body = await req.json();
     const data = transactionUpdateSchema.parse(body);
 
+    const id = validateId(params.id);
+    if (id instanceof NextResponse) return id;
+
     // Verify ownership
     const existing = await prisma.transaction.findFirst({
-      where: { id: params.id, userId: result.userId },
+      where: { id, userId: result.userId },
     });
     if (!existing) {
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
@@ -54,7 +61,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const transaction = await prisma.transaction.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -78,14 +85,17 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const result = await requireAuthWithLimit('api:write');
   if ('error' in result) return result.error;
 
+  const id = validateId(params.id);
+  if (id instanceof NextResponse) return id;
+
   const existing = await prisma.transaction.findFirst({
-    where: { id: params.id, userId: result.userId },
+    where: { id, userId: result.userId },
   });
   if (!existing) {
     return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
   }
 
-  await prisma.transaction.delete({ where: { id: params.id } });
+  await prisma.transaction.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }

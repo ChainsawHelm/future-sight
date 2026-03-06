@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuthWithLimit } from '@/lib/api-auth';
+import { sanitizeString } from '@/lib/sanitize';
 
 export async function GET() {
   const result = await requireAuthWithLimit('api:read');
@@ -39,11 +40,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Name and amount are required' }, { status: 400 });
   }
 
+  // Validate URL if provided
+  let validatedUrl: string | null = null;
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return NextResponse.json({ error: 'URL must use http or https' }, { status: 400 });
+      }
+      validatedUrl = parsed.href;
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
+    }
+  }
+
   const addedAt = new Date();
   const expiresAt = new Date(addedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const item = await prisma.waitListItem.create({
-    data: { userId, name, amount, category: category || null, url: url || null, addedAt, expiresAt },
+    data: {
+      userId,
+      name: sanitizeString(name),
+      amount,
+      category: category ? sanitizeString(category) : null,
+      url: validatedUrl,
+      addedAt,
+      expiresAt,
+    },
   });
 
   return NextResponse.json({

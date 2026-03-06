@@ -36,6 +36,10 @@ const LIMITS: Record<string, RateLimitConfig> = {
   'api:backup': { maxRequests: 5, windowSecs: 300 },
   // Plaid operations — tight
   'api:plaid': { maxRequests: 10, windowSecs: 60 },
+  // IP-based limits for pre-auth routes (login, OAuth)
+  'ip:auth': { maxRequests: 20, windowSecs: 300 },
+  // IP-based general limit — prevent abuse from a single IP
+  'ip:global': { maxRequests: 300, windowSecs: 60 },
 };
 
 export interface RateLimitResult {

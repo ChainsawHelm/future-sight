@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuthWithLimit } from '@/lib/api-auth';
 import { transactionCreateSchema, transactionQuerySchema } from '@/lib/validations';
+import { sanitizeString } from '@/lib/sanitize';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
@@ -82,16 +83,16 @@ export async function POST(req: NextRequest) {
       data: {
         userId,
         date: new Date(data.date),
-        description: data.description,
-        originalDescription: data.originalDescription,
+        description: sanitizeString(data.description),
+        originalDescription: data.originalDescription ? sanitizeString(data.originalDescription) : null,
         amount: data.amount,
-        category: data.category,
-        account: data.account,
+        category: sanitizeString(data.category),
+        account: sanitizeString(data.account),
         autoMatched: data.autoMatched,
         flagged: data.flagged,
         transferPairId: data.transferPairId,
         returnPairId: data.returnPairId,
-        note: data.note,
+        note: data.note ? sanitizeString(data.note) : null,
       },
     });
 

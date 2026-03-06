@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { Providers } from '@/components/providers/session-provider';
 import { AppShell } from '@/components/layout/app-shell';
+import { SessionGuard } from '@/components/shared/session-guard';
 
 export default async function DashboardLayout({
   children,
@@ -13,7 +14,9 @@ export default async function DashboardLayout({
 
   return (
     <Providers>
-      <AppShell user={session.user}>{children}</AppShell>
+      <SessionGuard>
+        <AppShell user={session.user}>{children}</AppShell>
+      </SessionGuard>
     </Providers>
   );
 }

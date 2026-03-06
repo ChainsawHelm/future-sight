@@ -21,6 +21,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 });
     }
 
+    // Validate MIME type (defense-in-depth beyond file extension)
+    if (file.type && file.type !== 'application/pdf') {
+      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+    }
+
     // 10MB size limit
     const MAX_PDF_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_PDF_SIZE) {

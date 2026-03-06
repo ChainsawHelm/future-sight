@@ -4,6 +4,13 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 
+/** Check if a string matches our iv:ciphertext:tag encrypted format */
+export function isEncrypted(value: string): boolean {
+  if (!value.includes(':')) return false;
+  const parts = value.split(':');
+  return parts.length === 3 && parts.every(p => p.length > 0);
+}
+
 function getKey(): Buffer {
   const secret = process.env.ENCRYPTION_KEY;
   if (!secret) {
@@ -32,6 +39,7 @@ export function encrypt(plaintext: string): string {
 export function decrypt(encryptedText: string): string {
   // If it doesn't look like our encrypted format, return as-is (migration compat)
   if (!encryptedText.includes(':') || encryptedText.split(':').length !== 3) {
+    console.warn('[SECURITY] Decrypting plaintext value — this should be re-encrypted');
     return encryptedText;
   }
 
@@ -45,7 +53,8 @@ export function decrypt(encryptedText: string): string {
     decipher.setAuthTag(tag);
     return decipher.update(data) + decipher.final('utf8');
   } catch {
-    // If decryption fails, it's likely a plaintext token (pre-migration)
-    return encryptedText;
+    // Don't log error details — could leak crypto internals
+    console.error('[SECURITY] Decryption failed — check ENCRYPTION_KEY');
+    throw new Error('Internal server error');
   }
 }

@@ -65,6 +65,10 @@ export function SettingsView() {
   const { data, error, isLoading, refetch } = useFetch<{ settings: UserSettings }>(() => settingsApi.get(), []);
   const router = useRouter();
   const [restoreStatus, setRestoreStatus] = useState('');
+  const [backupPassword, setBackupPassword] = useState('');
+  const [showBackupPwInput, setShowBackupPwInput] = useState(false);
+  const [restorePassword, setRestorePassword] = useState('');
+  const [showRestorePwInput, setShowRestorePwInput] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetConfirm, setResetConfirm] = useState('');
   const [resetting, setResetting] = useState(false);
@@ -100,10 +104,23 @@ export function SettingsView() {
   const handleExport = async () => {
     try {
       const backup = await backupApi.export();
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const jsonStr = JSON.stringify(backup, null, 2);
+      let output = jsonStr;
+      let filename = `futuresight-backup-${new Date().toISOString().slice(0, 10)}.json`;
+
+      // Encrypt if password provided
+      if (backupPassword.length >= 8) {
+        const { encryptBackup } = await import('@/lib/backup-crypto');
+        output = await encryptBackup(jsonStr, backupPassword);
+        filename = `futuresight-backup-${new Date().toISOString().slice(0, 10)}.encrypted.json`;
+        setBackupPassword('');
+        setShowBackupPwInput(false);
+      }
+
+      const blob = new Blob([output], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `futuresight-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
     } catch (err: any) {
@@ -116,13 +133,33 @@ export function SettingsView() {
     if (!file) return;
     setRestoreStatus('Restoring...');
     try {
-      const text = await file.text();
+      let text = await file.text();
+
+      // Check if encrypted
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.encrypted) {
+          if (!restorePassword) {
+            setShowRestorePwInput(true);
+            setRestoreStatus('This backup is encrypted. Enter the password and try again.');
+            e.target.value = '';
+            return;
+          }
+          const { decryptBackup } = await import('@/lib/backup-crypto');
+          text = await decryptBackup(text, restorePassword);
+          setRestorePassword('');
+          setShowRestorePwInput(false);
+        }
+      } catch {
+        // If JSON parse fails, it's not encrypted — continue
+      }
+
       const backup = JSON.parse(text);
       const result = await backupApi.restore(backup);
       setRestoreStatus(`Restored: ${JSON.stringify(result.counts)}`);
       refetch();
     } catch (err: any) {
-      setRestoreStatus('Restore failed: ' + err.message);
+      setRestoreStatus('Restore failed: ' + (err.message?.includes('decrypt') ? 'Wrong password or corrupted file' : err.message));
     }
     e.target.value = '';
   };
@@ -234,21 +271,64 @@ export function SettingsView() {
       {/* Data Management */}
       <div className="border border-border bg-surface-1 p-5 space-y-4">
         <p className="ticker text-primary">Data Management</p>
-        <div className="flex flex-wrap gap-3">
-          <button onClick={handleExport}
-            className="flex items-center gap-2 h-9 px-4 border border-border bg-surface-2 text-sm font-medium hover:border-primary/50 hover:text-primary transition-colors">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            Export Backup
-          </button>
-          <label>
-            <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
-            <span className="flex items-center gap-2 h-9 px-4 border border-border bg-surface-2 text-sm font-medium cursor-pointer hover:border-primary/50 hover:text-primary transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-              Restore Backup
-            </span>
-          </label>
+
+        {/* Export */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-3 items-center">
+            <button onClick={() => { if (!showBackupPwInput) handleExport(); else handleExport(); }}
+              className="flex items-center gap-2 h-9 px-4 border border-border bg-surface-2 text-sm font-medium hover:border-primary/50 hover:text-primary transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Export Backup
+            </button>
+            <button
+              onClick={() => setShowBackupPwInput(!showBackupPwInput)}
+              className={`flex items-center gap-1.5 h-9 px-3 border text-sm font-medium transition-colors ${showBackupPwInput ? 'border-primary/50 text-primary bg-primary/5' : 'border-border bg-surface-2 hover:border-primary/50 hover:text-primary'}`}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              {showBackupPwInput ? 'Cancel Encryption' : 'Encrypt'}
+            </button>
+          </div>
+          {showBackupPwInput && (
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                value={backupPassword}
+                onChange={e => setBackupPassword(e.target.value)}
+                placeholder="Encryption password (min 8 chars)"
+                className="h-8 px-3 text-sm bg-surface-2 border border-border focus:border-primary/50 outline-none w-64"
+              />
+              <span className={`text-xs ${backupPassword.length >= 8 ? 'text-income' : 'text-muted-foreground'}`}>
+                {backupPassword.length >= 8 ? 'Ready' : `${8 - backupPassword.length} more chars`}
+              </span>
+            </div>
+          )}
         </div>
-        {restoreStatus && <p className="ticker mt-1">{restoreStatus}</p>}
+
+        {/* Restore */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-3 items-center">
+            <label>
+              <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
+              <span className="flex items-center gap-2 h-9 px-4 border border-border bg-surface-2 text-sm font-medium cursor-pointer hover:border-primary/50 hover:text-primary transition-colors">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                Restore Backup
+              </span>
+            </label>
+          </div>
+          {showRestorePwInput && (
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                value={restorePassword}
+                onChange={e => setRestorePassword(e.target.value)}
+                placeholder="Enter backup password"
+                className="h-8 px-3 text-sm bg-surface-2 border border-border focus:border-primary/50 outline-none w-64"
+              />
+              <span className="text-xs text-muted-foreground">Then select file again</span>
+            </div>
+          )}
+          {restoreStatus && <p className="ticker mt-1">{restoreStatus}</p>}
+        </div>
       </div>
 
       {/* Account */}

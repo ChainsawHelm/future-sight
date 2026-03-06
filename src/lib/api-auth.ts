@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
 
@@ -31,7 +32,21 @@ export async function requireAuth(): Promise<
 }
 
 /**
+ * Verify the X-Requested-With header for CSRF protection on state-changing requests.
+ * Custom headers cannot be set by cross-origin HTML forms, so this blocks CSRF attacks.
+ */
+function verifyCsrfHeader(): boolean {
+  try {
+    const hdrs = headers();
+    return hdrs.get('x-requested-with') === 'FutureSight';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Require auth + rate limiting.
+ * For write operations, also verifies CSRF header.
  * @param limitType - the rate limit bucket to use
  */
 export async function requireAuthWithLimit(
@@ -41,6 +56,13 @@ export async function requireAuthWithLimit(
   if (!userId) {
     return {
       error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    };
+  }
+
+  // CSRF check on write operations (not reads — GETs don't change state)
+  if (limitType !== 'api:read' && !verifyCsrfHeader()) {
+    return {
+      error: NextResponse.json({ error: 'Invalid request origin' }, { status: 403 }),
     };
   }
 
@@ -59,4 +81,3 @@ export async function requireAuthWithLimit(
 
   return { userId };
 }
-
