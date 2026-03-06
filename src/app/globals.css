@@ -4,84 +4,85 @@
 
 @layer base {
   /* ═══════════════════════════════════════════════════════════════
-     FENIX DESIGN SYSTEM
-     Canvas: #07080F deep obsidian-navy
-     Gold:   #C9A050 burnished, ancient
-     Jade:   #22D47A vivid income
-     Crimson:#E8524A confident expense
-     Fonts:  Bodoni Moda (display) · Outfit (sans) · JetBrains Mono (data)
+     RETRO TERMINAL DESIGN SYSTEM
+     Canvas: #0a0e0a deep CRT black-green
+     Primary: #33ff33 phosphor green
+     Amber:  #ffb000 warm CRT amber
+     Income: #00ff66 bright green
+     Expense:#ff3333 error red
+     Font:   JetBrains Mono — monospace everything
 
-     Dark-first. The primary experience is obsidian with gold accents.
-     Light mode is a secondary warm parchment variant.
+     Dark-first. The primary experience is a CRT terminal.
+     Light mode is a paper-printout variant.
   ═══════════════════════════════════════════════════════════════ */
 
-  /* ──── LIGHT MODE (parchment) ──── */
+  /* ──── LIGHT MODE (paper printout) ──── */
   :root {
-    --background:   38 30% 96%;
-    --foreground:  235 40% 12%;
-    --card:          0  0% 100%;
-    --card-foreground: 235 40% 12%;
-    --popover:       0  0% 100%;
-    --popover-foreground: 235 40% 12%;
-    --primary:      38 65% 42%;    /* deep amber-gold */
-    --primary-foreground: 0 0% 100%;
-    --secondary:    38 18% 90%;
-    --secondary-foreground: 235 30% 20%;
-    --muted:        38 14% 92%;
-    --muted-foreground: 235 10% 48%;
-    --accent:       38 70% 48%;
-    --accent-foreground: 0 0% 100%;
-    --destructive:   3 72% 52%;
+    --background:   80 10% 95%;
+    --foreground:  140 80% 10%;
+    --card:          80  8% 92%;
+    --card-foreground: 140 80% 10%;
+    --popover:      80  8% 92%;
+    --popover-foreground: 140 80% 10%;
+    --primary:     140 100% 30%;
+    --primary-foreground: 0 0% 0%;
+    --secondary:    80 6% 88%;
+    --secondary-foreground: 140 60% 15%;
+    --muted:        80 6% 90%;
+    --muted-foreground: 140 10% 40%;
+    --accent:       38 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive:   0 80% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border:       38 16% 86%;
-    --input:        38 14% 90%;
-    --ring:         38 65% 42%;
-    --radius: 0.625rem;
+    --border:      140 15% 78%;
+    --input:        80  8% 90%;
+    --ring:        140 100% 30%;
+    --radius: 2px;
 
-    --income:  152 50% 35%;
-    --expense:   3 65% 50%;
-    --neutral:  38 70% 46%;
-    --info:    215 70% 50%;
+    --income:  140 100% 30%;
+    --expense:   0 80% 45%;
+    --neutral:  38 100% 45%;
+    --info:    200 80% 40%;
 
-    --surface-0: 38 30% 96%;
-    --surface-1: 38 22% 98%;
-    --surface-2: 38 16% 93%;
-    --surface-3: 38 12% 88%;
-    --dot:       38 14% 89%;
+    --surface-0: 80 10% 95%;
+    --surface-1: 80  8% 92%;
+    --surface-2: 80  6% 88%;
+    --surface-3: 80  5% 84%;
+    --dot:      140 15% 82%;
   }
 
-  /* ──── DARK MODE — FENIX PRIMARY ──── */
+  /* ──── DARK MODE — CRT TERMINAL ──── */
   .dark {
-    --background:  235 35%  5%;    /* #07080F obsidian */
-    --foreground:   42 20% 88%;    /* warm cream */
-    --card:        237 38%  8%;    /* #0B0C18 */
-    --card-foreground: 42 20% 88%;
-    --popover:     237 38%  8%;
-    --popover-foreground: 42 20% 88%;
-    --primary:      42 55% 55%;    /* #C9A050 burnished gold */
-    --primary-foreground: 235 35% 5%;
-    --secondary:   237 30% 14%;
-    --secondary-foreground: 42 18% 78%;
-    --muted:       237 28% 12%;
-    --muted-foreground: 237 10% 42%;
-    --accent:       42 62% 62%;    /* brighter gold for hover */
-    --accent-foreground: 235 35% 5%;
-    --destructive:   3 76% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border:      237 24% 14%;    /* subtle navy border */
-    --input:       237 28% 12%;
-    --ring:         42 55% 55%;
+    --background:  140 20%  3%;
+    --foreground:  120 100% 60%;
+    --card:        140 25%  5%;
+    --card-foreground: 120 100% 60%;
+    --popover:     140 25%  5%;
+    --popover-foreground: 120 100% 60%;
+    --primary:     120 100% 60%;
+    --primary-foreground: 0 0% 0%;
+    --secondary:   140 20%  8%;
+    --secondary-foreground: 120 80% 55%;
+    --muted:       140 20%  7%;
+    --muted-foreground: 120 40% 30%;
+    --accent:       38 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive:   0 90% 55%;
+    --destructive-foreground: 0 0% 0%;
+    --border:      120 40% 12%;
+    --input:       140 20%  7%;
+    --ring:        120 100% 60%;
 
-    --income:  152 68% 44%;    /* vivid jade */
-    --expense:   3 76% 60%;    /* confident crimson */
-    --neutral:  42 80% 60%;    /* bright gold */
-    --info:    215 80% 60%;    /* electric blue */
+    --income:  120 100% 55%;
+    --expense:   0 85% 55%;
+    --neutral:  38 100% 50%;
+    --info:    200 80% 55%;
 
-    --surface-0: 235 35%  5%;
-    --surface-1: 237 38%  8%;
-    --surface-2: 237 32% 11%;
-    --surface-3: 237 26% 15%;
-    --dot:       237 26% 10%;
+    --surface-0: 140 20%  3%;
+    --surface-1: 140 25%  5%;
+    --surface-2: 140 20%  8%;
+    --surface-3: 140 18% 11%;
+    --dot:       120 30%  8%;
   }
 }
 
@@ -93,18 +94,11 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    font-family: var(--font-mono), 'Consolas', 'Monaco', monospace;
+    font-feature-settings: "liga" 0;
   }
 
-  /* Atmospheric ambient gradient — dark mode only */
-  .dark body {
-    background:
-      radial-gradient(ellipse 130% 55% at 50% -5%, hsl(258 50% 18% / 0.5), transparent 65%),
-      radial-gradient(ellipse 60% 35% at 95% 5%, hsl(215 80% 20% / 0.22), transparent 55%),
-      hsl(var(--background));
-  }
-
-  /* Grain overlay — dark mode only */
+  /* CRT scanline overlay — dark mode only */
   .dark body::after {
     content: '';
     position: fixed;
@@ -112,28 +106,48 @@
     opacity: 0.04;
     pointer-events: none;
     z-index: 9999;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(120 100% 60% / 0.08) 2px,
+      hsl(120 100% 60% / 0.08) 4px
+    );
+  }
+
+  /* Subtle CRT screen glow */
+  .dark body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 9998;
+    background: radial-gradient(
+      ellipse 80% 60% at 50% 50%,
+      hsl(120 100% 40% / 0.03),
+      transparent 70%
+    );
   }
 }
 
 /* ══════════════════════════════════════════════
-   TYPOGRAPHY
+   TYPOGRAPHY — all mono, all the time
 ══════════════════════════════════════════════ */
 
-/* Display — Bodoni Moda for hero numerals and headings */
 .display {
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-mono), monospace;
   font-variant-numeric: lining-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .display-italic {
-  font-family: var(--font-display), Georgia, serif;
-  font-style: italic;
-  letter-spacing: -0.01em;
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.02em;
 }
 
-/* Ticker — monospaced uppercase label */
+/* Terminal label — small uppercase */
 .ticker {
   font-size: 0.6rem;
   font-weight: 600;
@@ -147,71 +161,78 @@
 .numeral {
   font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
-/* Tabular numbers */
 .tabnum {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono), monospace;
 }
 
 /* ══════════════════════════════════════════════
-   FENIX CROSSHATCH GRID
+   TERMINAL GRID — scanline pattern
 ══════════════════════════════════════════════ */
 .fenix-grid {
   background-image:
-    linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(hsl(var(--dot) / 0.5) 1px, transparent 1px);
+  background-size: 100% 24px;
 }
 
-/* Keep dot-grid as alias */
 .dot-grid {
   background-image:
-    linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(hsl(var(--dot) / 0.5) 1px, transparent 1px);
+  background-size: 100% 24px;
 }
 
 /* ══════════════════════════════════════════════
-   CARD / PANEL COMPONENTS
+   CARD / PANEL — terminal windows
 ══════════════════════════════════════════════ */
 
 .card {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
-  border-radius: 14px;
+  border-radius: 2px;
 }
 
-/* FENIX card variant — gold top accent */
 .dark .card {
-  border-top-color: hsl(var(--primary) / 0.12);
+  border-color: hsl(120 100% 60% / 0.15);
+  box-shadow: 0 0 8px hsl(120 100% 60% / 0.04);
 }
 
 .instrument {
   position: relative;
   background: hsl(var(--surface-2));
   border: 1px solid hsl(var(--border));
-  border-radius: 14px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .dark .instrument {
-  border-top-color: hsl(var(--primary) / 0.15);
+  border-color: hsl(120 100% 60% / 0.12);
 }
 
 /* ══════════════════════════════════════════════
-   GOLD ACCENT UTILITIES
+   GLOW UTILITIES — phosphor green
 ══════════════════════════════════════════════ */
 .gold-border {
   border: 1px solid hsl(var(--primary) / 0.3);
 }
 
 .gold-glow {
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.15),
-              0 0 60px hsl(var(--primary) / 0.06);
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.15),
+              0 0 30px hsl(var(--primary) / 0.05);
+}
+
+/* Text glow for important values */
+.text-glow {
+  text-shadow: 0 0 8px hsl(var(--primary) / 0.5),
+               0 0 20px hsl(var(--primary) / 0.2);
+}
+
+.dark .text-glow {
+  text-shadow: 0 0 8px hsl(120 100% 60% / 0.5),
+               0 0 20px hsl(120 100% 60% / 0.2);
 }
 
 /* ══════════════════════════════════════════════
@@ -229,21 +250,17 @@
 }
 
 .status-live::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: hsl(var(--income));
-  animation: pulse-dot 2s ease-in-out infinite;
+  content: '●';
+  animation: blink-cursor 1s step-end infinite;
 }
 
 /* ══════════════════════════════════════════════
-   NAV ACTIVE — gold left rail
+   NAV ACTIVE — terminal prompt style
 ══════════════════════════════════════════════ */
 .nav-item-active {
-  border-left: 2px solid hsl(var(--primary));
   color: hsl(var(--primary));
   background: hsl(var(--primary) / 0.06);
+  border-left: 2px solid hsl(var(--primary));
 }
 
 /* ══════════════════════════════════════════════
@@ -253,85 +270,89 @@
   height: 4px;
   background: hsl(var(--surface-3));
   overflow: hidden;
-  border-radius: 9999px;
+  border-radius: 0;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 9999px;
+  border-radius: 0;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ══════════════════════════════════════════════
-   BADGES
+   BADGES — terminal tags
 ══════════════════════════════════════════════ */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 9999px;
+  padding: 1px 6px;
+  border-radius: 0;
   font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-family: var(--font-mono), monospace;
+  border: 1px solid;
 }
 
 .badge-income {
-  background: hsl(var(--income) / 0.12);
+  background: hsl(var(--income) / 0.1);
   color: hsl(var(--income));
+  border-color: hsl(var(--income) / 0.3);
 }
 
 .badge-expense {
-  background: hsl(var(--expense) / 0.12);
+  background: hsl(var(--expense) / 0.1);
   color: hsl(var(--expense));
+  border-color: hsl(var(--expense) / 0.3);
 }
 
 .badge-primary {
-  background: hsl(var(--primary) / 0.12);
+  background: hsl(var(--primary) / 0.1);
   color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.3);
 }
 
 .badge-neutral {
-  background: hsl(var(--muted-foreground) / 0.10);
+  background: hsl(var(--muted-foreground) / 0.08);
   color: hsl(var(--muted-foreground));
+  border-color: hsl(var(--muted-foreground) / 0.2);
 }
 
 /* ══════════════════════════════════════════════
-   SCROLLBAR
+   SCROLLBAR — thin terminal
 ══════════════════════════════════════════════ */
-::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 9999px;
+  background: hsl(var(--primary) / 0.25);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.4);
+  background: hsl(var(--primary) / 0.5);
 }
 
 /* ══════════════════════════════════════════════
    ANIMATIONS
 ══════════════════════════════════════════════ */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(18px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-16px); }
+  from { opacity: 0; transform: translateY(-12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.75); }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
 }
 
 @keyframes bar-fill {
@@ -343,9 +364,9 @@
   from { stroke-dashoffset: 502; }
 }
 
-@keyframes gold-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(42 55% 55% / 0); }
-  50%       { box-shadow: 0 0 12px 4px hsl(42 55% 55% / 0.15); }
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
 }
 
 @keyframes shimmer {
@@ -355,63 +376,99 @@
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-5px); }
+  50%       { transform: translateY(-3px); }
 }
 
-.animate-fade-in    { animation: fadeUp 0.35s ease-out both; }
-.animate-slide-up   { animation: slideUp 0.4s ease-out both; }
-.animate-slide-down { animation: slideDown 0.3s ease-out both; }
+@keyframes terminal-type {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Keep gold-pulse name for compatibility but make it green */
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(120 100% 60% / 0); }
+  50%       { box-shadow: 0 0 10px 3px hsl(120 100% 60% / 0.12); }
+}
+
+.animate-fade-in    { animation: fadeUp 0.25s ease-out both; }
+.animate-slide-up   { animation: slideUp 0.3s ease-out both; }
+.animate-slide-down { animation: slideDown 0.25s ease-out both; }
 .animate-bar-fill   { animation: bar-fill 0.7s ease-out both; }
 .animate-float      { animation: float 3.5s ease-in-out infinite; }
-.animate-gold-pulse { animation: gold-pulse 3s ease-in-out infinite; }
+.animate-gold-pulse { animation: gold-pulse 2s ease-in-out infinite; }
+.animate-blink      { animation: blink-cursor 1s step-end infinite; }
 
 /* Staggered children */
-.stagger > *:nth-child(1) { animation-delay: 0.05s; }
-.stagger > *:nth-child(2) { animation-delay: 0.10s; }
-.stagger > *:nth-child(3) { animation-delay: 0.15s; }
-.stagger > *:nth-child(4) { animation-delay: 0.20s; }
-.stagger > *:nth-child(5) { animation-delay: 0.25s; }
-.stagger > *:nth-child(6) { animation-delay: 0.30s; }
-.stagger > *:nth-child(7) { animation-delay: 0.35s; }
-.stagger > *:nth-child(8) { animation-delay: 0.40s; }
+.stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.09s; }
+.stagger > *:nth-child(4) { animation-delay: 0.12s; }
+.stagger > *:nth-child(5) { animation-delay: 0.15s; }
+.stagger > *:nth-child(6) { animation-delay: 0.18s; }
+.stagger > *:nth-child(7) { animation-delay: 0.21s; }
+.stagger > *:nth-child(8) { animation-delay: 0.24s; }
 
 /* ══════════════════════════════════════════════
-   DIVIDERS
+   DIVIDERS — dashed terminal lines
 ══════════════════════════════════════════════ */
 .h-line {
   height: 1px;
-  background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+  background: repeating-linear-gradient(
+    90deg,
+    hsl(var(--border)),
+    hsl(var(--border)) 4px,
+    transparent 4px,
+    transparent 8px
+  );
 }
 
 .h-line-gold {
   height: 1px;
-  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent);
+  background: repeating-linear-gradient(
+    90deg,
+    hsl(var(--primary) / 0.4),
+    hsl(var(--primary) / 0.4) 4px,
+    transparent 4px,
+    transparent 8px
+  );
 }
 
 .v-line {
   width: 1px;
-  background: linear-gradient(180deg, transparent, hsl(var(--border)), transparent);
+  background: repeating-linear-gradient(
+    180deg,
+    hsl(var(--border)),
+    hsl(var(--border)) 4px,
+    transparent 4px,
+    transparent 8px
+  );
 }
 
 /* ══════════════════════════════════════════════
-   TABLE STYLES
+   TABLE STYLES — terminal data display
 ══════════════════════════════════════════════ */
 .data-table th {
   font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--primary) / 0.6);
   font-family: var(--font-mono), monospace;
-  padding: 0.6rem 0.875rem;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--surface-2));
 }
 
 .data-table td {
-  padding: 0.6rem 0.875rem;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.4);
   font-size: 0.8rem;
+  font-family: var(--font-mono), monospace;
 }
 
 .data-table tr:hover td {
@@ -419,46 +476,82 @@
 }
 
 /* ══════════════════════════════════════════════
-   FOCUS RINGS
+   FOCUS RINGS — terminal style
 ══════════════════════════════════════════════ */
 .focus-ring:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px hsl(var(--background)),
-              0 0 0 4px hsl(var(--ring));
+  outline: 1px solid hsl(var(--primary));
+  outline-offset: 1px;
 }
 
 /* ══════════════════════════════════════════════
-   GLASS
+   GLASS — terminal frosted
 ══════════════════════════════════════════════ */
 .glass {
-  background: hsl(var(--card) / 0.80);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: hsl(var(--card) / 0.90);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid hsl(var(--border));
 }
 
 /* ══════════════════════════════════════════════
-   GRADIENT TEXT — gold flame
+   GRADIENT TEXT — phosphor green glow
 ══════════════════════════════════════════════ */
 .gradient-text {
-  background: linear-gradient(135deg, hsl(42 80% 72%), hsl(38 60% 48%));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: hsl(var(--primary));
+  text-shadow: 0 0 10px hsl(var(--primary) / 0.4);
 }
 
-/* Shimmer text effect */
 .shimmer-text {
   background: linear-gradient(
     105deg,
-    hsl(42 55% 45%) 0%,
-    hsl(42 80% 72%) 40%,
-    hsl(42 55% 45%) 60%,
-    hsl(42 80% 72%) 100%
+    hsl(120 100% 50%) 0%,
+    hsl(120 100% 70%) 40%,
+    hsl(120 100% 50%) 60%,
+    hsl(120 100% 70%) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: shimmer 3s linear infinite;
+}
+
+/* ══════════════════════════════════════════════
+   TERMINAL-SPECIFIC UTILITIES
+══════════════════════════════════════════════ */
+
+/* Prompt cursor */
+.cursor-blink::after {
+  content: '█';
+  animation: blink-cursor 1s step-end infinite;
+  margin-left: 2px;
+}
+
+/* Terminal window header */
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--surface-2));
+  font-size: 0.6rem;
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--primary) / 0.7);
+}
+
+.terminal-header::before {
+  content: '[';
+}
+
+.terminal-header::after {
+  content: ']';
+}
+
+/* Command prompt prefix */
+.prompt::before {
+  content: '> ';
+  color: hsl(var(--primary) / 0.5);
 }

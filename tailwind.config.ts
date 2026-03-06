@@ -54,9 +54,9 @@ const config: Config = {
       },
 
       fontFamily: {
-        sans:    ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        mono:    ['var(--font-mono)', 'Consolas', 'monospace'],
-        display: ['var(--font-display)', 'Georgia', 'serif'],
+        sans:    ['var(--font-mono)', 'Consolas', 'Monaco', 'monospace'],
+        mono:    ['var(--font-mono)', 'Consolas', 'Monaco', 'monospace'],
+        display: ['var(--font-mono)', 'Consolas', 'Monaco', 'monospace'],
       },
 
       fontSize: {
@@ -65,39 +65,40 @@ const config: Config = {
       },
 
       borderRadius: {
-        sm:    '0.375rem',
-        DEFAULT: '0.5rem',
-        md:    '0.625rem',
-        lg:    '0.875rem',
-        xl:    '1rem',
-        '2xl': '1.125rem',
-        '3xl': '1.375rem',
+        sm:    '1px',
+        DEFAULT: '2px',
+        md:    '2px',
+        lg:    '3px',
+        xl:    '4px',
+        '2xl': '4px',
+        '3xl': '4px',
         full:  '9999px',
       },
 
       animation: {
-        'fade-in':     'fadeUp 0.35s ease-out both',
-        'slide-up':    'slideUp 0.4s ease-out both',
-        'slide-down':  'slideDown 0.3s ease-out both',
+        'fade-in':     'fadeUp 0.25s ease-out both',
+        'slide-up':    'slideUp 0.3s ease-out both',
+        'slide-down':  'slideDown 0.25s ease-out both',
         'bar-fill':    'bar-fill 0.7s ease-out both',
-        'pulse-dot':   'pulse-dot 2s ease-in-out infinite',
+        'pulse-dot':   'pulse-dot 1.5s ease-in-out infinite',
         'ring-draw':   'ring-draw 0.8s ease-out both',
-        'gold-pulse':  'gold-pulse 3s ease-in-out infinite',
+        'gold-pulse':  'gold-pulse 2s ease-in-out infinite',
         'shimmer':     'shimmer 3s linear infinite',
         'float':       'float 3.5s ease-in-out infinite',
+        'blink':       'blink-cursor 1s step-end infinite',
       },
 
       keyframes: {
         fadeUp: {
-          from: { opacity: '0', transform: 'translateY(12px)' },
+          from: { opacity: '0', transform: 'translateY(8px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
         slideUp: {
-          from: { opacity: '0', transform: 'translateY(18px)' },
+          from: { opacity: '0', transform: 'translateY(14px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
         slideDown: {
-          from: { opacity: '0', transform: 'translateY(-16px)' },
+          from: { opacity: '0', transform: 'translateY(-12px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
         'bar-fill': {
@@ -105,15 +106,15 @@ const config: Config = {
           to:   { transform: 'scaleX(1)', transformOrigin: 'left' },
         },
         'pulse-dot': {
-          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-          '50%':      { opacity: '0.4', transform: 'scale(0.75)' },
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0.3' },
         },
         'ring-draw': {
           from: { strokeDashoffset: '502' },
         },
         'gold-pulse': {
-          '0%, 100%': { boxShadow: '0 0 0 0 hsl(42 55% 55% / 0)' },
-          '50%':      { boxShadow: '0 0 12px 4px hsl(42 55% 55% / 0.15)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 hsl(120 100% 60% / 0)' },
+          '50%':      { boxShadow: '0 0 10px 3px hsl(120 100% 60% / 0.12)' },
         },
         shimmer: {
           '0%':   { backgroundPosition: '-200% center' },
@@ -121,32 +122,38 @@ const config: Config = {
         },
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
-          '50%':      { transform: 'translateY(-5px)' },
+          '50%':      { transform: 'translateY(-3px)' },
+        },
+        'blink-cursor': {
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0' },
         },
       },
 
       boxShadow: {
-        'soft':       '0 1px 3px hsl(var(--foreground) / 0.06), 0 4px 16px hsl(var(--foreground) / 0.04)',
-        'medium':     '0 2px 8px hsl(var(--foreground) / 0.08), 0 8px 24px hsl(var(--foreground) / 0.05)',
-        'gold':       '0 0 20px hsl(42 55% 55% / 0.18), 0 0 60px hsl(42 55% 55% / 0.06)',
-        'gold-sm':    '0 0 10px hsl(42 55% 55% / 0.22)',
-        'glow-green': '0 0 20px hsl(var(--income) / 0.2), 0 0 40px hsl(var(--income) / 0.08)',
-        'glow-red':   '0 0 20px hsl(var(--expense) / 0.2)',
-        'panel':      '0 1px 0 hsl(var(--border)), 0 0 0 1px hsl(var(--border) / 0.5)',
+        'soft':       '0 1px 2px hsl(var(--foreground) / 0.04)',
+        'medium':     '0 2px 6px hsl(var(--foreground) / 0.06)',
+        'gold':       '0 0 12px hsl(var(--primary) / 0.15), 0 0 30px hsl(var(--primary) / 0.05)',
+        'gold-sm':    '0 0 8px hsl(var(--primary) / 0.18)',
+        'glow-green': '0 0 15px hsl(var(--income) / 0.2), 0 0 30px hsl(var(--income) / 0.06)',
+        'glow-red':   '0 0 15px hsl(var(--expense) / 0.2)',
+        'panel':      '0 0 0 1px hsl(var(--border))',
         'inner':      'inset 0 1px 2px hsl(var(--foreground) / 0.04)',
-        'card':       '0 1px 3px hsl(235 35% 5% / 0.3), 0 4px 12px hsl(235 35% 5% / 0.2)',
+        'card':       '0 0 8px hsl(120 100% 60% / 0.04)',
+        'terminal':   '0 0 20px hsl(120 100% 60% / 0.06), inset 0 0 60px hsl(120 100% 60% / 0.02)',
       },
 
       backgroundImage: {
-        'dot-grid':        'linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px)',
-        'fenix-grid':      'linear-gradient(hsl(var(--dot) / 0.7) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--dot) / 0.7) 1px, transparent 1px)',
+        'dot-grid':        'linear-gradient(hsl(var(--dot) / 0.5) 1px, transparent 1px)',
+        'fenix-grid':      'linear-gradient(hsl(var(--dot) / 0.5) 1px, transparent 1px)',
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gold-gradient':   'linear-gradient(135deg, hsl(42 80% 72%), hsl(38 60% 48%))',
+        'gold-gradient':   'linear-gradient(135deg, hsl(120 100% 60%), hsl(120 100% 40%))',
+        'scanlines':       'repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(120 100% 60% / 0.03) 2px, hsl(120 100% 60% / 0.03) 4px)',
       },
 
       backgroundSize: {
-        'dot':   '28px 28px',
-        'fenix': '40px 40px',
+        'dot':   '100% 24px',
+        'fenix': '100% 24px',
       },
     },
   },
