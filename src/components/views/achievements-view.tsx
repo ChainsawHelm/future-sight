@@ -5,28 +5,201 @@ import { dashboardApi, transactionsApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
 import { cn } from '@/lib/utils';
 
+// ─── ASCII Art Icons ──────────────────────────────────────────────────────────
+
+const ASCII_ICONS: Record<string, string> = {
+  first_import: [
+    '  ┌───┐ ',
+    '  │ ▼ │ ',
+    '  └─┬─┘ ',
+    ' ───┴───',
+  ].join('\n'),
+
+  txn_100: [
+    ' ╔═══╗ ',
+    ' ║100║ ',
+    ' ╚═══╝ ',
+    '  ▓▓▓  ',
+  ].join('\n'),
+
+  txn_500: [
+    '   ╱╲   ',
+    '  ╱  ╲  ',
+    ' ╱ ★★ ╲ ',
+    ' ╲ 500╱ ',
+    '  ╲  ╱  ',
+    '   ╲╱   ',
+  ].join('\n'),
+
+  positive_month: [
+    '   ┌─┐  ',
+    '   │$│  ',
+    ' ──┤ ├──',
+    '   │+│  ',
+    '   └─┘  ',
+  ].join('\n'),
+
+  savings_10pct: [
+    '  ╭───╮ ',
+    '  │10%│ ',
+    ' ╭┤   ├╮',
+    ' │╰───╯│',
+    ' ╰─────╯',
+  ].join('\n'),
+
+  savings_20pct: [
+    ' ┌─────┐',
+    ' │ $$$ │',
+    ' │ 20% │',
+    ' │ $$$ │',
+    ' └─────┘',
+  ].join('\n'),
+
+  debt_free: [
+    '  ╔═══╗ ',
+    '  ║ 0 ║ ',
+    '  ║   ║ ',
+    '  ╚═╤═╝ ',
+    ' ───┴───',
+    '  FREE! ',
+  ].join('\n'),
+
+  goal_complete: [
+    '    ◎    ',
+    '   ╱│╲   ',
+    '  ╱ │ ╲  ',
+    ' ╱  │  ╲ ',
+    ' ‾‾‾‾‾‾‾',
+  ].join('\n'),
+
+  budget_master: [
+    ' ┌──┬──┐',
+    ' │▓▓│░░│',
+    ' │▓▓│░░│',
+    ' │▓▓│  │',
+    ' └──┴──┘',
+  ].join('\n'),
+
+  net_worth_positive: [
+    '      ╱ ',
+    '    ╱   ',
+    '  ╱     ',
+    ' ╱   +$ ',
+    ' ───────',
+  ].join('\n'),
+
+  diversified: [
+    '  ╱▓╲   ',
+    ' ╱▓▓▓╲  ',
+    ' ──┬──  ',
+    ' ░░│▒▒  ',
+    ' ░░│▒▒  ',
+  ].join('\n'),
+
+  streak_7: [
+    ' ╔═╦═╦═╗',
+    ' ║█║█║█║',
+    ' ╠═╬═╬═╣',
+    ' ║█║█║█║',
+    ' ╚═╩═╩═╝',
+    '  7 DAYS ',
+  ].join('\n'),
+};
+
+// ─── Achievement Definitions ──────────────────────────────────────────────────
+
 interface AchievementDef {
   key: string;
-  icon: string;
   title: string;
   description: string;
   check: (ctx: any) => boolean;
 }
 
 const ACHIEVEMENTS: AchievementDef[] = [
-  { key: 'first_import', icon: '📥', title: 'Getting Started', description: 'Import your first transactions', check: (c) => c.totalTxns > 0 },
-  { key: 'txn_100', icon: '💯', title: 'Century', description: 'Track 100 transactions', check: (c) => c.totalTxns >= 100 },
-  { key: 'txn_500', icon: '🏅', title: 'Dedicated Tracker', description: 'Track 500 transactions', check: (c) => c.totalTxns >= 500 },
-  { key: 'positive_month', icon: '💚', title: 'In the Green', description: 'Finish a month with positive savings', check: (c) => c.netSavings > 0 },
-  { key: 'savings_10pct', icon: '🐷', title: 'Penny Pincher', description: 'Save 10% of your income in a month', check: (c) => c.savingsRate >= 0.1 },
-  { key: 'savings_20pct', icon: '💰', title: 'Super Saver', description: 'Save 20% of your income in a month', check: (c) => c.savingsRate >= 0.2 },
-  { key: 'debt_free', icon: '🎉', title: 'Debt Free!', description: 'Pay off all debts', check: (c) => c.totalDebts === 0 && c.hasDebts },
-  { key: 'goal_complete', icon: '🎯', title: 'Goal Getter', description: 'Complete a savings goal', check: (c) => c.completedGoals > 0 },
-  { key: 'budget_master', icon: '📊', title: 'Budget Master', description: 'Stay under budget in all categories', check: (c) => c.allOnBudget },
-  { key: 'net_worth_positive', icon: '📈', title: 'Net Positive', description: 'Achieve a positive net worth', check: (c) => c.netWorth > 0 },
-  { key: 'diversified', icon: '🌐', title: 'Diversified', description: 'Track 3+ asset types', check: (c) => c.assetTypes >= 3 },
-  { key: 'streak_7', icon: '🔥', title: 'Week Streak', description: 'Track spending for 7 consecutive days', check: (c) => c.streak >= 7 },
+  { key: 'first_import', title: 'INIT_COMPLETE', description: 'Import your first transactions', check: (c) => c.totalTxns > 0 },
+  { key: 'txn_100', title: 'CENTURY_LOG', description: 'Track 100 transactions', check: (c) => c.totalTxns >= 100 },
+  { key: 'txn_500', title: 'DATA_HOARDER', description: 'Track 500 transactions', check: (c) => c.totalTxns >= 500 },
+  { key: 'positive_month', title: 'GREEN_STATUS', description: 'Finish a month with positive savings', check: (c) => c.netSavings > 0 },
+  { key: 'savings_10pct', title: 'PENNY_DAEMON', description: 'Save 10% of your income in a month', check: (c) => c.savingsRate >= 0.1 },
+  { key: 'savings_20pct', title: 'SUPER_SAVER', description: 'Save 20% of your income in a month', check: (c) => c.savingsRate >= 0.2 },
+  { key: 'debt_free', title: 'ZERO_BALANCE', description: 'Pay off all debts', check: (c) => c.totalDebts === 0 && c.hasDebts },
+  { key: 'goal_complete', title: 'TARGET_HIT', description: 'Complete a savings goal', check: (c) => c.completedGoals > 0 },
+  { key: 'budget_master', title: 'BUDGET_ROOT', description: 'Stay under budget in all categories', check: (c) => c.allOnBudget },
+  { key: 'net_worth_positive', title: 'NET_POSITIVE', description: 'Achieve a positive net worth', check: (c) => c.netWorth > 0 },
+  { key: 'diversified', title: 'MULTI_THREAD', description: 'Track 3+ asset types', check: (c) => c.assetTypes >= 3 },
+  { key: 'streak_7', title: 'UPTIME_7D', description: 'Track spending for 7 consecutive days', check: (c) => c.streak >= 7 },
 ];
+
+// ─── Achievement Card ─────────────────────────────────────────────────────────
+
+function AchievementCard({ achievement, unlocked }: { achievement: AchievementDef; unlocked: boolean }) {
+  const ascii = ASCII_ICONS[achievement.key] || '  [?]  ';
+
+  return (
+    <div className={cn(
+      'border bg-surface-1 overflow-hidden transition-all',
+      unlocked
+        ? 'border-primary/30 shadow-[0_0_12px_hsl(var(--primary)/0.08)]'
+        : 'border-border opacity-40',
+    )}>
+      {/* Terminal header */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-surface-2">
+        <span className="text-[9px] font-mono tracking-[0.1em] text-primary/60 uppercase">
+          [{unlocked ? 'UNLOCKED' : 'LOCKED'}]
+        </span>
+        <span className={cn(
+          'text-[9px] font-mono',
+          unlocked ? 'text-income' : 'text-muted-foreground/40',
+        )}>
+          {unlocked ? '● ACTIVE' : '○ INACTIVE'}
+        </span>
+      </div>
+
+      <div className="p-4 flex gap-4">
+        {/* ASCII art icon */}
+        <div className={cn(
+          'shrink-0 flex items-center justify-center',
+          'border border-border bg-surface-2 p-2',
+          unlocked && 'border-primary/20',
+        )}>
+          <pre className={cn(
+            'text-[8px] leading-[10px] font-mono select-none whitespace-pre',
+            unlocked ? 'text-primary' : 'text-muted-foreground/30',
+          )}>
+            {ascii}
+          </pre>
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <p className={cn(
+            'text-xs font-bold font-mono tracking-wider',
+            unlocked ? 'text-primary' : 'text-muted-foreground',
+          )}>
+            {achievement.title}
+          </p>
+          <p className="ticker text-[10px] mt-1">
+            {achievement.description}
+          </p>
+          {unlocked && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-[8px] font-mono text-income tracking-wider">[COMPLETE]</span>
+              <div className="flex-1 h-px bg-income/20" />
+            </div>
+          )}
+          {!unlocked && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-[8px] font-mono text-muted-foreground/40 tracking-wider">[PENDING]</span>
+              <div className="flex-1 h-line" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function AchievementsView() {
   const { data: dash, isLoading: l1 } = useFetch(() => dashboardApi.get(), []);
@@ -47,14 +220,14 @@ export function AchievementsView() {
     totalDebts: overview.totalDebts,
     hasDebts: debts.length > 0,
     completedGoals: goals.filter((g: any) => g.progress >= 1).length,
-    allOnBudget: false, // Would need budget data — simplified
+    allOnBudget: false,
     netWorth: overview.netWorth,
-    assetTypes: new Set(txns.map(t => t.account)).size,
-    streak: 0, // Simplified
+    assetTypes: new Set(txns.map((t: any) => t.account)).size,
+    streak: 0,
   };
 
   // Calculate streak
-  const dates = [...new Set(txns.map(t => t.date))].sort().reverse();
+  const dates = [...new Set(txns.map((t: any) => t.date))].sort().reverse();
   let streak = 0;
   const today = new Date();
   for (let i = 0; i < 30; i++) {
@@ -67,40 +240,57 @@ export function AchievementsView() {
 
   const unlocked = ACHIEVEMENTS.filter(a => a.check(ctx));
   const locked = ACHIEVEMENTS.filter(a => !a.check(ctx));
+  const progress = (unlocked.length / ACHIEVEMENTS.length) * 100;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold">Achievements</h1>
-        <p className="text-sm text-muted-foreground mt-1">{unlocked.length} of {ACHIEVEMENTS.length} unlocked</p>
-      </div>
-
-      {/* Progress bar */}
-      <div className="border bg-card p-5 shadow-sm">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="font-medium">Progress</span>
-          <span className="tabnum">{unlocked.length}/{ACHIEVEMENTS.length}</span>
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="border border-border bg-surface-1 px-5 py-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <p className="ticker mb-1">System Achievements</p>
+            <h1 className="text-xl font-bold tracking-tight">
+              {unlocked.length}<span className="text-muted-foreground font-normal">/{ACHIEVEMENTS.length}</span>
+              <span className="text-muted-foreground font-normal text-sm ml-2">unlocked</span>
+            </h1>
+          </div>
+          <div className="text-right">
+            <p className="ticker mb-1">Completion</p>
+            <p className={cn('numeral font-bold text-lg tabnum', progress === 100 && 'text-income')}>
+              {progress.toFixed(0)}%
+            </p>
+          </div>
         </div>
-        <div className="h-3 bg-muted overflow-hidden">
-          <div className="h-full bg-yellow-500 transition-all" style={{ width: `${(unlocked.length / ACHIEVEMENTS.length) * 100}%` }} />
+
+        {/* Progress bar */}
+        <div className="mt-3">
+          <div className="h-2 bg-surface-3 overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-700"
+              style={{
+                width: `${progress}%`,
+                boxShadow: '0 0 8px hsl(var(--primary) / 0.4)',
+              }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[8px] font-mono text-muted-foreground">0%</span>
+            <span className="text-[8px] font-mono text-muted-foreground">100%</span>
+          </div>
         </div>
       </div>
 
       {/* Unlocked */}
       {unlocked.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold mb-3 text-green-600">✓ Unlocked</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="ticker text-income">[UNLOCKED]</span>
+            <div className="flex-1 h-px bg-income/20" />
+            <span className="ticker text-income">{unlocked.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {unlocked.map(a => (
-              <div key={a.key} className="border bg-card p-4 shadow-sm border-green-200 dark:border-green-900/50">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{a.icon}</span>
-                  <div>
-                    <p className="text-sm font-semibold">{a.title}</p>
-                    <p className="text-[11px] text-muted-foreground">{a.description}</p>
-                  </div>
-                </div>
-              </div>
+              <AchievementCard key={a.key} achievement={a} unlocked />
             ))}
           </div>
         </div>
@@ -109,18 +299,14 @@ export function AchievementsView() {
       {/* Locked */}
       {locked.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold mb-3 text-muted-foreground">🔒 Locked</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="ticker text-muted-foreground">[LOCKED]</span>
+            <div className="flex-1 h-line" />
+            <span className="ticker text-muted-foreground">{locked.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {locked.map(a => (
-              <div key={a.key} className="border bg-card p-4 shadow-sm opacity-50">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl grayscale">{a.icon}</span>
-                  <div>
-                    <p className="text-sm font-semibold">{a.title}</p>
-                    <p className="text-[11px] text-muted-foreground">{a.description}</p>
-                  </div>
-                </div>
-              </div>
+              <AchievementCard key={a.key} achievement={a} unlocked={false} />
             ))}
           </div>
         </div>
