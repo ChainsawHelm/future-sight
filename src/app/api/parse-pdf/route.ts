@@ -21,6 +21,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 });
     }
 
+    // 10MB size limit
+    const MAX_PDF_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_PDF_SIZE) {
+      return NextResponse.json({ error: 'PDF must be under 10MB' }, { status: 400 });
+    }
+
     // Read file buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 

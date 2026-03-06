@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuthWithLimit } from '@/lib/api-auth';
 import { prisma } from '@/lib/prisma';
+import { audit } from '@/lib/audit';
 
 const resetSchema = z.object({
   confirmation: z.literal('DELETE ALL MY DATA'),
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest) {
       prisma.plaidItem.deleteMany({ where: { userId } }),
       prisma.netWorthSnapshot.deleteMany({ where: { userId } }),
     ]);
+
+    await audit('reset_data', userId, `${txnCount.count} txns, ${plaidCount.count} plaid items`);
 
     return NextResponse.json({
       deleted: {

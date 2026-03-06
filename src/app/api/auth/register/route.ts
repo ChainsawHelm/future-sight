@@ -26,11 +26,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, email, password } = registerSchema.parse(body);
 
-    // Check if user already exists
+    // Check if user already exists — generic error to prevent email enumeration
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json(
-        { error: 'An account with this email already exists' },
+        { error: 'Registration failed. Please try again or sign in.' },
         { status: 409 }
       );
     }

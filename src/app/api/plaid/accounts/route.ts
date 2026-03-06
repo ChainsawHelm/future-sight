@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { plaidClient } from '@/lib/plaid';
 import { decrypt } from '@/lib/encryption';
+import { audit } from '@/lib/audit';
 
 export async function GET() {
   const session = await auth();
@@ -63,6 +64,7 @@ export async function DELETE(req: any) {
 
   try { await plaidClient.itemRemove({ access_token: decrypt(item.accessToken) }); } catch {}
   await prisma.plaidItem.delete({ where: { id } });
+  await audit('plaid_disconnect', session.user.id, item.institutionName || 'unknown');
 
   return NextResponse.json({ success: true });
 }

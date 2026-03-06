@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
-import { settingsApi, backupApi, resetApi } from '@/lib/api-client';
+import { settingsApi, backupApi, resetApi, accountApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import type { UserSettings } from '@/types/models';
@@ -71,6 +71,13 @@ export function SettingsView() {
   const [activeTheme, setActiveTheme] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('fs-theme') || 'default' : 'default'
   );
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [pwStatus, setPwStatus] = useState('');
 
   const updateSettings = useMutation(useCallback((d: any) => settingsApi.update(d), []));
 
@@ -134,6 +141,32 @@ export function SettingsView() {
       alert('Reset failed: ' + err.message);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      await accountApi.deleteAccount();
+      signOut({ callbackUrl: '/login' });
+    } catch (err: any) {
+      alert('Account deletion failed: ' + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPwStatus('');
+    try {
+      await accountApi.changePassword(currentPw, newPw);
+      setPwStatus('Password changed successfully');
+      setCurrentPw('');
+      setNewPw('');
+      setTimeout(() => { setShowPasswordChange(false); setPwStatus(''); }, 2000);
+    } catch (err: any) {
+      setPwStatus(err.message || 'Password change failed');
     }
   };
 
@@ -237,15 +270,37 @@ export function SettingsView() {
       {/* Account */}
       <div className="border border-border bg-surface-1 p-5 space-y-4">
         <p className="ticker text-primary">Account</p>
-        <button onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex items-center gap-2 h-9 px-4 border border-expense/30 bg-expense/5 text-expense text-sm font-medium hover:bg-expense/10 transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          Sign Out
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button onClick={() => setShowPasswordChange(!showPasswordChange)}
+            className="flex items-center gap-2 h-9 px-4 border border-border bg-surface-2 text-sm font-medium hover:border-primary/50 hover:text-primary transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+            Change Password
+          </button>
+          <button onClick={() => signOut({ callbackUrl: '/login' })}
+            className="flex items-center gap-2 h-9 px-4 border border-expense/30 bg-expense/5 text-expense text-sm font-medium hover:bg-expense/10 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            Sign Out
+          </button>
+        </div>
+        {showPasswordChange && (
+          <div className="border border-border bg-surface-2 p-4 space-y-3">
+            <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)}
+              placeholder="Current password" className="w-full h-9 px-3 border border-border bg-background text-sm font-mono focus:outline-none focus:border-primary" />
+            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
+              placeholder="New password (8+ chars, upper, lower, number)" className="w-full h-9 px-3 border border-border bg-background text-sm font-mono focus:outline-none focus:border-primary" />
+            <div className="flex items-center gap-3">
+              <button onClick={handlePasswordChange} disabled={!currentPw || !newPw}
+                className="h-8 px-4 bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-40 hover:bg-primary/90 transition-colors">
+                Update Password
+              </button>
+              {pwStatus && <p className={`text-xs ${pwStatus.includes('success') ? 'text-income' : 'text-expense'}`}>{pwStatus}</p>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Danger Zone */}
-      <div className="border border-expense/30 bg-expense/5 p-5 space-y-3">
+      <div className="border border-expense/30 bg-expense/5 p-5 space-y-4">
         <p className="ticker text-expense">Danger Zone</p>
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -260,7 +315,61 @@ export function SettingsView() {
             Wipe &amp; Restart
           </button>
         </div>
+        <div className="border-t border-expense/20 pt-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Delete account</p>
+            <p className="ticker mt-0.5">Permanently deletes your account and all data. This cannot be undone.</p>
+          </div>
+          <button
+            onClick={() => { setShowDeleteAccount(true); setDeleteConfirm(''); }}
+            className="shrink-0 flex items-center gap-2 h-9 px-4 border border-expense bg-expense text-white text-sm font-semibold hover:bg-expense/90 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" /></svg>
+            Delete Account
+          </button>
+        </div>
       </div>
+
+      {/* Delete account modal */}
+      {showDeleteAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm mx-4 border border-border bg-card p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-expense/10 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-expense" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Delete your account?</p>
+                <p className="ticker mt-0.5">This permanently deletes your account, all financial data, bank connections, and settings. This action cannot be undone.</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">
+                Type <span className="font-mono font-bold text-expense">DELETE</span> to confirm
+              </p>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={e => setDeleteConfirm(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleDeleteAccount()}
+                placeholder="DELETE"
+                autoFocus
+                className="w-full h-9 px-3 border border-border bg-surface-2 text-sm font-mono focus:outline-none focus:border-expense placeholder:text-muted-foreground/40"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setShowDeleteAccount(false); setDeleteConfirm(''); }}
+                className="flex-1 h-9 border border-border bg-surface-2 text-sm font-medium hover:bg-surface-3 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDeleteAccount} disabled={deleteConfirm !== 'DELETE' || deleting}
+                className="flex-1 h-9 border border-expense bg-expense text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-expense/90 transition-colors">
+                {deleting ? 'Deleting...' : 'Delete My Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reset modal */}
       {showResetModal && (

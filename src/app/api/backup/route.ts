@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireAuthWithLimit } from '@/lib/api-auth';
+import { audit } from '@/lib/audit';
 
 // GET /api/backup — export all user data as JSON
 export async function GET() {
@@ -38,10 +40,7 @@ export async function GET() {
     prisma.userSettings.findUnique({ where: { userId } }),
   ]);
 
-  const backup = {
-    version: '2.0.0',
-    exportedAt: new Date().toISOString(),
-    data: {
+  const data = {
       transactions: transactions.map((t) => ({ ...t, amount: Number(t.amount), date: t.date.toISOString().slice(0, 10) })),
       categories,
       merchantRules,
@@ -70,11 +69,22 @@ export async function GET() {
       budgets: budgets.map((b) => ({ ...b, monthlyLimit: Number(b.monthlyLimit) })),
       calendarEvents: calendarEvents.map((e) => ({ ...e, amount: e.amount ? Number(e.amount) : null })),
       subscriptions: subscriptions.map((s) => ({ ...s, amount: Number(s.amount) })),
-      achievements,
-      settings,
-    },
+    achievements,
+    settings,
   };
 
+  // Create checksum of the data for integrity verification on restore
+  const dataStr = JSON.stringify(data);
+  const checksum = crypto.createHash('sha256').update(dataStr).digest('hex');
+
+  const backup = {
+    version: '2.0.0',
+    exportedAt: new Date().toISOString(),
+    checksum,
+    data,
+  };
+
+  await audit('export_backup', userId);
   return NextResponse.json(backup);
 }
 
@@ -89,6 +99,15 @@ export async function POST(req: NextRequest) {
 
     if (!backup.data || !backup.version) {
       return NextResponse.json({ error: 'Invalid backup format' }, { status: 400 });
+    }
+
+    // Verify checksum if present (v2.0.0+ backups)
+    if (backup.checksum) {
+      const dataStr = JSON.stringify(backup.data);
+      const expected = crypto.createHash('sha256').update(dataStr).digest('hex');
+      if (expected !== backup.checksum) {
+        return NextResponse.json({ error: 'Backup integrity check failed — data may be corrupted' }, { status: 400 });
+      }
     }
 
     const d = backup.data;
@@ -153,6 +172,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    await audit('restore_backup', userId, JSON.stringify(counts));
     return NextResponse.json({
       message: 'Backup restored successfully',
       counts,

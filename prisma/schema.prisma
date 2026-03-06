@@ -398,3 +398,18 @@ model PlaidAccount {
   @@index([userId])
   @@map("plaid_accounts")
 }
+
+// ─── Audit Log ─────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // "login", "register", "export_backup", "restore_backup", "reset_data", "delete_account", "plaid_connect", "plaid_disconnect", "password_change"
+  detail    String?  // Additional context (e.g., "deleted 300 transactions")
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}

@@ -19,7 +19,7 @@ export const transactionCreateSchema = z.object({
 export const transactionUpdateSchema = transactionCreateSchema.partial();
 
 export const transactionBulkCreateSchema = z.object({
-  transactions: z.array(transactionCreateSchema).min(1).max(5000),
+  transactions: z.array(transactionCreateSchema).min(1).max(1000),
   importRecord: z.object({
     filename: z.string().max(255),
     sourceType: z.enum(['csv', 'pdf', 'json']).default('csv'),

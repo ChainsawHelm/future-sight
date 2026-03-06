@@ -5,6 +5,7 @@ import { plaidClient } from '@/lib/plaid';
 import { prisma } from '@/lib/prisma';
 import { encrypt } from '@/lib/encryption';
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
+import { audit } from '@/lib/audit';
 
 const exchangeSchema = z.object({
   public_token: z.string().min(1).max(500),
@@ -38,10 +39,12 @@ export async function POST(req: any) {
     const exchangeResponse = await plaidClient.itemPublicTokenExchange({ public_token });
     const { access_token, item_id } = exchangeResponse.data;
 
-    // Encrypt access token before storing
-    const encryptedToken = process.env.ENCRYPTION_KEY
-      ? encrypt(access_token)
-      : access_token;
+    // Encrypt access token before storing — ENCRYPTION_KEY is required
+    if (!process.env.ENCRYPTION_KEY) {
+      console.error('ENCRYPTION_KEY is not set — refusing to store Plaid token in plaintext');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    const encryptedToken = encrypt(access_token);
 
     await prisma.plaidItem.create({
       data: {
@@ -52,6 +55,7 @@ export async function POST(req: any) {
         institutionName: metadata?.institution?.name || null,
       },
     });
+    await audit('plaid_connect', session.user.id, metadata?.institution?.name || 'unknown');
     return NextResponse.json({ success: true });
   } catch (err: any) {
     if (err instanceof z.ZodError) {

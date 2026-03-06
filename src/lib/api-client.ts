@@ -202,7 +202,23 @@ export const backupApi = {
 
 export const resetApi = {
   resetTransactionData: () =>
-    request<any>('/api/reset', { method: 'POST' }),
+    request<any>('/api/reset', {
+      method: 'POST',
+      body: JSON.stringify({ confirmation: 'DELETE ALL MY DATA' }),
+    }),
+};
+
+export const accountApi = {
+  deleteAccount: () =>
+    request<any>('/api/account/delete', {
+      method: 'DELETE',
+      body: JSON.stringify({ confirmation: 'DELETE MY ACCOUNT' }),
+    }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<any>('/api/account/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
 };
 
 export { ApiError };
