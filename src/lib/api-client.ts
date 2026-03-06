@@ -120,6 +120,8 @@ export const debtsApi = {
     request<any>(`/api/debts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: string) =>
     request<any>(`/api/debts/${id}`, { method: 'DELETE' }),
+  reorder: (ids: string[]) =>
+    request<any>('/api/debts/reorder', { method: 'PATCH', body: JSON.stringify({ ids }) }),
 };
 
 // ─── Assets ─────────────────────────────────

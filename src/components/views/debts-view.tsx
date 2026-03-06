@@ -1,6 +1,23 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
 import { debtsApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
@@ -36,7 +53,6 @@ function calcPayoff(balance: number, annualRate: number, monthlyPayment: number)
   return { months, interestPaid: interest };
 }
 
-/** Simulate the cascade snowball: when a debt is paid off, redirect its total payment to the next debt in order. */
 function calcCascadeSchedule(
   sortedDebts: Debt[],
   extras: Record<string, number>
@@ -49,12 +65,10 @@ function calcCascadeSchedule(
   const paidOff = new Array(n).fill(false);
 
   for (let month = 0; month < 600; month++) {
-    // Find first unpaid — cascaded freed payments go to it
     const cascadeTarget = paidOff.findIndex(p => !p);
     if (cascadeTarget === -1) break;
 
-    // How much cascaded pool from previously paid debts?
-    const cascadePool = paidOff.reduce((sum, paid, i) => paid ? sum + payments[i] : sum, 0);
+    const cascadePool = paidOff.reduce((sum: number, paid: boolean, i: number) => paid ? sum + payments[i] : sum, 0);
 
     for (let i = 0; i < n; i++) {
       if (paidOff[i]) continue;
@@ -100,6 +114,218 @@ const TYPE_LABELS: Record<string, string> = {
   credit_card: 'Credit Card', personal: 'Personal', other: 'Other',
 };
 
+// ─── Drag handle ──────────────────────────────────────────────────────────────
+
+function DragHandle({ listeners, attributes }: { listeners: any; attributes: any }) {
+  return (
+    <button
+      {...listeners}
+      {...attributes}
+      className="flex flex-col items-center justify-center w-6 h-10 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-primary/60 transition-colors touch-none"
+      title="Drag to reorder"
+    >
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+        <circle cx="3" cy="2" r="1.2" />
+        <circle cx="9" cy="2" r="1.2" />
+        <circle cx="3" cy="6" r="1.2" />
+        <circle cx="9" cy="6" r="1.2" />
+        <circle cx="3" cy="10" r="1.2" />
+        <circle cx="9" cy="10" r="1.2" />
+      </svg>
+    </button>
+  );
+}
+
+// ─── Sortable debt card ───────────────────────────────────────────────────────
+
+interface DebtCardProps {
+  d: Debt;
+  idx: number;
+  strategy: 'avalanche' | 'snowball' | 'manual';
+  extra: number;
+  totalPayment: number;
+  sliderMax: number;
+  solo: PayoffResult;
+  minOnly: PayoffResult;
+  cascade: { payoffMonth: number; totalInterest: number } | null;
+  cascadeEnabled: boolean;
+  canReceiveCascade: boolean;
+  isLastInList: boolean;
+  sortedDebts: Debt[];
+  getExtra: (d: Debt) => number;
+  onExtraChange: (id: string, value: number) => void;
+  onSaveExtra: (id: string) => void;
+  onDelete: (id: string) => void;
+  onCascadeRedirect: (fromIndex: number, toId: string) => void;
+}
+
+function SortableDebtCard(props: DebtCardProps) {
+  const { d, strategy } = props;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: d.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    position: 'relative' as const,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <DebtCardInner
+        {...props}
+        isDragging={isDragging}
+        dragHandle={strategy === 'manual' ? <DragHandle listeners={listeners} attributes={attributes} /> : null}
+      />
+    </div>
+  );
+}
+
+function DebtCardInner({
+  d, idx, strategy, extra, totalPayment, sliderMax,
+  solo, minOnly, cascade, cascadeEnabled,
+  canReceiveCascade, isLastInList, sortedDebts, getExtra,
+  onExtraChange, onSaveExtra, onDelete, onCascadeRedirect,
+  isDragging, dragHandle,
+}: DebtCardProps & { isDragging: boolean; dragHandle: React.ReactNode }) {
+  const progress = d.originalBalance > 0 ? 1 - d.balance / d.originalBalance : 0;
+  const displayMonths = cascade ? cascade.payoffMonth : solo.months;
+  const displayInterest = cascade ? cascade.totalInterest : solo.interestPaid;
+  const interestSaved = minOnly.interestPaid - displayInterest;
+
+  return (
+    <div className={cn(
+      'border border-border bg-surface-1 relative overflow-hidden transition-shadow',
+      isDragging && 'shadow-[0_0_20px_hsl(var(--primary)/0.3)] border-primary/40'
+    )}>
+      {/* Top accent bar */}
+      <div className="absolute top-0 left-0 right-0 h-px"
+        style={{ backgroundColor: idx === 0 ? 'hsl(var(--expense))' : idx === 1 ? 'hsl(var(--primary))' : 'hsl(var(--border))' }} />
+
+      <div className="p-4">
+        {/* Debt header row */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            {dragHandle}
+            {strategy !== 'manual' && (
+              <span className="w-5 h-5 flex items-center justify-center bg-surface-3 text-muted-foreground font-mono text-[10px] font-bold shrink-0">
+                {idx + 1}
+              </span>
+            )}
+            <div className="w-6 h-6 flex items-center justify-center bg-surface-3 text-muted-foreground shrink-0">
+              {TYPE_ICONS[d.type]}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm">{d.name}</h3>
+                <span className="ticker">{TYPE_LABELS[d.type]}</span>
+              </div>
+              <p className="ticker text-[10px]">
+                <span className="text-expense font-semibold">{d.interestRate}% APR</span>
+                {' · '}min {formatCurrency(d.minimumPayment)}/mo
+                {' · '}due day {d.dueDay}
+              </p>
+            </div>
+          </div>
+          <button onClick={() => onDelete(d.id)} className="text-muted-foreground/30 hover:text-expense transition-colors mt-0.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          </button>
+        </div>
+
+        {/* Balance + progress */}
+        <div className="mb-3">
+          <div className="flex justify-between items-baseline mb-1.5">
+            <span className="numeral text-lg font-bold tabnum text-expense">{formatCurrency(d.balance)}</span>
+            <span className="ticker text-primary text-xs">{(progress * 100).toFixed(1)}% paid off</span>
+          </div>
+          <div className="h-1.5 bg-surface-3 overflow-hidden">
+            <div className="h-full bg-primary transition-all duration-500"
+              style={{ width: `${progress * 100}%`, boxShadow: '0 0 6px hsl(var(--primary) / 0.4)' }} />
+          </div>
+        </div>
+
+        {/* Extra payment slider */}
+        <div className="mb-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="ticker text-[10px]">Extra Monthly Payment</label>
+            <div className="flex items-center gap-2">
+              <span className="numeral text-xs font-bold tabnum text-income">+{formatCurrency(extra)}/mo</span>
+              <span className="ticker text-[10px]">→ total {formatCurrency(totalPayment)}/mo</span>
+            </div>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={Math.round(sliderMax)}
+            step={10}
+            value={extra}
+            onChange={e => onExtraChange(d.id, Number(e.target.value))}
+            onMouseUp={() => onSaveExtra(d.id)}
+            onTouchEnd={() => onSaveExtra(d.id)}
+            className="w-full h-1.5 appearance-none bg-surface-3 cursor-pointer accent-primary"
+          />
+          <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+            <span>$0</span>
+            <span>{formatCurrency(sliderMax)}</span>
+          </div>
+        </div>
+
+        {/* Payoff comparison */}
+        <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border text-xs">
+          <div>
+            <p className="ticker mb-1">Payoff Date</p>
+            <p className="numeral font-bold text-sm">{monthsToDate(displayMonths)}</p>
+            <p className="ticker text-[10px]">{isFinite(displayMonths) ? `${displayMonths} months` : 'never'}{cascadeEnabled ? ' w/ cascade' : ''}</p>
+          </div>
+          <div>
+            <p className="ticker mb-1">Interest {cascadeEnabled ? '(cascade)' : '(w/ extra)'}</p>
+            <p className="numeral font-bold text-sm text-expense">{isFinite(displayInterest) ? formatCurrency(displayInterest) : '∞'}</p>
+            {extra > 0 && !cascadeEnabled && (
+              <p className="ticker text-[10px]">min only: {formatCurrency(minOnly.interestPaid)}</p>
+            )}
+          </div>
+          <div>
+            <p className="ticker mb-1">Interest Saved</p>
+            <p className={cn('numeral font-bold text-sm', interestSaved > 0 ? 'text-income' : 'text-muted-foreground')}>
+              {interestSaved > 0 ? formatCurrency(interestSaved) : '—'}
+            </p>
+            {extra === 0 && !cascadeEnabled && (
+              <p className="ticker text-[10px]">add extra to save</p>
+            )}
+          </div>
+        </div>
+
+        {/* Cascade redirect button */}
+        {canReceiveCascade && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <button
+              onClick={() => onCascadeRedirect(idx - 1, d.id)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono border border-income/40 text-income hover:bg-income/10 transition-colors"
+            >
+              <span>▶▶</span>
+              Redirect {formatCurrency(sortedDebts[idx - 1].minimumPayment + getExtra(sortedDebts[idx - 1]))}/mo freed from {sortedDebts[idx - 1].name} → this debt
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Cascade arrow between cards */}
+      {cascadeEnabled && !isLastInList && (
+        <div className="flex items-center justify-center py-1 border-t border-income/20 bg-income/5">
+          <span className="ticker text-income text-[10px]">▼ freed payment cascades to next debt</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function DebtsView() {
@@ -108,6 +334,7 @@ export function DebtsView() {
   const [strategy, setStrategy] = useState<'avalanche' | 'snowball' | 'manual'>('avalanche');
   const [extras, setExtras] = useState<Record<string, number>>({});
   const [cascadeEnabled, setCascadeEnabled] = useState(false);
+  const [manualOrder, setManualOrder] = useState<string[] | null>(null);
   const [form, setForm] = useState({
     name: '', balance: '', originalBalance: '', interestRate: '', minimumPayment: '',
     type: 'other' as Debt['type'], dueDay: '1',
@@ -116,21 +343,28 @@ export function DebtsView() {
   const createMutation = useMutation(useCallback((d: any) => debtsApi.create(d), []));
   const deleteMutation = useMutation(useCallback((id: string) => debtsApi.delete(id), []));
   const updateMutation = useMutation(useCallback(({ id, data }: { id: string; data: any }) => debtsApi.update(id, data), []));
+  const reorderMutation = useMutation(useCallback((ids: string[]) => debtsApi.reorder(ids), []));
 
   const debts = data?.debts || [];
 
   // Sort by strategy
-  const sortedDebts = [...debts].sort((a, b) => {
-    if (strategy === 'avalanche') return b.interestRate - a.interestRate;
-    if (strategy === 'snowball')  return a.balance - b.balance;
-    return 0;
-  });
+  const sortedDebts = (() => {
+    if (strategy === 'manual') {
+      if (manualOrder) {
+        const map = new Map(debts.map(d => [d.id, d]));
+        return manualOrder.map(id => map.get(id)).filter(Boolean) as Debt[];
+      }
+      // Use sortOrder from API (default DB order)
+      return [...debts].sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    if (strategy === 'avalanche') return [...debts].sort((a, b) => b.interestRate - a.interestRate);
+    return [...debts].sort((a, b) => a.balance - b.balance); // snowball
+  })();
 
   const totalBalance  = debts.reduce((s, d) => s + d.balance, 0);
   const totalOriginal = debts.reduce((s, d) => s + d.originalBalance, 0);
   const overallProgress = totalOriginal > 0 ? (1 - totalBalance / totalOriginal) : 0;
 
-  // Per-debt effective extra (local state overrides saved value)
   const getExtra = (d: Debt) => extras[d.id] !== undefined ? extras[d.id] : d.extraPayment;
 
   // Cascade schedule
@@ -138,7 +372,6 @@ export function DebtsView() {
     ? calcCascadeSchedule(sortedDebts, Object.fromEntries(sortedDebts.map(d => [d.id, getExtra(d)])))
     : null;
 
-  // Without cascade — each debt in isolation
   const soloResults = Object.fromEntries(sortedDebts.map(d => {
     const r = calcPayoff(d.balance, d.interestRate, d.minimumPayment + getExtra(d));
     return [d.id, r];
@@ -149,7 +382,6 @@ export function DebtsView() {
     return [d.id, r];
   }));
 
-  // Totals for header
   const totalMonthlyPayment = debts.reduce((s, d) => s + d.minimumPayment + getExtra(d), 0);
   const totalInterestMin = Object.values(minOnlyResults).reduce((s, r) => s + (isFinite(r.interestPaid) ? r.interestPaid : 0), 0);
   const totalInterestWithExtras = cascadeEnabled && cascadeResults
@@ -159,6 +391,28 @@ export function DebtsView() {
   const cascadeMap = cascadeResults
     ? Object.fromEntries(cascadeResults.map(r => [r.id, r]))
     : null;
+
+  // ─── DnD sensors ─────────────────────────────────────────────────────────────
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sortedDebts.findIndex(d => d.id === active.id);
+    const newIndex = sortedDebts.findIndex(d => d.id === over.id);
+    const newOrder = arrayMove(sortedDebts, oldIndex, newIndex);
+    const newIds = newOrder.map(d => d.id);
+
+    setManualOrder(newIds);
+    reorderMutation.mutate(newIds);
+  };
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,12 +428,14 @@ export function DebtsView() {
     });
     setForm({ name: '', balance: '', originalBalance: '', interestRate: '', minimumPayment: '', type: 'other', dueDay: '1' });
     setShowAdd(false);
+    setManualOrder(null);
     refetch();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this debt?')) return;
     await deleteMutation.mutate(id);
+    setManualOrder(null);
     refetch();
   };
 
@@ -193,7 +449,6 @@ export function DebtsView() {
     await updateMutation.mutate({ id, data: { extraPayment: extra } });
   };
 
-  // Cascade redirect: apply freed payment from previous debt to this debt
   const handleCascadeRedirect = (fromIndex: number, toId: string) => {
     const fromDebt = sortedDebts[fromIndex];
     const freed = fromDebt.minimumPayment + getExtra(fromDebt);
@@ -202,6 +457,42 @@ export function DebtsView() {
 
   if (isLoading) return <PageLoader message="Loading debts..." />;
   if (error) return <ErrorAlert message={error} retry={refetch} />;
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
+
+  const debtCards = sortedDebts.map((d, idx) => {
+    const extra = getExtra(d);
+    const totalPayment = d.minimumPayment + extra;
+    const sliderMax = Math.max(Math.min(d.balance / 3, 2000), d.minimumPayment * 4);
+    const solo = soloResults[d.id];
+    const minOnly = minOnlyResults[d.id];
+    const cascade = cascadeMap?.[d.id] ?? null;
+    const canReceiveCascade = cascadeEnabled && idx > 0;
+
+    return (
+      <SortableDebtCard
+        key={d.id}
+        d={d}
+        idx={idx}
+        strategy={strategy}
+        extra={extra}
+        totalPayment={totalPayment}
+        sliderMax={sliderMax}
+        solo={solo}
+        minOnly={minOnly}
+        cascade={cascade}
+        cascadeEnabled={cascadeEnabled}
+        canReceiveCascade={canReceiveCascade}
+        isLastInList={idx === sortedDebts.length - 1}
+        sortedDebts={sortedDebts}
+        getExtra={getExtra}
+        onExtraChange={handleExtraChange}
+        onSaveExtra={handleSaveExtra}
+        onDelete={handleDelete}
+        onCascadeRedirect={handleCascadeRedirect}
+      />
+    );
+  });
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -239,7 +530,7 @@ export function DebtsView() {
             { label: 'Monthly Total', value: formatCurrency(totalMonthlyPayment), sub: 'all debts combined' },
             { label: 'Interest (min only)', value: formatCurrency(totalInterestMin), sub: 'remaining' },
             { label: 'Interest (with extras)', value: formatCurrency(totalInterestWithExtras), sub: cascadeEnabled ? 'with cascade' : 'no cascade', ok: totalInterestWithExtras < totalInterestMin },
-          ].map((s, i) => (
+          ].map((s) => (
             <div key={s.label} className="px-4 py-3">
               <p className="ticker mb-1">{s.label}</p>
               <p className={cn('numeral font-bold text-base tabnum', s.ok === true && 'text-income')}>{s.value}</p>
@@ -257,7 +548,7 @@ export function DebtsView() {
             {(['avalanche', 'snowball', 'manual'] as const).map(s => (
               <button
                 key={s}
-                onClick={() => setStrategy(s)}
+                onClick={() => { setStrategy(s); setManualOrder(null); }}
                 className={cn(
                   'px-3 py-1 text-xs font-mono border transition-colors',
                   strategy === s
@@ -289,6 +580,20 @@ export function DebtsView() {
       {cascadeEnabled && debts.length > 1 && (
         <div className="border border-income/30 bg-income/5 px-4 py-2.5 text-xs font-mono text-income">
           Cascade ON: when each debt is paid off, its freed monthly payment automatically rolls into the next debt, accelerating payoff.
+        </div>
+      )}
+
+      {strategy === 'manual' && debts.length > 1 && (
+        <div className="border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-mono text-primary flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="currentColor" className="shrink-0 opacity-60">
+            <circle cx="3" cy="2" r="1.2" />
+            <circle cx="9" cy="2" r="1.2" />
+            <circle cx="3" cy="6" r="1.2" />
+            <circle cx="9" cy="6" r="1.2" />
+            <circle cx="3" cy="10" r="1.2" />
+            <circle cx="9" cy="10" r="1.2" />
+          </svg>
+          Drag the grip handle to reorder debts. Your custom order is saved automatically.
         </div>
       )}
 
@@ -324,145 +629,17 @@ export function DebtsView() {
           description="Add your debts to see payoff schedules and snowball/avalanche projections."
         />
       ) : (
-        <div className="space-y-2">
-          {sortedDebts.map((d, idx) => {
-            const extra = getExtra(d);
-            const totalPayment = d.minimumPayment + extra;
-            const sliderMax = Math.max(Math.min(d.balance / 3, 2000), d.minimumPayment * 4);
-            const solo = soloResults[d.id];
-            const minOnly = minOnlyResults[d.id];
-            const cascade = cascadeMap?.[d.id];
-            const progress = d.originalBalance > 0 ? 1 - d.balance / d.originalBalance : 0;
-
-            const displayMonths  = cascade ? cascade.payoffMonth : solo.months;
-            const displayInterest = cascade ? cascade.totalInterest : solo.interestPaid;
-            const interestSaved  = minOnly.interestPaid - displayInterest;
-
-            // Find the previous paid-off debt (for cascade redirect button)
-            const canReceiveCascade = cascadeEnabled && idx > 0;
-
-            return (
-              <div key={d.id} className="border border-border bg-surface-1 relative overflow-hidden">
-                {/* Top accent bar colored by strategy position */}
-                <div className="absolute top-0 left-0 right-0 h-px"
-                  style={{ backgroundColor: idx === 0 ? 'hsl(var(--expense))' : idx === 1 ? 'hsl(var(--primary))' : 'hsl(var(--border))' }} />
-
-                <div className="p-4">
-                  {/* Debt header row */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2.5">
-                      {strategy !== 'manual' && (
-                        <span className="w-5 h-5 flex items-center justify-center bg-surface-3 text-muted-foreground font-mono text-[10px] font-bold shrink-0">
-                          {idx + 1}
-                        </span>
-                      )}
-                      <div className="w-6 h-6 flex items-center justify-center bg-surface-3 text-muted-foreground shrink-0">
-                        {TYPE_ICONS[d.type]}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-sm">{d.name}</h3>
-                          <span className="ticker">{TYPE_LABELS[d.type]}</span>
-                        </div>
-                        <p className="ticker text-[10px]">
-                          <span className="text-expense font-semibold">{d.interestRate}% APR</span>
-                          {' · '}min {formatCurrency(d.minimumPayment)}/mo
-                          {' · '}due day {d.dueDay}
-                        </p>
-                      </div>
-                    </div>
-                    <button onClick={() => handleDelete(d.id)} className="text-muted-foreground/30 hover:text-expense transition-colors mt-0.5">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                    </button>
-                  </div>
-
-                  {/* Balance + progress */}
-                  <div className="mb-3">
-                    <div className="flex justify-between items-baseline mb-1.5">
-                      <span className="numeral text-lg font-bold tabnum text-expense">{formatCurrency(d.balance)}</span>
-                      <span className="ticker text-primary text-xs">{(progress * 100).toFixed(1)}% paid off</span>
-                    </div>
-                    <div className="h-1.5 bg-surface-3 overflow-hidden">
-                      <div className="h-full bg-primary transition-all duration-500"
-                        style={{ width: `${progress * 100}%`, boxShadow: '0 0 6px hsl(var(--primary) / 0.4)' }} />
-                    </div>
-                  </div>
-
-                  {/* Extra payment slider */}
-                  <div className="mb-3 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="ticker text-[10px]">Extra Monthly Payment</label>
-                      <div className="flex items-center gap-2">
-                        <span className="numeral text-xs font-bold tabnum text-income">+{formatCurrency(extra)}/mo</span>
-                        <span className="ticker text-[10px]">→ total {formatCurrency(totalPayment)}/mo</span>
-                      </div>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={Math.round(sliderMax)}
-                      step={10}
-                      value={extra}
-                      onChange={e => handleExtraChange(d.id, Number(e.target.value))}
-                      onMouseUp={() => handleSaveExtra(d.id)}
-                      onTouchEnd={() => handleSaveExtra(d.id)}
-                      className="w-full h-1.5 appearance-none bg-surface-3 cursor-pointer accent-primary"
-                    />
-                    <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
-                      <span>$0</span>
-                      <span>{formatCurrency(sliderMax)}</span>
-                    </div>
-                  </div>
-
-                  {/* Payoff comparison */}
-                  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border text-xs">
-                    <div>
-                      <p className="ticker mb-1">Payoff Date</p>
-                      <p className="numeral font-bold text-sm">{monthsToDate(displayMonths)}</p>
-                      <p className="ticker text-[10px]">{isFinite(displayMonths) ? `${displayMonths} months` : 'never'}{cascadeEnabled ? ' w/ cascade' : ''}</p>
-                    </div>
-                    <div>
-                      <p className="ticker mb-1">Interest {cascadeEnabled ? '(cascade)' : '(w/ extra)'}</p>
-                      <p className="numeral font-bold text-sm text-expense">{isFinite(displayInterest) ? formatCurrency(displayInterest) : '∞'}</p>
-                      {extra > 0 && !cascadeEnabled && (
-                        <p className="ticker text-[10px]">min only: {formatCurrency(minOnly.interestPaid)}</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="ticker mb-1">Interest Saved</p>
-                      <p className={cn('numeral font-bold text-sm', interestSaved > 0 ? 'text-income' : 'text-muted-foreground')}>
-                        {interestSaved > 0 ? formatCurrency(interestSaved) : '—'}
-                      </p>
-                      {extra === 0 && !cascadeEnabled && (
-                        <p className="ticker text-[10px]">add extra to save</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Cascade redirect button */}
-                  {canReceiveCascade && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <button
-                        onClick={() => handleCascadeRedirect(idx - 1, d.id)}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono border border-income/40 text-income hover:bg-income/10 transition-colors"
-                      >
-                        <span>▶▶</span>
-                        Redirect {formatCurrency(sortedDebts[idx - 1].minimumPayment + getExtra(sortedDebts[idx - 1]))}/mo freed from {sortedDebts[idx - 1].name} → this debt
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Cascade arrow between cards */}
-                {cascadeEnabled && idx < sortedDebts.length - 1 && (
-                  <div className="flex items-center justify-center py-1 border-t border-income/20 bg-income/5">
-                    <span className="ticker text-income text-[10px]">▼ freed payment cascades to next debt</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={sortedDebts.map(d => d.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {debtCards}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

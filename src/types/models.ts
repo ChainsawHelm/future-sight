@@ -92,6 +92,7 @@ export interface Debt {
   dueDay: number;
   type: 'mortgage' | 'auto' | 'student' | 'credit_card' | 'personal' | 'other';
   linkedAccount?: string | null;
+  sortOrder: number;
   status: 'active' | 'paid_off';
   createdAt: string;
 }

@@ -220,6 +220,7 @@ model Debt {
   type            String   @default("other") // "mortgage", "auto", "student", "credit_card", "personal", "other"
   linkedAccount   String?
   plaidAccountId  String?  @unique // Plaid account_id, set for auto-created debts
+  sortOrder       Int      @default(0)
   status          String   @default("active") // "active", "paid_off"
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -339,7 +340,7 @@ model Achievement {
 model UserSettings {
   id            String  @id @default(cuid())
   userId        String  @unique
-  darkMode      Boolean @default(false)
+  darkMode      Boolean @default(true)
   currency      String  @default("USD")
   locale        String  @default("en-US")
   dashPeriod    String  @default("all")

@@ -12,6 +12,7 @@ function serializeDebt(d: any) {
     interestRate: Number(d.interestRate),
     minimumPayment: Number(d.minimumPayment),
     extraPayment: Number(d.extraPayment),
+    sortOrder: d.sortOrder ?? 0,
   };
 }
 
@@ -21,7 +22,7 @@ export async function GET() {
 
   const debts = await prisma.debt.findMany({
     where: { userId: result.userId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
   });
 
   return NextResponse.json({ debts: debts.map(serializeDebt) });
