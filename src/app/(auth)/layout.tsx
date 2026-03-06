@@ -5,21 +5,21 @@ import { useEffect } from 'react';
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.add('dark');
+    // Restore saved terminal theme on auth pages too
+    const savedTheme = localStorage.getItem('fs-theme');
+    if (savedTheme && savedTheme !== 'default') {
+      document.documentElement.dataset.theme = savedTheme;
+    }
     return () => {};
   }, []);
 
   return (
-    <div
-      className="relative min-h-screen flex items-center justify-center overflow-hidden font-mono"
-      style={{
-        background: 'hsl(140 20% 3%)',
-      }}
-    >
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden font-mono bg-background">
       {/* Scanline overlay */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(120 100% 60% / 0.03) 2px, hsl(120 100% 60% / 0.03) 4px)',
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(var(--primary) / 0.03) 2px, hsl(var(--primary) / 0.03) 4px)',
         }}
       />
 
@@ -27,7 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: 'linear-gradient(hsl(120 30% 8% / 0.5) 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(hsl(var(--dot) / 0.5) 1px, transparent 1px)',
           backgroundSize: '100% 24px',
           opacity: 0.6,
         }}
@@ -37,7 +37,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 70% 50% at 50% 50%, hsl(120 100% 40% / 0.04), transparent 70%)',
+          background: 'radial-gradient(ellipse 70% 50% at 50% 50%, hsl(var(--primary) / 0.04), transparent 70%)',
         }}
       />
 

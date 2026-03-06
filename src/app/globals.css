@@ -84,6 +84,127 @@
     --surface-3: 140 18% 11%;
     --dot:       120 30%  8%;
   }
+
+  /* ──── THEME: AMBER CRT ──── */
+  .dark[data-theme="amber"] {
+    --foreground:   35 100% 55%;
+    --card-foreground: 35 100% 55%;
+    --popover-foreground: 35 100% 55%;
+    --primary:      35 100% 55%;
+    --primary-foreground: 0 0% 0%;
+    --secondary-foreground: 35 80% 45%;
+    --muted-foreground: 35 50% 28%;
+    --accent:       25 100% 60%;
+    --ring:         35 100% 55%;
+    --border:       35 40% 12%;
+    --income:       80 90% 45%;
+    --neutral:      35 100% 55%;
+    --dot:          35 30% 8%;
+    --background:   25 30% 3%;
+    --card:         25 30% 5%;
+    --surface-0:    25 30% 3%;
+    --surface-1:    25 30% 5%;
+    --surface-2:    25 25% 8%;
+    --surface-3:    25 20% 11%;
+    --input:        25 25% 7%;
+  }
+
+  /* ──── THEME: COOL BLUE (IBM) ──── */
+  .dark[data-theme="blue"] {
+    --foreground:  210 100% 65%;
+    --card-foreground: 210 100% 65%;
+    --popover-foreground: 210 100% 65%;
+    --primary:     210 100% 65%;
+    --primary-foreground: 0 0% 0%;
+    --secondary-foreground: 210 70% 50%;
+    --muted-foreground: 210 40% 30%;
+    --accent:      200 100% 70%;
+    --ring:        210 100% 65%;
+    --border:      210 40% 13%;
+    --income:      160 80% 50%;
+    --neutral:     210 100% 55%;
+    --dot:         210 30% 9%;
+    --background:  220 30% 3%;
+    --card:        220 30% 5%;
+    --surface-0:   220 30% 3%;
+    --surface-1:   220 30% 5%;
+    --surface-2:   220 25% 8%;
+    --surface-3:   220 20% 12%;
+    --input:       220 25% 7%;
+  }
+
+  /* ──── THEME: HOT PINK ──── */
+  .dark[data-theme="pink"] {
+    --foreground:  330 100% 65%;
+    --card-foreground: 330 100% 65%;
+    --popover-foreground: 330 100% 65%;
+    --primary:     330 100% 65%;
+    --primary-foreground: 0 0% 0%;
+    --secondary-foreground: 330 70% 50%;
+    --muted-foreground: 330 35% 30%;
+    --accent:      340 100% 70%;
+    --ring:        330 100% 65%;
+    --border:      330 40% 13%;
+    --income:      160 80% 50%;
+    --neutral:     330 80% 60%;
+    --dot:         330 25% 9%;
+    --background:  320 25% 3%;
+    --card:        320 28% 5%;
+    --surface-0:   320 25% 3%;
+    --surface-1:   320 28% 5%;
+    --surface-2:   320 22% 8%;
+    --surface-3:   320 18% 12%;
+    --input:       320 22% 7%;
+  }
+
+  /* ──── THEME: ARCTIC WHITE ──── */
+  .dark[data-theme="arctic"] {
+    --foreground:    0 0% 80%;
+    --card-foreground: 0 0% 80%;
+    --popover-foreground: 0 0% 80%;
+    --primary:       0 0% 80%;
+    --primary-foreground: 0 0% 0%;
+    --secondary-foreground: 0 0% 60%;
+    --muted-foreground: 0 0% 30%;
+    --accent:        0 0% 90%;
+    --ring:          0 0% 80%;
+    --border:        0 0% 14%;
+    --income:      140 70% 50%;
+    --expense:       0 80% 55%;
+    --neutral:       0 0% 65%;
+    --dot:           0 0% 9%;
+    --background:    0 0% 3%;
+    --card:          0 0% 5%;
+    --surface-0:     0 0% 3%;
+    --surface-1:     0 0% 5%;
+    --surface-2:     0 0% 8%;
+    --surface-3:     0 0% 12%;
+    --input:         0 0% 7%;
+  }
+
+  /* ──── THEME: MATRIX (bright green, higher contrast) ──── */
+  .dark[data-theme="matrix"] {
+    --foreground:  120 100% 50%;
+    --card-foreground: 120 100% 50%;
+    --popover-foreground: 120 100% 50%;
+    --primary:     120 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary-foreground: 120 90% 40%;
+    --muted-foreground: 120 60% 22%;
+    --accent:      120 100% 55%;
+    --ring:        120 100% 50%;
+    --border:      120 60% 10%;
+    --income:      120 100% 50%;
+    --neutral:     120 80% 45%;
+    --dot:         120 40% 6%;
+    --background:    0 0% 1%;
+    --card:          0 0% 2%;
+    --surface-0:     0 0% 1%;
+    --surface-1:     0 0% 2%;
+    --surface-2:   120 15% 5%;
+    --surface-3:   120 12% 8%;
+    --input:         0 0% 3%;
+  }
 }
 
 @layer base {
@@ -110,8 +231,8 @@
       0deg,
       transparent,
       transparent 2px,
-      hsl(120 100% 60% / 0.08) 2px,
-      hsl(120 100% 60% / 0.08) 4px
+      hsl(var(--primary) / 0.08) 2px,
+      hsl(var(--primary) / 0.08) 4px
     );
   }
 
@@ -125,7 +246,7 @@
     z-index: 9998;
     background: radial-gradient(
       ellipse 80% 60% at 50% 50%,
-      hsl(120 100% 40% / 0.03),
+      hsl(var(--primary) / 0.03),
       transparent 70%
     );
   }
@@ -196,8 +317,8 @@
 }
 
 .dark .card {
-  border-color: hsl(120 100% 60% / 0.15);
-  box-shadow: 0 0 8px hsl(120 100% 60% / 0.04);
+  border-color: hsl(var(--primary) / 0.15);
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.04);
 }
 
 .instrument {
@@ -209,7 +330,7 @@
 }
 
 .dark .instrument {
-  border-color: hsl(120 100% 60% / 0.12);
+  border-color: hsl(var(--primary) / 0.12);
 }
 
 /* ══════════════════════════════════════════════
@@ -231,8 +352,8 @@
 }
 
 .dark .text-glow {
-  text-shadow: 0 0 8px hsl(120 100% 60% / 0.5),
-               0 0 20px hsl(120 100% 60% / 0.2);
+  text-shadow: 0 0 8px hsl(var(--primary) / 0.5),
+               0 0 20px hsl(var(--primary) / 0.2);
 }
 
 /* ══════════════════════════════════════════════
@@ -391,8 +512,8 @@
 
 /* Keep gold-pulse name for compatibility but make it green */
 @keyframes gold-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(120 100% 60% / 0); }
-  50%       { box-shadow: 0 0 10px 3px hsl(120 100% 60% / 0.12); }
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  50%       { box-shadow: 0 0 10px 3px hsl(var(--primary) / 0.12); }
 }
 
 .animate-fade-in    { animation: fadeUp 0.25s ease-out both; }
@@ -504,10 +625,10 @@
 .shimmer-text {
   background: linear-gradient(
     105deg,
-    hsl(120 100% 50%) 0%,
-    hsl(120 100% 70%) 40%,
-    hsl(120 100% 50%) 60%,
-    hsl(120 100% 70%) 100%
+    hsl(var(--primary)) 0%,
+    hsl(var(--accent)) 40%,
+    hsl(var(--primary)) 60%,
+    hsl(var(--accent)) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;

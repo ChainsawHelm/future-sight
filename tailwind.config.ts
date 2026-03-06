@@ -113,8 +113,8 @@ const config: Config = {
           from: { strokeDashoffset: '502' },
         },
         'gold-pulse': {
-          '0%, 100%': { boxShadow: '0 0 0 0 hsl(120 100% 60% / 0)' },
-          '50%':      { boxShadow: '0 0 10px 3px hsl(120 100% 60% / 0.12)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 hsl(var(--primary) / 0)' },
+          '50%':      { boxShadow: '0 0 10px 3px hsl(var(--primary) / 0.12)' },
         },
         shimmer: {
           '0%':   { backgroundPosition: '-200% center' },
@@ -139,16 +139,16 @@ const config: Config = {
         'glow-red':   '0 0 15px hsl(var(--expense) / 0.2)',
         'panel':      '0 0 0 1px hsl(var(--border))',
         'inner':      'inset 0 1px 2px hsl(var(--foreground) / 0.04)',
-        'card':       '0 0 8px hsl(120 100% 60% / 0.04)',
-        'terminal':   '0 0 20px hsl(120 100% 60% / 0.06), inset 0 0 60px hsl(120 100% 60% / 0.02)',
+        'card':       '0 0 8px hsl(var(--primary) / 0.04)',
+        'terminal':   '0 0 20px hsl(var(--primary) / 0.06), inset 0 0 60px hsl(var(--primary) / 0.02)',
       },
 
       backgroundImage: {
         'dot-grid':        'linear-gradient(hsl(var(--dot) / 0.5) 1px, transparent 1px)',
         'fenix-grid':      'linear-gradient(hsl(var(--dot) / 0.5) 1px, transparent 1px)',
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gold-gradient':   'linear-gradient(135deg, hsl(120 100% 60%), hsl(120 100% 40%))',
-        'scanlines':       'repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(120 100% 60% / 0.03) 2px, hsl(120 100% 60% / 0.03) 4px)',
+        'gold-gradient':   'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))',
+        'scanlines':       'repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(var(--primary) / 0.03) 2px, hsl(var(--primary) / 0.03) 4px)',
       },
 
       backgroundSize: {

@@ -23,22 +23,40 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 
 const THEMES = [
   {
-    id: 'glasshouse',
-    name: 'Glasshouse',
-    desc: 'Warm sage & terracotta',
-    colors: ['#F6F3EE', '#1F2A2E', '#8FBC8F', '#B8C8B1', '#B26E4A'],
+    id: 'default',
+    name: 'Phosphor Green',
+    desc: 'Classic CRT terminal',
+    colors: ['#0a1a0a', '#33ff33', '#1a3a1a', '#00cc44', '#005500'],
   },
   {
-    id: 'studio-minimal',
-    name: 'Studio Minimal',
-    desc: 'Cool white & ink black',
-    colors: ['#F9FAFB', '#111827', '#8FBC8F', '#CBD5E1', '#9CA3AF'],
+    id: 'amber',
+    name: 'Amber CRT',
+    desc: 'Warm amber monochrome',
+    colors: ['#0d0a04', '#e6a000', '#2a1f0a', '#cc8800', '#664400'],
   },
   {
-    id: 'studio-warm',
-    name: 'Studio Warm',
-    desc: 'Sandy off-white & clay',
-    colors: ['#FAF8F5', '#111827', '#8FBC8F', '#D4B896', '#C1825E'],
+    id: 'blue',
+    name: 'Cool Blue',
+    desc: 'IBM mainframe style',
+    colors: ['#040810', '#4d9eff', '#0a1428', '#3377cc', '#1a3366'],
+  },
+  {
+    id: 'pink',
+    name: 'Hot Pink',
+    desc: 'Cyberpunk terminal',
+    colors: ['#0d040a', '#ff4da6', '#280a1a', '#cc3388', '#661a44'],
+  },
+  {
+    id: 'arctic',
+    name: 'Arctic White',
+    desc: 'Monochrome grayscale',
+    colors: ['#080808', '#cccccc', '#141414', '#999999', '#444444'],
+  },
+  {
+    id: 'matrix',
+    name: 'Matrix',
+    desc: 'Pure black, bright green',
+    colors: ['#020202', '#00ff00', '#001a00', '#00cc00', '#004400'],
   },
 ];
 
@@ -51,7 +69,7 @@ export function SettingsView() {
   const [resetting, setResetting] = useState(false);
   const [resetDone, setResetDone] = useState<{ transactions: number; plaidConnections: number } | null>(null);
   const [activeTheme, setActiveTheme] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('fs-theme') || 'glasshouse' : 'glasshouse'
+    typeof window !== 'undefined' ? localStorage.getItem('fs-theme') || 'default' : 'default'
   );
 
   const updateSettings = useMutation(useCallback((d: any) => settingsApi.update(d), []));
@@ -59,7 +77,7 @@ export function SettingsView() {
   const applyTheme = (id: string) => {
     setActiveTheme(id);
     localStorage.setItem('fs-theme', id);
-    if (id === 'glasshouse') {
+    if (id === 'default') {
       delete document.documentElement.dataset.theme;
     } else {
       document.documentElement.dataset.theme = id;

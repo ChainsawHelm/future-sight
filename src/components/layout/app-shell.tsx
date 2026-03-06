@@ -167,9 +167,14 @@ export function AppShell({ user, children }: AppShellProps) {
   const [darkMode, setDarkMode] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // Dark-first initialization
+  // Dark-first initialization + theme restore
   useEffect(() => {
     document.documentElement.classList.add('dark');
+    // Restore saved terminal theme
+    const savedTheme = localStorage.getItem('fs-theme');
+    if (savedTheme && savedTheme !== 'default') {
+      document.documentElement.dataset.theme = savedTheme;
+    }
     const load = async () => {
       try {
         const res = await settingsApi.get();
