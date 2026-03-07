@@ -48,6 +48,7 @@ model User {
   plaidItems        PlaidItem[]
   plaidAccounts     PlaidAccount[]
   waitListItems     WaitListItem[]
+  accountNicknames  AccountNickname[]
 
   @@map("users")
 }
@@ -419,6 +420,21 @@ model WaitListItem {
 
   @@index([userId, status])
   @@map("wait_list_items")
+}
+
+// ─── Account Nicknames ────────────────────
+
+model AccountNickname {
+  id          String @id @default(cuid())
+  userId      String
+  accountName String // The original account name from transactions
+  nickname    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountName])
+  @@index([userId])
+  @@map("account_nicknames")
 }
 
 // ─── Audit Log ─────────────────────────────

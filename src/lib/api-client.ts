@@ -204,6 +204,16 @@ export const waitlistApi = {
   delete: (id: string) => request<any>(`/api/waitlist?id=${id}`, { method: 'DELETE' }),
 };
 
+// ─── Account Nicknames ─────────────────
+
+export const accountNicknamesApi = {
+  list: () => request<any>('/api/account-nicknames'),
+  upsert: (data: { accountName: string; nickname: string }) =>
+    request<any>('/api/account-nicknames', { method: 'POST', body: JSON.stringify(data) }),
+  delete: (accountName: string) =>
+    request<any>('/api/account-nicknames', { method: 'DELETE', body: JSON.stringify({ accountName }) }),
+};
+
 // ─── Backup ─────────────────────────────────
 
 export const backupApi = {

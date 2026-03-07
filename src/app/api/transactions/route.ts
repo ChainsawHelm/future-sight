@@ -23,10 +23,22 @@ export async function GET(req: NextRequest) {
     if (query.flagged !== undefined) where.flagged = query.flagged;
 
     if (query.search) {
+      // Find accounts whose nickname matches the search term
+      const matchingNicknames = await prisma.accountNickname.findMany({
+        where: {
+          userId,
+          nickname: { contains: query.search, mode: 'insensitive' },
+        },
+        select: { accountName: true },
+      });
+      const nicknameAccounts = matchingNicknames.map(n => n.accountName);
+
       where.OR = [
         { description: { contains: query.search, mode: 'insensitive' } },
         { originalDescription: { contains: query.search, mode: 'insensitive' } },
         { note: { contains: query.search, mode: 'insensitive' } },
+        { account: { contains: query.search, mode: 'insensitive' } },
+        ...(nicknameAccounts.length > 0 ? [{ account: { in: nicknameAccounts } }] : []),
       ];
     }
 

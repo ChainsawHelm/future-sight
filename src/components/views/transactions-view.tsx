@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useTransactions, useCategories } from '@/hooks/use-data';
+import { useTransactions, useCategories, useAccountNicknames } from '@/hooks/use-data';
 import { useMutation } from '@/hooks/use-fetch';
 import { transactionsApi } from '@/lib/api-client';
 import { TransactionTableSkeleton } from '@/components/shared/skeletons';
@@ -69,6 +69,7 @@ function TransactionsViewInner() {
     dateTo: filterDateTo || undefined,
   });
   const { data: categories } = useCategories();
+  const { getDisplayName } = useAccountNicknames();
 
   const updateMutation = useMutation(
     useCallback(({ id, data }: { id: string; data: any }) => transactionsApi.update(id, data), [])
@@ -285,7 +286,7 @@ function TransactionsViewInner() {
           >
             <option value="">All accounts</option>
             {accounts.map((a) => (
-              <option key={a} value={a}>{a}</option>
+              <option key={a} value={a}>{getDisplayName(a)}</option>
             ))}
           </select>
         )}
@@ -501,7 +502,7 @@ function TransactionsViewInner() {
                         <CategoryBadge category={t.category} />
                       )}
                     </td>
-                    <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground">{t.account}</td>
+                    <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground" title={t.account}>{getDisplayName(t.account)}</td>
                     <td className="px-3 py-2.5 text-right">
                       <Amount value={t.amount} size="sm" showSign />
                     </td>

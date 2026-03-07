@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useFetch } from './use-fetch';
-import { dashboardApi, transactionsApi, categoriesApi } from '@/lib/api-client';
+import { dashboardApi, transactionsApi, categoriesApi, accountNicknamesApi } from '@/lib/api-client';
 import type { DashboardData, Transaction, TransactionQuery, Category } from '@/types/models';
 
 // ─── Dashboard ──────────────────────────────
@@ -51,4 +51,39 @@ export function useCategories() {
     },
     []
   );
+}
+
+// ─── Account Nicknames ─────────────────
+
+export interface AccountNickname {
+  id: string;
+  accountName: string;
+  nickname: string;
+}
+
+export function useAccountNicknames() {
+  const result = useFetch<AccountNickname[]>(
+    async () => {
+      const res = await accountNicknamesApi.list();
+      return res.nicknames as AccountNickname[];
+    },
+    []
+  );
+
+  const nicknameMap: Record<string, string> = {};
+  if (result.data) {
+    for (const n of result.data) nicknameMap[n.accountName] = n.nickname;
+  }
+
+  const getDisplayName = (accountName: string) =>
+    nicknameMap[accountName] || accountName;
+
+  const matchesSearch = (accountName: string, query: string) => {
+    const q = query.toLowerCase();
+    const nickname = nicknameMap[accountName];
+    return accountName.toLowerCase().includes(q) ||
+      (nickname ? nickname.toLowerCase().includes(q) : false);
+  };
+
+  return { ...result, nicknameMap, getDisplayName, matchesSearch };
 }

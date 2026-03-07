@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFetch } from '@/hooks/use-fetch';
+import { useAccountNicknames } from '@/hooks/use-data';
 import { transactionsApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
@@ -13,9 +15,11 @@ import type { Transaction } from '@/types/models';
 
 export function ReportsView() {
   const { data, error, isLoading, refetch } = useFetch(
-    () => transactionsApi.list({ limit: 200, sort: 'date', order: 'desc' }), []
+    () => transactionsApi.list({ limit: 5000, sort: 'date', order: 'desc' }), []
   );
   const [period, setPeriod] = useState<'month' | 'year'>('month');
+  const { getDisplayName } = useAccountNicknames();
+  const router = useRouter();
 
   const txns: Transaction[] = data?.transactions || [];
 
@@ -75,6 +79,16 @@ export function ReportsView() {
           }
           const topCats = Object.entries(catBreakdown).sort(([, a], [, b]) => b - a).slice(0, 5);
 
+          // Account breakdown
+          const acctBreakdown: Record<string, { income: number; expenses: number; count: number }> = {};
+          for (const t of periodTxns) {
+            if (!acctBreakdown[t.account]) acctBreakdown[t.account] = { income: 0, expenses: 0, count: 0 };
+            acctBreakdown[t.account].count++;
+            if (t.amount > 0) acctBreakdown[t.account].income += t.amount;
+            else acctBreakdown[t.account].expenses += Math.abs(t.amount);
+          }
+          const sortedAccounts = Object.entries(acctBreakdown).sort(([, a], [, b]) => (b.income + b.expenses) - (a.income + a.expenses));
+
           return (
             <div key={p} className="border bg-card p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -93,6 +107,29 @@ export function ReportsView() {
                       <span className="flex items-center gap-1.5"><CategoryDot category={cat} size={6} />{cat}</span>
                       <span className="tabnum">{formatCurrency(amt)}</span>
                     </div>
+                  ))}
+                </div>
+              )}
+              {sortedAccounts.length > 0 && (
+                <div className="border-t pt-3 mt-3 space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">By Account</p>
+                  {sortedAccounts.map(([acct, stats]) => (
+                    <button
+                      key={acct}
+                      onClick={() => router.push(`/transactions?account=${encodeURIComponent(acct)}`)}
+                      className="flex items-center justify-between text-xs w-full text-left hover:bg-primary/5 px-1.5 py-1 -mx-1.5 transition-colors group"
+                    >
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-1.5 h-1.5 bg-primary/40 shrink-0" />
+                        <span className="truncate group-hover:text-primary transition-colors">
+                          {getDisplayName(acct)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{stats.count}</span>
+                      </span>
+                      <span className="tabnum text-muted-foreground shrink-0 ml-2">
+                        {formatCurrency(stats.income + stats.expenses)}
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}

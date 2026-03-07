@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
-import { settingsApi, backupApi, resetApi, accountApi } from '@/lib/api-client';
+import { settingsApi, backupApi, resetApi, accountApi, accountNicknamesApi, transactionsApi } from '@/lib/api-client';
 
 import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
@@ -79,6 +79,31 @@ export function SettingsView() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  // Account nicknames
+  const { data: nicknamesData, refetch: refetchNicknames } = useFetch<any>(() => accountNicknamesApi.list(), []);
+  const { data: txnData } = useFetch<any>(() => transactionsApi.list({ limit: 5000 }), []);
+  const [editingNickname, setEditingNickname] = useState<string | null>(null);
+  const [nicknameValue, setNicknameValue] = useState('');
+
+  const nicknames: { id: string; accountName: string; nickname: string }[] = nicknamesData?.nicknames || [];
+  const nicknameMap: Record<string, string> = {};
+  for (const n of nicknames) nicknameMap[n.accountName] = n.nickname;
+
+  const allAccounts = [...new Set((txnData?.transactions || []).map((t: any) => t.account as string))].sort() as string[];
+
+  const handleSaveNickname = async (accountName: string) => {
+    if (!nicknameValue.trim()) return;
+    await accountNicknamesApi.upsert({ accountName, nickname: nicknameValue.trim() });
+    setEditingNickname(null);
+    setNicknameValue('');
+    refetchNicknames();
+  };
+
+  const handleDeleteNickname = async (accountName: string) => {
+    await accountNicknamesApi.delete(accountName);
+    refetchNicknames();
+  };
 
   const updateSettings = useMutation(useCallback((d: any) => settingsApi.update(d), []));
 
@@ -267,6 +292,64 @@ export function SettingsView() {
           <Toggle on={settings.budgetRollover} onToggle={() => toggle('budgetRollover', !settings.budgetRollover)} />
         </div>
       </div>
+
+      {/* Account Nicknames */}
+      {allAccounts.length > 0 && (
+        <div className="border border-border bg-surface-1 p-5 space-y-4">
+          <p className="ticker text-primary">Account Nicknames</p>
+          <p className="text-xs text-muted-foreground">
+            Give your accounts friendly names. Nicknames appear throughout the app and are searchable.
+          </p>
+          <div className="space-y-2">
+            {allAccounts.map(acct => {
+              const existing = nicknameMap[acct];
+              const isEditing = editingNickname === acct;
+              return (
+                <div key={acct} className="flex items-center gap-3 py-1.5 border-b border-border last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-mono text-foreground truncate">{acct}</p>
+                    {existing && !isEditing && (
+                      <p className="text-[11px] text-primary truncate">{existing}</p>
+                    )}
+                  </div>
+                  {isEditing ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={nicknameValue}
+                        onChange={e => setNicknameValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaveNickname(acct); if (e.key === 'Escape') setEditingNickname(null); }}
+                        placeholder="Nickname..."
+                        autoFocus
+                        className="h-7 w-40 px-2 text-xs bg-surface-2 border border-border focus:border-primary outline-none"
+                      />
+                      <button onClick={() => handleSaveNickname(acct)} className="text-primary hover:text-primary/70 text-xs font-medium">Save</button>
+                      <button onClick={() => setEditingNickname(null)} className="text-muted-foreground hover:text-foreground text-xs">Cancel</button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => { setEditingNickname(acct); setNicknameValue(existing || ''); }}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {existing ? 'Edit' : 'Add nickname'}
+                      </button>
+                      {existing && (
+                        <button
+                          onClick={() => handleDeleteNickname(acct)}
+                          className="text-xs text-red-500 hover:text-red-400 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Data Management */}
       <div className="border border-border bg-surface-1 p-5 space-y-4">
