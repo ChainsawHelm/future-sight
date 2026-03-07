@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useFetch } from './use-fetch';
 import { dashboardApi, transactionsApi, categoriesApi, accountNicknamesApi } from '@/lib/api-client';
 import type { DashboardData, Transaction, TransactionQuery, Category } from '@/types/models';
@@ -70,20 +70,28 @@ export function useAccountNicknames() {
     []
   );
 
-  const nicknameMap: Record<string, string> = {};
-  if (result.data) {
-    for (const n of result.data) nicknameMap[n.accountName] = n.nickname;
-  }
+  const nicknameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (result.data) {
+      for (const n of result.data) map[n.accountName] = n.nickname;
+    }
+    return map;
+  }, [result.data]);
 
-  const getDisplayName = (accountName: string) =>
-    nicknameMap[accountName] || accountName;
+  const getDisplayName = useCallback(
+    (accountName: string) => nicknameMap[accountName] || accountName,
+    [nicknameMap]
+  );
 
-  const matchesSearch = (accountName: string, query: string) => {
-    const q = query.toLowerCase();
-    const nickname = nicknameMap[accountName];
-    return accountName.toLowerCase().includes(q) ||
-      (nickname ? nickname.toLowerCase().includes(q) : false);
-  };
+  const matchesSearch = useCallback(
+    (accountName: string, query: string) => {
+      const q = query.toLowerCase();
+      const nickname = nicknameMap[accountName];
+      return accountName.toLowerCase().includes(q) ||
+        (nickname ? nickname.toLowerCase().includes(q) : false);
+    },
+    [nicknameMap]
+  );
 
   return { ...result, nicknameMap, getDisplayName, matchesSearch };
 }

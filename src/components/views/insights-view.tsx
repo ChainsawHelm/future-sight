@@ -7,6 +7,7 @@ import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
 import { CategoryDot, getCategoryColor } from '@/components/shared/category-badge';
 import { formatCurrency, cn } from '@/lib/utils';
+import { ChartTip, AXIS_STYLE } from '@/components/shared/chart-helpers';
 import { isRealExpense, isRealIncome } from '@/lib/classify';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
@@ -26,21 +27,6 @@ const BENCHMARKS: { label: string; blsPct: number; categories: string[] }[] = [
   { label: 'Personal Care',  blsPct: 1,  categories: ['Personal Care', 'Haircut', 'Beauty', 'Gym', 'Fitness'] },
 ];
 
-const AXIS_STYLE = { fontSize: 10, fontFamily: 'var(--font-mono)', fill: 'hsl(var(--muted-foreground))' };
-
-const ChartTip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="border border-border bg-surface-2 px-3 py-2 shadow-lg text-xs font-mono">
-      {label && <p className="text-muted-foreground mb-1 uppercase tracking-wider text-[10px]">{label}</p>}
-      {payload.map((p: any, i: number) => (
-        <p key={i} style={{ color: p.color || p.fill }}>
-          {p.name}: {formatCurrency(p.value)}
-        </p>
-      ))}
-    </div>
-  );
-};
 
 function AlertCard({ type, title, body }: { type: 'warn' | 'good' | 'info'; title: string; body: string }) {
   const colors = {

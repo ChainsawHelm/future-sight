@@ -8,7 +8,7 @@ import { DashboardSkeleton } from '@/components/shared/skeletons';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
 import { getCategoryColor } from '@/components/shared/category-badge';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { isRealIncome, isRealExpense } from '@/lib/classify';
 import { SankeyChart } from './sankey-chart';
 import {
@@ -17,7 +17,6 @@ import {
   LabelList,
   AreaChart, Area,
 } from 'recharts';
-import { cn } from '@/lib/utils';
 
 /* ══════════════════════════════════════════
    PERIOD HELPERS

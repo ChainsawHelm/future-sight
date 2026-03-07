@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, Suspense } from 'react';
+import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTransactions, useCategories, useAccountNicknames } from '@/hooks/use-data';
 import { useMutation } from '@/hooks/use-fetch';
@@ -86,6 +86,7 @@ function TransactionsViewInner() {
   const [expenseMsg, setExpenseMsg] = useState<string | null>(null);
   const [expensedTxIds, setExpensedTxIds] = useState<Set<string>>(new Set());
   const [expenseDropdownId, setExpenseDropdownId] = useState<string | null>(null);
+  const [expenseDropdownPos, setExpenseDropdownPos] = useState<{ top: number; left: number } | null>(null);
 
   const fetchExpenseReports = useCallback(() => {
     expenseReportsApi.list().then(res => {
@@ -109,6 +110,7 @@ function TransactionsViewInner() {
     setExpenseMsg(`Added ${res.added} transaction(s) to expense report`);
     if (!txIds) setSelectedIds(new Set());
     setExpenseDropdownId(null);
+    setExpenseDropdownPos(null);
     fetchExpenseReports();
     setTimeout(() => setExpenseMsg(null), 3000);
   };
@@ -116,7 +118,7 @@ function TransactionsViewInner() {
   const transactions = data?.transactions || [];
   const pagination = data?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 };
 
-  const accounts = [...new Set(transactions.map((t) => t.account))].sort();
+  const accounts = useMemo(() => [...new Set(transactions.map((t) => t.account))].sort(), [transactions]);
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -184,7 +186,7 @@ function TransactionsViewInner() {
     setQuery((q) => ({ ...q, page: 1 }));
   };
 
-  const datePresets = (() => {
+  const datePresets = useMemo(() => {
     const now = new Date();
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
     const startOf = (d: Date) => { d.setHours(0, 0, 0, 0); return d; };
@@ -211,7 +213,7 @@ function TransactionsViewInner() {
     }
 
     return presets;
-  })();
+  }, []);
 
   const toggleSort = (field: TransactionQuery['sort']) => {
     setQuery((q) => ({
@@ -592,7 +594,17 @@ function TransactionsViewInner() {
                           {/* Expense report quick-add */}
                           <div className="relative">
                             <button
-                              onClick={(e) => { e.stopPropagation(); setExpenseDropdownId(expenseDropdownId === t.id ? null : t.id); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (expenseDropdownId === t.id) {
+                                  setExpenseDropdownId(null);
+                                  setExpenseDropdownPos(null);
+                                } else {
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  setExpenseDropdownPos({ top: rect.bottom + 4, left: rect.right });
+                                  setExpenseDropdownId(t.id);
+                                }
+                              }}
                               className={cn(
                                 'transition-colors',
                                 expensedTxIds.has(t.id)
@@ -607,15 +619,18 @@ function TransactionsViewInner() {
                                 {expensedTxIds.has(t.id) && <path d="M9 14l2 2 4-4" />}
                               </svg>
                             </button>
-                            {expenseDropdownId === t.id && expenseReports.length > 0 && (
+                            {expenseDropdownId === t.id && expenseDropdownPos && expenseReports.length > 0 && (
                               <>
-                                <div className="fixed inset-0 z-40" onClick={() => setExpenseDropdownId(null)} />
-                                <div className="absolute right-0 top-6 z-50 bg-surface-1 border border-border shadow-lg min-w-[180px] py-1 animate-fade-in">
+                                <div className="fixed inset-0 z-[9998]" onClick={() => { setExpenseDropdownId(null); setExpenseDropdownPos(null); }} />
+                                <div
+                                  className="fixed z-[9999] bg-surface-1 border border-border shadow-lg min-w-[180px] py-1 animate-fade-in"
+                                  style={{ top: expenseDropdownPos.top, left: expenseDropdownPos.left, transform: 'translateX(-100%)' }}
+                                >
                                   <p className="px-3 py-1 text-[10px] text-muted-foreground font-mono">Add to report:</p>
                                   {expenseReports.map(r => (
                                     <button
                                       key={r.id}
-                                      onClick={(e) => { e.stopPropagation(); handleAddToExpenseReport(r.id, [t.id]); }}
+                                      onClick={(e) => { e.stopPropagation(); handleAddToExpenseReport(r.id, [t.id]); setExpenseDropdownPos(null); }}
                                       className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary/5 hover:text-primary transition-colors truncate"
                                     >
                                       {r.title}
@@ -624,10 +639,13 @@ function TransactionsViewInner() {
                                 </div>
                               </>
                             )}
-                            {expenseDropdownId === t.id && expenseReports.length === 0 && (
+                            {expenseDropdownId === t.id && expenseDropdownPos && expenseReports.length === 0 && (
                               <>
-                                <div className="fixed inset-0 z-40" onClick={() => setExpenseDropdownId(null)} />
-                                <div className="absolute right-0 top-6 z-50 bg-surface-1 border border-border shadow-lg min-w-[180px] py-2 px-3 animate-fade-in">
+                                <div className="fixed inset-0 z-[9998]" onClick={() => { setExpenseDropdownId(null); setExpenseDropdownPos(null); }} />
+                                <div
+                                  className="fixed z-[9999] bg-surface-1 border border-border shadow-lg min-w-[180px] py-2 px-3 animate-fade-in"
+                                  style={{ top: expenseDropdownPos.top, left: expenseDropdownPos.left, transform: 'translateX(-100%)' }}
+                                >
                                   <p className="text-[11px] text-muted-foreground">No draft reports. Create one in <a href="/expenses" className="text-primary hover:underline">Expenses</a>.</p>
                                 </div>
                               </>
