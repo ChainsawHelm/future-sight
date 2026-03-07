@@ -384,12 +384,41 @@ function AddTransactionsView({
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const existingTxIds = new Set(report.items.map(i => i.transactionId));
 
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const today = fmt(new Date());
+  const minus = (days: number) => fmt(new Date(Date.now() - days * 864e5));
+
+  const datePresets = [
+    { label: '1D',  from: today,      to: today },
+    { label: '7D',  from: minus(6),   to: today },
+    { label: '30D', from: minus(29),  to: today },
+    { label: '3M',  from: minus(89),  to: today },
+    { label: '6M',  from: minus(179), to: today },
+    { label: '1Y',  from: minus(364), to: today },
+  ];
+
+  const applyPreset = (label: string, from: string, to: string) => {
+    if (activePreset === label) {
+      setActivePreset(null); setDateFrom(''); setDateTo('');
+    } else {
+      setActivePreset(label); setDateFrom(from); setDateTo(to);
+    }
+  };
+
   const { data, isLoading } = useFetch(
-    () => transactionsApi.list({ limit: 200, sort: 'date', order: 'desc', search: search || undefined }),
-    [search]
+    () => transactionsApi.list({
+      limit: 200, sort: 'date', order: 'desc',
+      search: search || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    }),
+    [search, dateFrom, dateTo]
   );
 
   const transactions: Transaction[] = (data?.transactions || []).filter(
@@ -438,6 +467,24 @@ function AddTransactionsView({
         value={search}
         onChange={e => setSearch(e.target.value)}
       />
+
+      {/* Date presets */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {datePresets.map(p => (
+          <button
+            key={p.label}
+            onClick={() => applyPreset(p.label, p.from, p.to)}
+            className={cn(
+              'px-2.5 py-1 text-[11px] font-mono border transition-colors',
+              activePreset === p.label
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border bg-surface-1 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
 
       {isLoading ? (
         <PageLoader message="Loading transactions..." />
