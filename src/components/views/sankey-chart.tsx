@@ -59,13 +59,14 @@ function catColor(cat: string) { return CAT_COLORS[cat] || '#6A7A9A'; }
 /* ══════════════════════════════════════════════════════════════════
    LAYOUT
 ══════════════════════════════════════════════════════════════════ */
-const GAP        = 7;
+const GAP        = 5;
 const NODE_W     = 12;
-const MIN_NODE_H = 20;
+const MIN_NODE_H = 16;
 const LABEL_PAD  = 10;
 
 // Column fractions: where each column's node bar starts (left edge)
-const COL_FRACS_4 = [0.03, 0.31, 0.60, 0.84];
+// Shifted merchant column left to give right-side labels more breathing room
+const COL_FRACS_4 = [0.03, 0.28, 0.53, 0.76];
 const COL_FRACS_2 = [0.03, 0.74];
 
 function simplifyMerchant(desc: string): string {
@@ -113,7 +114,7 @@ function buildSankeyData(
   svgW: number,
   isMobile: boolean,
   showAll: boolean = false,
-): { nodes: Node[]; links: Link[] } {
+): { nodes: Node[]; links: Link[]; maxColCount: number } {
   const incomeBySource: Record<string, number> = {};
   const incomeBySourceAccount: Record<string, Record<string, number>> = {};
   const expenseByAccount: Record<string, Record<string, number>> = {};
@@ -262,7 +263,12 @@ function buildSankeyData(
     tgtConsumed[rl.targetId] = tgtUsed + tgtBand;
   }
 
-  return { nodes, links };
+  // Return the max node count in any column so the component can size the SVG
+  const colCounts = [0, 0, 0, 0];
+  for (const n of nodes) colCounts[n.column] = (colCounts[n.column] || 0) + 1;
+  const maxColCount = Math.max(...colCounts);
+
+  return { nodes, links, maxColCount };
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -293,16 +299,27 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
   }, []);
 
   const isMobile = width < 520;
-  const showAll = period === 'all';
-  // Dynamic height: tall doubles the base, showAll adds extra for many nodes
-  const baseSvgH = isMobile ? 280 : (tall ? 720 : 360);
-  const svgH = showAll ? Math.max(baseSvgH, baseSvgH + (transactions.length > 100 ? 300 : 100)) : baseSvgH;
+  // tall prop = dedicated page = show all merchants/categories, no limits
+  const showAll = !!tall;
   const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_4;
   const colLabels = isMobile ? COL_LABELS_2 : COL_LABELS_4;
-  const { nodes, links } = useMemo(
-    () => buildSankeyData(transactions, svgH, width, isMobile, showAll),
-    [transactions, svgH, width, isMobile, showAll]
-  );
+
+  // First pass: build data to find how many nodes we have
+  // Then compute SVG height based on the tallest column
+  const { nodes, links, svgH } = useMemo(() => {
+    // Initial pass with a temporary height to get node counts
+    const preliminary = buildSankeyData(transactions, 720, width, isMobile, showAll);
+    const nodeCount = preliminary.maxColCount;
+
+    // Scale height: each node needs ~(MIN_NODE_H + GAP) minimum, plus padding
+    const minH = isMobile ? 280 : (tall ? 720 : 360);
+    const dynamicH = nodeCount * (MIN_NODE_H + GAP) + 16;
+    const finalH = Math.max(minH, dynamicH);
+
+    // Rebuild with the correct height
+    const result = buildSankeyData(transactions, finalH, width, isMobile, showAll);
+    return { nodes: result.nodes, links: result.links, svgH: finalH };
+  }, [transactions, width, isMobile, showAll, tall]);
 
   const handleNodeClick = (node: Node) => {
     const dateParts = [
@@ -400,12 +417,14 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
           {nodes.map(node => {
             const x = colFracs[node.column] * width;
             const isHovered = hoveredNode === node.id;
-            // Labels: cols 0 & 1 go to the right of the node, cols 2 & 3 go to the left
-            const labelRight = node.column >= (isMobile ? 1 : 2);
+            // Labels: col 0 & 1 right of bar, col 2 left of bar (between ribbons), col 3 right of bar (outside)
+            const labelRight = node.column === 2 && !isMobile;
             const labelX = labelRight ? x - LABEL_PAD : x + NODE_W + LABEL_PAD;
             const anchor  = labelRight ? 'end' : 'start';
-            const label   = truncate(node.label, isMobile ? 11 : 14);
-            const showVal = isHovered || node.h > 28;
+            // Merchants (col 3) get more room since labels render outside the chart
+            const maxChars = isMobile ? 11 : (node.column === 3 ? 22 : 14);
+            const label   = truncate(node.label, maxChars);
+            const showVal = isHovered || node.h > 26;
             const midY    = node.y + node.h / 2;
 
             return (
