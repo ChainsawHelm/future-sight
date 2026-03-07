@@ -241,8 +241,7 @@ export function ImportView() {
           fileGroups={state.fileGroups}
           sessionRulesCount={state.sessionRules.size}
           onProceed={() => {
-            const hasUncategorized = state.uncategorizedQueue.length > 0;
-            dispatch({ type: 'ADVANCE_PHASE', phase: hasUncategorized ? 'categorize' : 'confirm' });
+            dispatch({ type: 'ADVANCE_PHASE', phase: 'confirm' });
           }}
           onReset={handleReset}
         />
@@ -261,7 +260,7 @@ export function ImportView() {
         />
       )}
 
-      {state.phase === 'confirm' && (
+      {state.phase === 'confirm' && categories && (
         <ConfirmPhase
           stats={state.stats}
           merchantMap={state.merchantMap}
@@ -270,7 +269,9 @@ export function ImportView() {
           isImporting={importMutation.isLoading}
           error={state.error}
           sessionRulesCount={state.sessionRules.size}
+          categories={categories}
           onToggleDupes={() => dispatch({ type: 'TOGGLE_DUPES' })}
+          onReassign={handleCategorize}
           onConfirm={handleConfirmImport}
           onReset={handleReset}
         />

@@ -566,13 +566,78 @@ export function categorizeTransaction(
     }
   }
 
-  // ── 4. Default ────────────────────────────────────────────────────────────
-  // Positive credits that hit no rules → generic income
+  // ── 4. Smart fallback — always take a best guess ─────────────────────────
   if (amount > 0) {
     return { category: 'Income', autoMatched: false };
   }
 
-  return { category: 'Uncategorized', autoMatched: false };
+  // Heuristic guesses for negative amounts based on description patterns
+  const guess = guessCategory(upper, amount);
+  return { category: guess, autoMatched: false };
+}
+
+/**
+ * Best-guess categorization when no keyword or merchant rule matched.
+ * Uses word-level heuristics on the description to make a reasonable guess.
+ * Never returns "Uncategorized" — always picks the most likely category.
+ */
+function guessCategory(upperDesc: string, amount: number): string {
+  // Food/dining signals
+  if (/\b(FOOD|EAT|KITCHEN|BAKERY|BREW|PUB|BAR |TAQUERIA|WOK|BBQ|BURRITO|WINGS|CHICKEN|THAI|CHINESE|MEXICAN|ITALIAN|INDIAN|KOREAN|VIETNAMESE|POKE|BOWL|NOODLE|SANDWICH|BAGEL|DONUT|WAFFLE|PANCAKE|ICE CREAM|YOGURT|DESSERT|CREAMERY|COFFEE|TEA |JUICE|TAVERN|CANTINA|TAPROOM|STEAKHOUSE)\b/.test(upperDesc)) {
+    return 'Dining';
+  }
+
+  // Grocery signals
+  if (/\b(MARKET|GROCER|PRODUCE|ORGANIC|FARM|BUTCHER|DELI|SUPERMARKET|MINI MART|CONVENIENCE)\b/.test(upperDesc)) {
+    return 'Groceries';
+  }
+
+  // Gas/fuel signals
+  if (/\b(PETRO|PUMP|DIESEL|FILL UP|PROPANE)\b/.test(upperDesc)) {
+    return 'Gas';
+  }
+
+  // Medical/health signals
+  if (/\b(DR\.|DR |HEALTH|MED |CARE|LABS|DIAGNOSTIC|IMAGING|SURGERY|DENTAL|ORTHO|CHIRO|DERMA|PSYCH|PHYSICAL THERAPY|QUEST DIAG|LABCORP)\b/.test(upperDesc)) {
+    return 'Healthcare';
+  }
+
+  // Subscription/recurring signals
+  if (/\b(SUBSCRIPTION|MONTHLY|RECURRING|RENEWAL|ANNUAL FEE|MEMBERSHIP)\b/.test(upperDesc)) {
+    return 'Subscriptions';
+  }
+
+  // Insurance signals
+  if (/\b(INSURANCE|GEICO|STATE FARM|ALLSTATE|PROGRESSIVE|LIBERTY MUTUAL|USAA|FARMERS|NATIONWIDE)\b/.test(upperDesc)) {
+    return 'Insurance';
+  }
+
+  // Utility/bill signals
+  if (/\b(BILL PAY|UTILITY|POWER|ENERGY|WATER|SEWER|TELECOM)\b/.test(upperDesc)) {
+    return 'Utilities';
+  }
+
+  // Childcare/kids
+  if (/\b(DAYCARE|CHILDCARE|PRESCHOOL|SCHOOL|TUTOR|CAMP)\b/.test(upperDesc)) {
+    return 'Education';
+  }
+
+  // Home improvement
+  if (/\b(HARDWARE|PLUMBING|ELECTRIC|CONTRACTOR|LANDSCAP|LAWN|GARDEN|NURSERY|ACE HARDWARE|MENARDS|HARBOR FREIGHT)\b/.test(upperDesc)) {
+    return 'Shopping';
+  }
+
+  // Amount-based heuristics for remaining unknowns
+  const absAmt = Math.abs(amount);
+
+  // Small charges (<$20) are likely dining/coffee/snacks
+  if (absAmt < 20) return 'Dining';
+
+  // Medium charges ($20-$100) are likely shopping
+  if (absAmt < 100) return 'Shopping';
+
+  // Larger charges default to shopping (most common general expense)
+  return 'Shopping';
 }
 
 /**

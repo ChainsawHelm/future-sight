@@ -18,7 +18,6 @@ export function SummaryPhase({ stats, merchantMap, uncategorizedCount, fileGroup
   const categorizedCount = stats.total - uncategorizedCount - stats.duplicates;
   const categorizedPct = stats.total > 0 ? Math.round((categorizedCount / stats.total) * 100) : 0;
   const merchantCount = merchantMap.size;
-  const uncategorizedMerchants = Array.from(merchantMap.values()).filter(g => g.category === 'Uncategorized').length;
 
   return (
     <div className="space-y-4">
@@ -61,22 +60,10 @@ export function SummaryPhase({ stats, merchantMap, uncategorizedCount, fileGroup
           )}
         </div>
 
-        {uncategorizedMerchants > 0 ? (
-          <div className="border border-yellow-500/30 bg-yellow-500/5 px-4 py-3 mb-4">
-            <p className="text-sm font-semibold text-yellow-400 mb-1">
-              {uncategorizedMerchants} merchant{uncategorizedMerchants !== 1 ? 's' : ''} need{uncategorizedMerchants === 1 ? 's' : ''} your input
-            </p>
-            <p className="ticker text-yellow-400/70">
-              {uncategorizedCount} transaction{uncategorizedCount !== 1 ? 's' : ''} across these merchants.
-              You&apos;ll categorize them one at a time — takes about {Math.max(1, Math.ceil(uncategorizedMerchants / 4))} minute{uncategorizedMerchants > 4 ? 's' : ''}.
-            </p>
-          </div>
-        ) : (
-          <div className="border border-primary/30 bg-primary/5 px-4 py-3 mb-4">
-            <p className="text-sm font-semibold text-primary">All merchants categorized</p>
-            <p className="ticker text-primary/70">Ready to import — no manual categorization needed.</p>
-          </div>
-        )}
+        <div className="border border-primary/30 bg-primary/5 px-4 py-3 mb-4">
+          <p className="text-sm font-semibold text-primary">All merchants categorized</p>
+          <p className="ticker text-primary/70">Review merchants grouped by category on the next screen — fix any that don&apos;t belong.</p>
+        </div>
 
         {fileGroups.length > 1 && (
           <div className="flex flex-wrap gap-1 mb-3">
@@ -93,10 +80,7 @@ export function SummaryPhase({ stats, merchantMap, uncategorizedCount, fileGroup
           onClick={onProceed}
           className="h-9 px-5 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors shadow-[0_0_12px_hsl(var(--primary)/0.2)]"
         >
-          {uncategorizedMerchants > 0
-            ? `Review ${uncategorizedMerchants} Merchant${uncategorizedMerchants !== 1 ? 's' : ''}`
-            : 'Confirm Import'
-          }
+          Review & Import
         </button>
       </div>
     </div>
