@@ -293,13 +293,12 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
   }, []);
 
   const isMobile = width < 520;
+  const showAll = period === 'all';
   // Dynamic height: tall doubles the base, showAll adds extra for many nodes
   const baseSvgH = isMobile ? 280 : (tall ? 720 : 360);
   const svgH = showAll ? Math.max(baseSvgH, baseSvgH + (transactions.length > 100 ? 300 : 100)) : baseSvgH;
   const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_4;
   const colLabels = isMobile ? COL_LABELS_2 : COL_LABELS_4;
-
-  const showAll = period === 'all';
   const { nodes, links } = useMemo(
     () => buildSankeyData(transactions, svgH, width, isMobile, showAll),
     [transactions, svgH, width, isMobile, showAll]
