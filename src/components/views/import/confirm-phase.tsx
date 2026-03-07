@@ -28,6 +28,39 @@ export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, is
   const [reassigning, setReassigning] = useState<string | null>(null);
   const [creatingCustom, setCreatingCustom] = useState(false);
   const [customName, setCustomName] = useState('');
+  const [diagResult, setDiagResult] = useState('');
+  const [isDiagRunning, setIsDiagRunning] = useState(false);
+
+  const runDiagnostic = async () => {
+    setIsDiagRunning(true);
+    setDiagResult('Sending 1 test transaction to /api/transactions/bulk...');
+    try {
+      const res = await fetch('/api/transactions/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'FutureSight',
+        },
+        body: JSON.stringify({
+          transactions: [{
+            date: '2025-01-01',
+            description: 'DIAGNOSTIC TEST - DELETE ME',
+            amount: -1.00,
+            category: 'Uncategorized',
+            account: 'Test',
+            autoMatched: false,
+            flagged: false,
+          }],
+        }),
+      });
+      const body = await res.text();
+      setDiagResult(`Status: ${res.status} ${res.statusText}\nBody: ${body}`);
+    } catch (err: any) {
+      setDiagResult(`Network error: ${err.message}`);
+    } finally {
+      setIsDiagRunning(false);
+    }
+  };
 
   const groups = Array.from(merchantMap.values());
 
@@ -273,7 +306,13 @@ export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, is
 
       {error && <ErrorAlert message={error} />}
 
-      <div className="flex gap-3">
+      {diagResult && (
+        <pre className="text-xs bg-surface-2 p-3 border border-border overflow-auto max-h-48 whitespace-pre-wrap font-mono">
+          {diagResult}
+        </pre>
+      )}
+
+      <div className="flex gap-3 items-center">
         <Button variant="outline" onClick={onReset}>Cancel</Button>
         <button
           onClick={onConfirm}
@@ -281,6 +320,13 @@ export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, is
           className="h-9 px-5 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors disabled:opacity-40 shadow-[0_0_12px_hsl(var(--primary)/0.2)]"
         >
           {isImporting ? 'Importing...' : `Import ${importCount} Transactions`}
+        </button>
+        <button
+          onClick={runDiagnostic}
+          disabled={isDiagRunning}
+          className="ticker text-[10px] text-muted-foreground hover:text-primary underline disabled:opacity-40"
+        >
+          {isDiagRunning ? 'Testing...' : 'Test 1 Transaction'}
         </button>
       </div>
     </div>

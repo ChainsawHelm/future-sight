@@ -14,23 +14,37 @@ class ApiError extends Error {
 
 async function request<T>(
   url: string,
-  options?: RequestInit
+  options?: RequestInit & { timeoutMs?: number }
 ): Promise<T> {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Requested-With': 'FutureSight', // CSRF protection — verified server-side
-      ...options?.headers,
-    },
-  });
+  const timeoutMs = options?.timeoutMs ?? 30000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new ApiError(body.error || 'Request failed', res.status);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'FutureSight', // CSRF protection — verified server-side
+        ...options?.headers,
+      },
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }));
+      throw new ApiError(`[${res.status}] ${body.error || res.statusText}`, res.status);
+    }
+
+    return res.json();
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new ApiError('Request timed out. The server took too long to respond.', 408);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return res.json();
 }
 
 function qs(params: Record<string, any>): string {
@@ -61,7 +75,7 @@ export const transactionsApi = {
     request<any>(`/api/transactions/${id}`, { method: 'DELETE' }),
 
   bulkCreate: (data: { transactions: any[]; importRecord?: any }) =>
-    request<any>('/api/transactions/bulk', { method: 'POST', body: JSON.stringify(data) }),
+    request<any>('/api/transactions/bulk', { method: 'POST', body: JSON.stringify(data), timeoutMs: 60000 }),
 
   bulkUpdate: (ids: string[], update: any) =>
     request<any>('/api/transactions/bulk', { method: 'PATCH', body: JSON.stringify({ ids, update }) }),

@@ -39,8 +39,14 @@ export async function requireAuth(): Promise<
 function verifyCsrfHeader(): boolean {
   try {
     const hdrs = headers();
-    return hdrs.get('x-requested-with') === 'FutureSight';
-  } catch {
+    const value = hdrs.get('x-requested-with');
+    if (value !== 'FutureSight') {
+      console.warn(`[csrf] Header check failed. Got: "${value}" (expected "FutureSight")`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[csrf] headers() threw:', err);
     return false;
   }
 }

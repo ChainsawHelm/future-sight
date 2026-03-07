@@ -32,6 +32,7 @@ export interface ImportStats {
   autoMatched: number;
   transfers: number;
   duplicates: number;
+  returns: number;
 }
 
 export type ImportPhase = 'upload' | 'processing' | 'summary' | 'categorize' | 'confirm' | 'complete';
@@ -73,7 +74,7 @@ export const initialState: ImportState = {
   currentQueueIndex: 0,
   fileGroups: [],
   fileQueue: [],
-  stats: { total: 0, autoMatched: 0, transfers: 0, duplicates: 0 },
+  stats: { total: 0, autoMatched: 0, transfers: 0, duplicates: 0, returns: 0 },
   excludeDupes: true,
   sessionRules: new Map(),
   importResult: null,

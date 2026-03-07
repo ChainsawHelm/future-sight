@@ -11,8 +11,12 @@ import { z } from 'zod';
 
 // POST /api/transactions/bulk — bulk create (import pipeline)
 export async function POST(req: NextRequest) {
+  console.log(`[bulk-import] POST received, X-Requested-With: ${req.headers.get('x-requested-with')}`);
   const result = await requireAuthWithLimit('api:bulk');
-  if ('error' in result) return result.error;
+  if ('error' in result) {
+    console.error(`[bulk-import] Auth/limit rejected: ${result.error.status}`);
+    return result.error;
+  }
   const { userId } = result;
 
   try {

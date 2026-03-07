@@ -82,7 +82,7 @@ export function ImportView() {
 
     const allProcessed: ProcessedTransaction[] = [];
     const groups: FileGroup[] = [];
-    const accumulated = { total: 0, autoMatched: 0, transfers: 0, duplicates: 0 };
+    const accumulated = { total: 0, autoMatched: 0, transfers: 0, duplicates: 0, returns: 0 };
     const rules = rulesData?.rules || {};
 
     for (const file of files) {
@@ -114,6 +114,7 @@ export function ImportView() {
         accumulated.autoMatched += result.stats.autoMatched;
         accumulated.transfers += result.stats.transfers;
         accumulated.duplicates += result.stats.duplicates;
+        accumulated.returns += result.stats.returns;
 
         dispatch({ type: 'FILE_STATUS', filename: file.name, status: 'done', count: result.transactions.length });
       } catch (err: any) {
@@ -151,6 +152,22 @@ export function ImportView() {
     dispatch({ type: 'IMPORT_ERROR', error: null });
 
     try {
+      // Pre-flight: verify session is still valid before attempting import
+      try {
+        const sessionCheck = await fetch('/api/transactions?limit=1', {
+          headers: { 'X-Requested-With': 'FutureSight' },
+        });
+        if (!sessionCheck.ok) {
+          dispatch({ type: 'IMPORT_ERROR', error: `Session expired (HTTP ${sessionCheck.status}). Please refresh the page and log in again.` });
+          setIsImporting(false);
+          return;
+        }
+      } catch {
+        dispatch({ type: 'IMPORT_ERROR', error: 'Network error. Check your connection and try again.' });
+        setIsImporting(false);
+        return;
+      }
+
       const final = deriveFinalTransactions(state.transactions, state.merchantMap, state.excludeDupes);
       console.log(`[import] deriveFinalTransactions returned ${final.length} transactions`);
 
@@ -204,7 +221,7 @@ export function ImportView() {
           totalCreated += (res?.created ?? 0);
         } catch (err: any) {
           console.error(`[import] Batch ${batchNum} failed:`, err);
-          errors.push(`Batch ${batchNum}: ${err?.message || 'Unknown error'}`);
+          errors.push(`Batch ${batchNum} [HTTP ${err?.status || '?'}]: ${err?.message || 'Unknown error'}`);
         }
       }
 
@@ -214,7 +231,7 @@ export function ImportView() {
         dispatch({ type: 'IMPORT_SUCCESS', result: { count: totalCreated, files: [{ name: filename, count: totalCreated }] } });
         refetchImports();
       } else {
-        dispatch({ type: 'IMPORT_ERROR', error: errors.length > 0 ? errors.join('; ') : `Import failed. ${final.length} transactions prepared but 0 created. Check browser console for details.` });
+        dispatch({ type: 'IMPORT_ERROR', error: errors.length > 0 ? errors.join('; ') : `Import failed. ${final.length} transactions prepared but 0 created. Check browser console (F12) for details.` });
       }
     } catch (err: any) {
       console.error('[import] Unexpected error:', err);
