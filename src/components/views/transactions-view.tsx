@@ -295,6 +295,17 @@ function TransactionsViewInner() {
 
       {/* Quick date presets */}
       <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          onClick={() => { if (activePreset === 'All') { clearPreset(); } else { setActivePreset('All'); setFilterDateFrom(''); setFilterDateTo(''); setQuery(q => ({ ...q, page: 1 })); router.replace('/transactions'); } }}
+          className={cn(
+            'px-2.5 py-1 text-[11px] font-mono border transition-colors',
+            activePreset === 'All'
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-border bg-surface-1 text-muted-foreground hover:border-primary/40 hover:text-foreground'
+          )}
+        >
+          All
+        </button>
         {datePresets.map((p) => (
           <button
             key={p.label}
@@ -535,17 +546,25 @@ function TransactionsViewInner() {
             </table>
           </div>
 
-          {/* Totals summary */}
+          {/* Totals summary — uses server-side totals across all matching transactions */}
           {transactions.length > 0 && (() => {
-            const income = transactions.reduce((s, t) => s + (t.amount > 0 ? t.amount : 0), 0);
-            const expenses = transactions.reduce((s, t) => s + (t.amount < 0 ? Math.abs(t.amount) : 0), 0);
+            const totals = data?.totals;
+            const income = totals?.income ?? transactions.reduce((s, t) => s + (t.amount > 0 ? t.amount : 0), 0);
+            const expenses = totals?.expenses ?? transactions.reduce((s, t) => s + (t.amount < 0 ? Math.abs(t.amount) : 0), 0);
             const net = income - expenses;
             const hasIncome = income > 0;
             const hasExpenses = expenses > 0;
             const hasBoth = hasIncome && hasExpenses;
+            const isFiltered = !!(search || filterCategory || filterAccount || filterDateFrom || filterDateTo || activePreset);
+            const showAllLabel = totals && pagination.totalPages > 1;
 
             return (
               <div className="border-t border-border px-4 py-2.5 bg-surface-2/80 flex items-center justify-end gap-4 text-xs font-mono">
+                {showAllLabel && (
+                  <span className="text-muted-foreground/60 mr-auto">
+                    {isFiltered ? 'Filtered' : 'All'} {pagination.total.toLocaleString()} transactions
+                  </span>
+                )}
                 {hasIncome && (
                   <span className="flex items-center gap-1.5">
                     <span className="text-muted-foreground">{hasBoth ? 'Income' : 'Total'}</span>
