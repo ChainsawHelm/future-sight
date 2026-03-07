@@ -242,7 +242,7 @@ function HealthGauge({ label, value, suffix, target, invert, description, status
 export function DashboardView() {
   const { data, error, isLoading, refetch } = useDashboard();
   const { data: txnData } = useFetch(
-    () => transactionsApi.list({ limit: 500, sort: 'date', order: 'desc' }), []
+    () => transactionsApi.list({ limit: 5000, sort: 'date', order: 'desc' }), []
   );
   const [period, setPeriod] = useState<Period>('month');
 
@@ -274,9 +274,9 @@ export function DashboardView() {
     .map(([name, value]) => ({ name, value: Math.round(value), fill: getCategoryColor(name) }));
   const totalSpend = pieData.reduce((s, d) => s + d.value, 0);
 
-  // Monthly bar data (always from all time, last 6 months)
+  // Monthly bar data (scoped to selected period)
   const monthMap: Record<string, { income: number; expenses: number }> = {};
-  for (const t of allTxns) {
+  for (const t of periodTxns) {
     const m = t.date.slice(0, 7);
     if (!monthMap[m]) monthMap[m] = { income: 0, expenses: 0 };
     if (isRealIncome(t)) monthMap[m].income += t.amount;
@@ -284,7 +284,7 @@ export function DashboardView() {
   }
   const barData = Object.entries(monthMap)
     .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-6)
+    .slice(-12)
     .map(([m, d]) => ({ month: m.slice(5), Income: Math.round(d.income), Expenses: Math.round(d.expenses) }));
 
   // Net worth trend
@@ -296,7 +296,7 @@ export function DashboardView() {
 
   const savingsRate   = overview.monthlyIncome > 0 ? (overview.netSavings / overview.monthlyIncome) * 100 : 0;
   const debtToIncome  = overview.monthlyIncome > 0 ? (overview.totalDebts / (overview.monthlyIncome * 12)) * 100 : 0;
-  const recentTxns    = allTxns.slice(0, 8);
+  const recentTxns    = periodTxns.slice(0, 8);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -483,7 +483,7 @@ export function DashboardView() {
 
         {/* Monthly bar chart (always all-time last 6 months) */}
         <div className="border border-border bg-card p-5 shadow-soft">
-          <SectionHeader label="Income vs Expenses" meta="Last 6 months" />
+          <SectionHeader label="Income vs Expenses" meta={getPeriodLabel(period)} />
           {barData.length === 0 ? (
             <p className="text-xs text-muted-foreground py-8 text-center">No data yet</p>
           ) : (
