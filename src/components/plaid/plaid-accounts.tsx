@@ -42,6 +42,7 @@ export function PlaidAccounts({ onSync }: { onSync?: () => void }) {
   const [institutions, setInstitutions] = useState<PlaidInstitution[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [syncSuccess, setSyncSuccess] = useState<boolean | null>(null);
 
   const fetchAccounts = async () => {
     try {
@@ -56,17 +57,23 @@ export function PlaidAccounts({ onSync }: { onSync?: () => void }) {
   const handleSync = async () => {
     setSyncing(true);
     setSyncResult(null);
+    setSyncSuccess(null);
     try {
       const res = await fetch('/api/plaid/sync', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
         setSyncResult(`Synced: ${data.added} new, ${data.modified} updated, ${data.removed} removed`);
+        setSyncSuccess(true);
         fetchAccounts();
         onSync?.();
       } else {
         setSyncResult(data.error || 'Sync failed');
+        setSyncSuccess(false);
       }
-    } catch { setSyncResult('Sync failed'); }
+    } catch {
+      setSyncResult('Sync failed — could not reach server');
+      setSyncSuccess(false);
+    }
     setSyncing(false);
   };
 
@@ -88,7 +95,14 @@ export function PlaidAccounts({ onSync }: { onSync?: () => void }) {
       </div>
 
       {syncResult && (
-        <p className="text-xs text-muted-foreground bg-muted px-3 py-2">{syncResult}</p>
+        <div className={`flex items-center gap-2 text-xs px-3 py-2.5 border ${
+          syncSuccess
+            ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
+            : 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-400'
+        }`}>
+          <span className="font-semibold shrink-0">{syncSuccess ? '✓' : '✕'}</span>
+          <span>{syncResult}</span>
+        </div>
       )}
 
       <div className="space-y-4">
