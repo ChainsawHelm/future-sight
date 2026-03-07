@@ -81,18 +81,35 @@ function TransactionsViewInner() {
     useCallback(({ ids, update }: { ids: string[]; update: any }) => transactionsApi.bulkUpdate(ids, update), [])
   );
 
-  // Expense reports for bulk "add to report" action
+  // Expense reports for "add to report" action (bulk + per-row)
   const [expenseReports, setExpenseReports] = useState<{ id: string; title: string }[]>([]);
   const [expenseMsg, setExpenseMsg] = useState<string | null>(null);
-  useEffect(() => {
-    expenseReportsApi.list('draft').then(res => setExpenseReports(res.reports || [])).catch(() => {});
+  const [expensedTxIds, setExpensedTxIds] = useState<Set<string>>(new Set());
+  const [expenseDropdownId, setExpenseDropdownId] = useState<string | null>(null);
+
+  const fetchExpenseReports = useCallback(() => {
+    expenseReportsApi.list().then(res => {
+      const reports = res.reports || [];
+      setExpenseReports(reports.filter((r: any) => r.status === 'draft'));
+      // Build set of all transaction IDs already in any expense report
+      const txIds = new Set<string>();
+      for (const r of reports) {
+        for (const item of r.items || []) txIds.add(item.transactionId);
+      }
+      setExpensedTxIds(txIds);
+    }).catch(() => {});
   }, []);
 
-  const handleAddToExpenseReport = async (reportId: string) => {
-    if (selectedIds.size === 0) return;
-    const res = await expenseReportsApi.addItems(reportId, [...selectedIds]);
+  useEffect(() => { fetchExpenseReports(); }, [fetchExpenseReports]);
+
+  const handleAddToExpenseReport = async (reportId: string, txIds?: string[]) => {
+    const ids = txIds || [...selectedIds];
+    if (ids.length === 0) return;
+    const res = await expenseReportsApi.addItems(reportId, ids);
     setExpenseMsg(`Added ${res.added} transaction(s) to expense report`);
-    setSelectedIds(new Set());
+    if (!txIds) setSelectedIds(new Set());
+    setExpenseDropdownId(null);
+    fetchExpenseReports();
     setTimeout(() => setExpenseMsg(null), 3000);
   };
 
@@ -379,7 +396,7 @@ function TransactionsViewInner() {
           </select>
           {expenseReports.length > 0 && (
             <select
-              onChange={(e) => { if (e.target.value) handleAddToExpenseReport(e.target.value); e.target.value = ''; }}
+              onChange={(e) => { if (e.target.value) handleAddToExpenseReport(e.target.value, [...selectedIds]); e.target.value = ''; }}
               className="h-7 border border-border bg-surface-2 px-2 text-xs font-mono focus:outline-none focus:border-primary"
               defaultValue=""
             >
@@ -443,7 +460,7 @@ function TransactionsViewInner() {
                   <th className="text-right px-3 py-2.5 cursor-pointer select-none" onClick={() => toggleSort('amount')}>
                     <span className="ticker">Amount <SortIcon field="amount" /></span>
                   </th>
-                  <th className="w-10 px-3 py-2.5"></th>
+                  <th className="w-16 px-3 py-2.5"></th>
                 </tr>
               </thead>
               <tbody>
@@ -529,6 +546,15 @@ function TransactionsViewInner() {
                               dupe?
                             </span>
                           )}
+                          {/* Expense report badge */}
+                          {expensedTxIds.has(t.id) && (
+                            <span
+                              title="In expense report"
+                              className="shrink-0 text-[8px] font-mono bg-purple-500/10 text-purple-400 px-1 rounded-sm"
+                            >
+                              expense
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
@@ -562,16 +588,63 @@ function TransactionsViewInner() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => startEdit(t)}
-                          className="text-muted-foreground/30 hover:text-muted-foreground transition-colors"
-                          title="Edit"
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                        </button>
+                        <div className="flex gap-1.5 items-center">
+                          {/* Expense report quick-add */}
+                          <div className="relative">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setExpenseDropdownId(expenseDropdownId === t.id ? null : t.id); }}
+                              className={cn(
+                                'transition-colors',
+                                expensedTxIds.has(t.id)
+                                  ? 'text-purple-400 hover:text-purple-300'
+                                  : 'text-muted-foreground/30 hover:text-purple-400',
+                              )}
+                              title={expensedTxIds.has(t.id) ? 'Already in expense report' : 'Add to expense report'}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                                <rect x="9" y="3" width="6" height="4" rx="1" />
+                                {expensedTxIds.has(t.id) && <path d="M9 14l2 2 4-4" />}
+                              </svg>
+                            </button>
+                            {expenseDropdownId === t.id && expenseReports.length > 0 && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setExpenseDropdownId(null)} />
+                                <div className="absolute right-0 top-6 z-50 bg-surface-1 border border-border shadow-lg min-w-[180px] py-1 animate-fade-in">
+                                  <p className="px-3 py-1 text-[10px] text-muted-foreground font-mono">Add to report:</p>
+                                  {expenseReports.map(r => (
+                                    <button
+                                      key={r.id}
+                                      onClick={(e) => { e.stopPropagation(); handleAddToExpenseReport(r.id, [t.id]); }}
+                                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary/5 hover:text-primary transition-colors truncate"
+                                    >
+                                      {r.title}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                            {expenseDropdownId === t.id && expenseReports.length === 0 && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setExpenseDropdownId(null)} />
+                                <div className="absolute right-0 top-6 z-50 bg-surface-1 border border-border shadow-lg min-w-[180px] py-2 px-3 animate-fade-in">
+                                  <p className="text-[11px] text-muted-foreground">No draft reports. Create one in <a href="/expenses" className="text-primary hover:underline">Expenses</a>.</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          {/* Edit button */}
+                          <button
+                            onClick={() => startEdit(t)}
+                            className="text-muted-foreground/30 hover:text-muted-foreground transition-colors"
+                            title="Edit"
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
