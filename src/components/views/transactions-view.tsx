@@ -12,7 +12,7 @@ import { CategoryBadge } from '@/components/shared/category-badge';
 import { Amount } from '@/components/shared/amount';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, formatCurrency } from '@/lib/utils';
 import type { TransactionQuery, Transaction } from '@/types/models';
 
 function TransactionsViewInner() {
@@ -534,6 +534,41 @@ function TransactionsViewInner() {
               </tbody>
             </table>
           </div>
+
+          {/* Totals summary */}
+          {transactions.length > 0 && (() => {
+            const income = transactions.reduce((s, t) => s + (t.amount > 0 ? t.amount : 0), 0);
+            const expenses = transactions.reduce((s, t) => s + (t.amount < 0 ? Math.abs(t.amount) : 0), 0);
+            const net = income - expenses;
+            const hasIncome = income > 0;
+            const hasExpenses = expenses > 0;
+            const hasBoth = hasIncome && hasExpenses;
+
+            return (
+              <div className="border-t border-border px-4 py-2.5 bg-surface-2/80 flex items-center justify-end gap-4 text-xs font-mono">
+                {hasIncome && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">{hasBoth ? 'Income' : 'Total'}</span>
+                    <span className="font-semibold tabnum text-income">+{formatCurrency(income)}</span>
+                  </span>
+                )}
+                {hasExpenses && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">{hasBoth ? 'Expenses' : 'Total'}</span>
+                    <span className="font-semibold tabnum text-expense">-{formatCurrency(expenses)}</span>
+                  </span>
+                )}
+                {hasBoth && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">Net</span>
+                    <span className={`font-semibold tabnum ${net >= 0 ? 'text-income' : 'text-expense'}`}>
+                      {net >= 0 ? '+' : '-'}{formatCurrency(Math.abs(net))}
+                    </span>
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
