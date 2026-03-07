@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import {
   IconDashboard, IconNetWorth, IconTransactions, IconImport, IconCalendar,
   IconGoals, IconDebts, IconBudget, IconSubscriptions, IconInsights,
-  IconExpenses, IconReports, IconHeatmap, IconCashFlow, IconAchievements,
+  IconExpenses, IconReports, IconHeatmap, IconCashFlow, IconMoneyFlow, IconAchievements,
   IconPlaid, IconLabs, IconChecklist, IconSettings,
 } from '@/components/shared/icons';
 
@@ -55,6 +55,7 @@ const NAV_GROUPS = [
       { id: 'reports',       label: 'Reports',      href: '/reports',       icon: IconReports },
       { id: 'heatmap',       label: 'Heatmap',      href: '/heatmap',       icon: IconHeatmap },
       { id: 'cashflow',      label: 'Cash Flow',    href: '/cashflow',      icon: IconCashFlow },
+      { id: 'money-flow',   label: 'Money Flow',   href: '/money-flow',    icon: IconMoneyFlow },
       { id: 'achievements',  label: 'Achievements', href: '/achievements',  icon: IconAchievements },
     ],
   },

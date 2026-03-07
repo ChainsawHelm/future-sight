@@ -10,7 +10,6 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { getCategoryColor } from '@/components/shared/category-badge';
 import { formatCurrency, cn } from '@/lib/utils';
 import { isRealIncome, isRealExpense } from '@/lib/classify';
-import { SankeyChart } from './sankey-chart';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as ReTooltip, ResponsiveContainer, Legend,
@@ -351,15 +350,6 @@ export function DashboardView() {
             <p className={cn('numeral text-xl font-bold tabnum', m.color)}>{m.value}</p>
           </div>
         ))}
-      </div>
-
-      {/* ════════════ SANKEY — CENTERPIECE ════════════ */}
-      <div className="border border-border bg-card shadow-soft p-5">
-        <SectionHeader
-          label="Money Flow"
-          meta={`${getPeriodLabel(period)} · ${periodTxns.length} transactions`}
-        />
-        <SankeyChart transactions={periodTxns} period={period} dateFrom={getPeriodRange(period)?.from} dateTo={getPeriodRange(period)?.to} tall />
       </div>
 
       {/* ════════════ NET WORTH STRIP ════════════ */}

@@ -76,6 +76,11 @@ export function IconCashFlow({ size = 14 }: IconProps) {
     <path d="M2 2l20 20M17 2h5v5M7 22H2v-5"/><path d="M22 2L12 12M2 22l5-5"/>
   </svg>;
 }
+export function IconMoneyFlow({ size = 14 }: IconProps) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 6-9"/>
+  </svg>;
+}
 export function IconAchievements({ size = 14 }: IconProps) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="8" r="5.5"/><path d="M8.56 13.89L7 22l5-3 5 3-1.56-8.11"/>
