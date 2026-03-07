@@ -62,7 +62,9 @@ export function PlaidAccounts({ onSync }: { onSync?: () => void }) {
       const res = await fetch('/api/plaid/sync', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        setSyncResult(`Synced: ${data.added} new, ${data.modified} updated, ${data.removed} removed`);
+        const parts = [`${data.added} new`, `${data.modified} updated`, `${data.removed} removed`];
+        if (data.reconciled > 0) parts.push(`${data.reconciled} duplicates reconciled`);
+        setSyncResult(`Synced: ${parts.join(', ')}`);
         setSyncSuccess(true);
         fetchAccounts();
         onSync?.();

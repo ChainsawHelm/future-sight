@@ -55,7 +55,7 @@ export async function POST() {
       return NextResponse.json({ error: 'No linked accounts' }, { status: 400 });
     }
 
-    let totalAdded = 0, totalModified = 0, totalRemoved = 0;
+    let totalAdded = 0, totalModified = 0, totalRemoved = 0, totalReconciled = 0;
 
     for (const item of plaidItems) {
       // ── 1. Fetch and upsert individual accounts ──────────────────
@@ -174,13 +174,17 @@ export async function POST() {
             where: { userId, plaidTransactionId: txn.transaction_id },
           });
           if (!existing) {
+            const plaidDate = new Date(txn.date || new Date().toISOString().split('T')[0]);
+            const plaidAmount = -(txn.amount || 0);
+            const plaidDesc = txn.merchant_name || txn.name || 'Unknown';
+
             await prisma.transaction.create({
               data: {
                 userId,
-                date: new Date(txn.date || new Date().toISOString().split('T')[0]),
-                description: txn.merchant_name || txn.name || 'Unknown',
+                date: plaidDate,
+                description: plaidDesc,
                 originalDescription: txn.name || null,
-                amount: -(txn.amount || 0),
+                amount: plaidAmount,
                 category: mapPlaidCategory(txn),
                 account: accountIdToName[txn.account_id] ?? item.institutionName ?? 'Plaid',
                 plaidTransactionId: txn.transaction_id,
@@ -188,6 +192,57 @@ export async function POST() {
               },
             });
             totalAdded++;
+
+            // ── Reconciliation: remove matching manual import ──
+            // Look for a manually-imported duplicate: same date, same amount,
+            // no plaidTransactionId, and similar description
+            const dayBefore = new Date(plaidDate);
+            dayBefore.setDate(dayBefore.getDate() - 1);
+            const dayAfter = new Date(plaidDate);
+            dayAfter.setDate(dayAfter.getDate() + 1);
+
+            const manualCandidates = await prisma.transaction.findMany({
+              where: {
+                userId,
+                plaidTransactionId: null,
+                amount: plaidAmount,
+                date: { gte: dayBefore, lte: dayAfter },
+              },
+              take: 5,
+            });
+
+            if (manualCandidates.length > 0) {
+              // Score candidates by description similarity — pick the best match
+              const plaidWords = plaidDesc.toUpperCase().replace(/[^A-Z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 1);
+              let bestMatch: typeof manualCandidates[0] | null = null;
+              let bestScore = 0;
+
+              for (const candidate of manualCandidates) {
+                const candWords = candidate.description.toUpperCase().replace(/[^A-Z0-9 ]/g, '').split(/\s+/).filter(w => w.length > 1);
+                // Count how many words from Plaid description appear in the candidate
+                const matchCount = plaidWords.filter(pw => candWords.some(cw => cw.includes(pw) || pw.includes(cw))).length;
+                const score = plaidWords.length > 0 ? matchCount / plaidWords.length : 0;
+
+                // Also check if first 8 chars of either description match
+                const plaidPrefix = plaidDesc.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+                const candPrefix = candidate.description.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+                const prefixMatch = plaidPrefix.length >= 4 && candPrefix.length >= 4 &&
+                  (candPrefix.includes(plaidPrefix.slice(0, 4)) || plaidPrefix.includes(candPrefix.slice(0, 4)));
+
+                const finalScore = prefixMatch ? Math.max(score, 0.4) : score;
+
+                if (finalScore > bestScore) {
+                  bestScore = finalScore;
+                  bestMatch = candidate;
+                }
+              }
+
+              // Require at least 30% word overlap or prefix match to reconcile
+              if (bestMatch && bestScore >= 0.3) {
+                await prisma.transaction.delete({ where: { id: bestMatch.id } });
+                totalReconciled++;
+              }
+            }
           }
         }
 
@@ -261,6 +316,7 @@ export async function POST() {
       added: totalAdded,
       modified: totalModified,
       removed: totalRemoved,
+      reconciled: totalReconciled,
     });
   } catch (err: any) {
     console.error('Plaid sync error:', err.message);
