@@ -359,7 +359,7 @@ export function DashboardView() {
           label="Money Flow"
           meta={`${getPeriodLabel(period)} · ${periodTxns.length} transactions`}
         />
-        <SankeyChart transactions={periodTxns} period={period} dateFrom={getPeriodRange(period)?.from} dateTo={getPeriodRange(period)?.to} />
+        <SankeyChart transactions={periodTxns} period={period} dateFrom={getPeriodRange(period)?.from} dateTo={getPeriodRange(period)?.to} tall />
       </div>
 
       {/* ════════════ NET WORTH STRIP ════════════ */}

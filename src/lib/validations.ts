@@ -13,7 +13,7 @@ export const transactionCreateSchema = z.object({
   flagged: z.boolean().default(false),
   transferPairId: z.string().max(100).optional(),
   returnPairId: z.string().max(100).optional(),
-  note: z.string().max(1000).optional(),
+  note: z.string().max(1000).nullable().optional(),
 });
 
 export const transactionUpdateSchema = transactionCreateSchema.partial();

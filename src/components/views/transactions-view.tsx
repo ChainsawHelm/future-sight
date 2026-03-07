@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTransactions, useCategories, useAccountNicknames } from '@/hooks/use-data';
 import { useMutation } from '@/hooks/use-fetch';
@@ -36,6 +36,8 @@ function TransactionsViewInner() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Partial<Transaction>>({});
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteValue, setNoteValue] = useState('');
   const [filterCategory, setFilterCategory] = useState(urlCategory);
   const [filterAccount, setFilterAccount] = useState(urlAccount);
   const [filterDateFrom, setFilterDateFrom] = useState(urlDateFrom);
@@ -150,6 +152,24 @@ function TransactionsViewInner() {
   const cancelEdit = () => {
     setEditingId(null);
     setEditFields({});
+  };
+
+  const startNoteEdit = (t: Transaction) => {
+    setEditingNoteId(t.id);
+    setNoteValue(t.note || '');
+  };
+
+  const saveNote = async () => {
+    if (!editingNoteId) return;
+    await updateMutation.mutate({ id: editingNoteId, data: { note: noteValue || null } });
+    setEditingNoteId(null);
+    setNoteValue('');
+    refetch();
+  };
+
+  const cancelNoteEdit = () => {
+    setEditingNoteId(null);
+    setNoteValue('');
   };
 
   const handleBulkDelete = async () => {
@@ -467,10 +487,11 @@ function TransactionsViewInner() {
               </thead>
               <tbody>
                 {transactions.map((t) => (
+                  <React.Fragment key={t.id}>
                   <tr
-                    key={t.id}
                     className={cn(
-                      'border-b border-border last:border-0 transition-colors hover:bg-surface-2/60',
+                      'transition-colors hover:bg-surface-2/60',
+                      !editingNoteId || editingNoteId !== t.id ? 'border-b border-border last:border-0' : '',
                       t.flagged && 'bg-yellow-500/5',
                       selectedIds.has(t.id) && 'bg-primary/5'
                     )}
@@ -555,6 +576,15 @@ function TransactionsViewInner() {
                               className="shrink-0 text-[8px] font-mono bg-purple-500/10 text-purple-400 px-1 rounded-sm"
                             >
                               expense
+                            </span>
+                          )}
+                          {/* Note badge */}
+                          {t.note && (
+                            <span
+                              title={t.note}
+                              className="shrink-0 text-[8px] font-mono bg-sky-500/10 text-sky-400 px-1 rounded-sm cursor-help"
+                            >
+                              note
                             </span>
                           )}
                         </div>
@@ -651,6 +681,19 @@ function TransactionsViewInner() {
                               </>
                             )}
                           </div>
+                          {/* Note button */}
+                          <button
+                            onClick={() => editingNoteId === t.id ? cancelNoteEdit() : startNoteEdit(t)}
+                            className={cn(
+                              'transition-colors',
+                              t.note ? 'text-sky-400 hover:text-sky-300' : 'text-muted-foreground/30 hover:text-sky-400',
+                            )}
+                            title={t.note ? `Note: ${t.note}` : 'Add note'}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                            </svg>
+                          </button>
                           {/* Edit button */}
                           <button
                             onClick={() => startEdit(t)}
@@ -666,6 +709,33 @@ function TransactionsViewInner() {
                       )}
                     </td>
                   </tr>
+                  {editingNoteId === t.id && (
+                    <tr className="border-b border-border bg-sky-500/5 animate-fade-in">
+                      <td></td>
+                      <td colSpan={6} className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-400 shrink-0">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                          </svg>
+                          <input
+                            autoFocus
+                            value={noteValue}
+                            onChange={(e) => setNoteValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveNote(); if (e.key === 'Escape') cancelNoteEdit(); }}
+                            placeholder="Add a note (e.g. bought as a gift, for birthday)..."
+                            className="flex-1 h-7 px-2 text-xs font-mono bg-background border border-border text-foreground outline-none focus:border-sky-400 transition-colors"
+                          />
+                          <button onClick={saveNote} className="text-sky-400 hover:text-sky-300 transition-colors" title="Save note">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" /></svg>
+                          </button>
+                          <button onClick={cancelNoteEdit} className="text-muted-foreground hover:text-foreground transition-colors" title="Cancel">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

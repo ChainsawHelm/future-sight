@@ -112,6 +112,7 @@ function buildSankeyData(
   svgH: number,
   svgW: number,
   isMobile: boolean,
+  showAll: boolean = false,
 ): { nodes: Node[]; links: Link[] } {
   const incomeBySource: Record<string, number> = {};
   const incomeBySourceAccount: Record<string, Record<string, number>> = {};
@@ -137,21 +138,26 @@ function buildSankeyData(
     }
   }
 
-  const incomeSources = Object.entries(incomeBySource).sort(([, a], [, b]) => b - a).slice(0, 5);
+  const incomeLimit = showAll ? Infinity : 5;
+  const accountLimit = showAll ? Infinity : 6;
+  const categoryLimit = showAll ? Infinity : (isMobile ? 5 : 8);
+  const merchantLimit = showAll ? Infinity : (isMobile ? 5 : 8);
+
+  const incomeSources = Object.entries(incomeBySource).sort(([, a], [, b]) => b - a).slice(0, incomeLimit);
   const accounts = Object.entries(
     Object.keys(expenseByAccount).reduce((acc, acct) => {
       acc[acct] = Object.values(expenseByAccount[acct]).reduce((s, v) => s + v, 0);
       return acc;
     }, {} as Record<string, number>)
-  ).sort(([, a], [, b]) => b - a).slice(0, 6);
+  ).sort(([, a], [, b]) => b - a).slice(0, accountLimit);
   const categories = Object.entries(expenseByCategory)
-    .sort(([, a], [, b]) => b - a).slice(0, isMobile ? 5 : 8);
+    .sort(([, a], [, b]) => b - a).slice(0, categoryLimit);
   const merchants = Object.entries(
     Object.values(expenseByCategoryMerchant).reduce((acc, m) => {
       for (const [k, v] of Object.entries(m)) acc[k] = (acc[k] || 0) + v;
       return acc;
     }, {} as Record<string, number>)
-  ).sort(([, a], [, b]) => b - a).slice(0, isMobile ? 5 : 8);
+  ).sort(([, a], [, b]) => b - a).slice(0, merchantLimit);
 
   const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_4;
 
@@ -267,12 +273,13 @@ interface SankeyChartProps {
   period: string;
   dateFrom?: string;
   dateTo?: string;
+  tall?: boolean;
 }
 
 const COL_LABELS_4 = ['Income', 'Accounts', 'Categories', 'Merchants'];
 const COL_LABELS_2 = ['Income', 'Spending'];
 
-export function SankeyChart({ transactions, period, dateFrom, dateTo }: SankeyChartProps) {
+export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: SankeyChartProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
@@ -286,13 +293,16 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo }: SankeyCh
   }, []);
 
   const isMobile = width < 520;
-  const svgH = isMobile ? 280 : 360;
+  // Dynamic height: tall doubles the base, showAll adds extra for many nodes
+  const baseSvgH = isMobile ? 280 : (tall ? 720 : 360);
+  const svgH = showAll ? Math.max(baseSvgH, baseSvgH + (transactions.length > 100 ? 300 : 100)) : baseSvgH;
   const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_4;
   const colLabels = isMobile ? COL_LABELS_2 : COL_LABELS_4;
 
+  const showAll = period === 'all';
   const { nodes, links } = useMemo(
-    () => buildSankeyData(transactions, svgH, width, isMobile),
-    [transactions, svgH, width, isMobile]
+    () => buildSankeyData(transactions, svgH, width, isMobile, showAll),
+    [transactions, svgH, width, isMobile, showAll]
   );
 
   const handleNodeClick = (node: Node) => {
