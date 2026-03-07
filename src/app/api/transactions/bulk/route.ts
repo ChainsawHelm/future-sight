@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    console.log(`[bulk-import] Received ${body?.transactions?.length ?? 0} transactions, importRecord: ${!!body?.importRecord}`);
     const data = transactionBulkCreateSchema.parse(body);
 
     let importRecordId: string | undefined;
@@ -59,15 +60,17 @@ export async function POST(req: NextRequest) {
       })),
     });
 
+    console.log(`[bulk-import] Created ${created.count} transactions`);
     return NextResponse.json({
       created: created.count,
       importRecordId,
     }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('[bulk-import] Zod validation error:', error.errors);
       return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
     }
-    console.error('POST /api/transactions/bulk error:', error);
+    console.error('[bulk-import] Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

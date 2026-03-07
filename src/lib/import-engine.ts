@@ -50,6 +50,15 @@ export function applyMerchantRules(
   rules: Record<string, string>
 ): ProcessedTransaction[] {
   return transactions.map(t => {
+    // If the CSV already has a meaningful category, keep it
+    if (t.category && t.category !== 'Uncategorized') {
+      return {
+        ...t,
+        originalDescription: t.description,
+        autoMatched: true,
+        flagged: false,
+      };
+    }
     const { category, autoMatched } = categorizeTransaction(t.description, t.amount, rules);
     return {
       ...t,

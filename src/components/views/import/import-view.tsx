@@ -1,9 +1,9 @@
 'use client';
 
-import { useReducer, useCallback, useState } from 'react';
-import { useFetch, useMutation } from '@/hooks/use-fetch';
+import { useReducer, useState } from 'react';
+import { useFetch } from '@/hooks/use-fetch';
 import { useCategories } from '@/hooks/use-data';
-import { transactionsApi, importApi, merchantRulesApi } from '@/lib/api-client';
+import { transactionsApi, importApi, merchantRulesApi, categoriesApi } from '@/lib/api-client';
 import { processImport, type RawTransaction, type ProcessedTransaction } from '@/lib/import-engine';
 import type { ImportRecord } from '@/types/models';
 import { importReducer, initialState, deriveFinalTransactions, type FileGroup } from './import-reducer';
@@ -18,10 +18,10 @@ export function ImportView() {
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState('');
 
-  const { data: categories } = useCategories();
+  const { data: categories, refetch: refetchCategories } = useCategories();
   const { data: rulesData } = useFetch<{ rules: Record<string, string> }>(() => merchantRulesApi.list(), []);
   const { data: importsData, refetch: refetchImports } = useFetch<{ imports: ImportRecord[] }>(() => importApi.list(), []);
-  const importMutation = useMutation(useCallback((data: any) => transactionsApi.bulkCreate(data), []));
+  const [isImporting, setIsImporting] = useState(false);
 
   // ─── CSV Parser ───────────────────────────────
 
@@ -138,51 +138,89 @@ export function ImportView() {
     try { await merchantRulesApi.upsert({ merchant, category }); } catch {}
   };
 
+  const handleCreateCategory = async (name: string) => {
+    await categoriesApi.create({ name, type: 'expense', color: '#6B7280' });
+    refetchCategories();
+  };
+
   // ─── Import Handler ───────────────────────────
 
   const handleConfirmImport = async () => {
-    const final = deriveFinalTransactions(state.transactions, state.merchantMap, state.excludeDupes);
-    if (final.length === 0) return;
+    if (isImporting) return;
+    setIsImporting(true);
+    dispatch({ type: 'IMPORT_ERROR', error: null });
 
-    let totalCreated = 0;
-    const fileResults: { name: string; count: number }[] = [];
+    try {
+      const final = deriveFinalTransactions(state.transactions, state.merchantMap, state.excludeDupes);
+      console.log(`[import] deriveFinalTransactions returned ${final.length} transactions`);
 
-    // Import per file group using index ranges
-    for (const group of state.fileGroups) {
-      const groupIndices = new Set<number>();
-      for (let i = group.startIdx; i < group.startIdx + group.count; i++) groupIndices.add(i);
+      if (final.length === 0) {
+        dispatch({ type: 'IMPORT_ERROR', error: 'No transactions to import after filtering.' });
+        setIsImporting(false);
+        return;
+      }
 
-      // Get the final transactions that came from this group
-      const toImport: typeof final = [];
-      let origIdx = 0;
-      for (const t of final) {
-        // Find which original index this corresponds to by matching
-        const oi = state.transactions.findIndex((ot, i) => i >= origIdx && ot.date === t.date && ot.amount === t.amount && ot.description === t.description);
-        if (oi >= 0 && groupIndices.has(oi)) {
-          toImport.push(t);
-          origIdx = oi + 1;
+      // Clamp strings to Zod schema limits to prevent validation failures
+      const clamp = (s: string, max: number) => s && s.length > max ? s.slice(0, max) : s;
+
+      const allMapped = final.map(t => ({
+        date: t.date,
+        description: clamp(t.description || 'Unknown', 500) || 'Unknown',
+        originalDescription: t.originalDescription ? clamp(t.originalDescription, 500) : undefined,
+        amount: t.amount,
+        category: clamp(t.category || 'Uncategorized', 100),
+        account: clamp(t.account || 'Default', 100),
+        autoMatched: t.autoMatched ?? false,
+        flagged: false,
+        transferPairId: t.transferPairId ? clamp(t.transferPairId, 100) : undefined,
+      }));
+
+      // Log first 2 transactions for debugging
+      console.log('[import] Sample transactions:', JSON.stringify(allMapped.slice(0, 2), null, 2));
+
+      // Determine filename for the import record (truncate to 255)
+      const rawFilename = state.fileGroups.length > 0
+        ? state.fileGroups.map(g => g.filename).join(', ')
+        : 'CSV Import';
+      const filename = clamp(rawFilename, 255);
+      const sourceType = filename.toLowerCase().includes('.pdf') ? 'pdf' as const : 'csv' as const;
+
+      const BATCH_SIZE = 1000;
+      let totalCreated = 0;
+      const errors: string[] = [];
+
+      for (let b = 0; b < allMapped.length; b += BATCH_SIZE) {
+        const batch = allMapped.slice(b, b + BATCH_SIZE);
+        const batchNum = Math.floor(b / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(allMapped.length / BATCH_SIZE);
+        console.log(`[import] Sending batch ${batchNum}/${totalBatches} (${batch.length} transactions)`);
+
+        try {
+          const res = await transactionsApi.bulkCreate({
+            transactions: batch,
+            importRecord: b === 0 ? { filename, sourceType } : undefined,
+          });
+          console.log(`[import] Batch ${batchNum} response:`, res);
+          totalCreated += (res?.created ?? 0);
+        } catch (err: any) {
+          console.error(`[import] Batch ${batchNum} failed:`, err);
+          errors.push(`Batch ${batchNum}: ${err?.message || 'Unknown error'}`);
         }
       }
 
-      if (toImport.length === 0) continue;
-      try {
-        const res = await transactionsApi.bulkCreate({
-          transactions: toImport.map(t => ({
-            date: t.date, description: t.description, originalDescription: t.originalDescription,
-            amount: t.amount, category: t.category, account: t.account,
-            autoMatched: t.autoMatched, flagged: false, transferPairId: t.transferPairId,
-          })),
-          importRecord: { filename: group.filename, sourceType: group.filename.toLowerCase().endsWith('.pdf') ? 'pdf' : 'csv' },
-        });
-        if (res?.created) { totalCreated += res.created; fileResults.push({ name: group.filename, count: res.created }); }
-      } catch {}
-    }
+      console.log(`[import] Total created: ${totalCreated}, errors: ${errors.length}`);
 
-    if (totalCreated > 0) {
-      dispatch({ type: 'IMPORT_SUCCESS', result: { count: totalCreated, files: fileResults } });
-      refetchImports();
-    } else {
-      dispatch({ type: 'IMPORT_ERROR', error: 'No transactions were imported.' });
+      if (totalCreated > 0) {
+        dispatch({ type: 'IMPORT_SUCCESS', result: { count: totalCreated, files: [{ name: filename, count: totalCreated }] } });
+        refetchImports();
+      } else {
+        dispatch({ type: 'IMPORT_ERROR', error: errors.length > 0 ? errors.join('; ') : `Import failed. ${final.length} transactions prepared but 0 created. Check browser console for details.` });
+      }
+    } catch (err: any) {
+      console.error('[import] Unexpected error:', err);
+      dispatch({ type: 'IMPORT_ERROR', error: `Unexpected error: ${err?.message || 'Unknown'}` });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -266,12 +304,13 @@ export function ImportView() {
           merchantMap={state.merchantMap}
           excludeDupes={state.excludeDupes}
           importCount={importCount}
-          isImporting={importMutation.isLoading}
+          isImporting={isImporting}
           error={state.error}
           sessionRulesCount={state.sessionRules.size}
           categories={categories}
           onToggleDupes={() => dispatch({ type: 'TOGGLE_DUPES' })}
           onReassign={handleCategorize}
+          onCreateCategory={handleCreateCategory}
           onConfirm={handleConfirmImport}
           onReset={handleReset}
         />

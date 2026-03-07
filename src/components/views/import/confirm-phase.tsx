@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Amount } from '@/components/shared/amount';
 import { Button } from '@/components/ui/button';
@@ -19,13 +19,15 @@ interface ConfirmPhaseProps {
   categories: Category[];
   onToggleDupes: () => void;
   onReassign: (merchant: string, category: string) => void;
+  onCreateCategory: (name: string) => Promise<void>;
   onConfirm: () => void;
   onReset: () => void;
 }
 
-export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, isImporting, error, sessionRulesCount, categories, onToggleDupes, onReassign, onConfirm, onReset }: ConfirmPhaseProps) {
+export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, isImporting, error, sessionRulesCount, categories, onToggleDupes, onReassign, onCreateCategory, onConfirm, onReset }: ConfirmPhaseProps) {
   const [reassigning, setReassigning] = useState<string | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [creatingCustom, setCreatingCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
 
   const groups = Array.from(merchantMap.values());
 
@@ -38,30 +40,40 @@ export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, is
   }
 
   // Sort categories: most merchants first, but put Transfer/Income at the end
-  const categoryOrder = Array.from(byCategory.entries())
-    .sort((a, b) => {
-      const aSpecial = a[0] === 'Transfer' || a[0] === 'Income';
-      const bSpecial = b[0] === 'Transfer' || b[0] === 'Income';
-      if (aSpecial !== bSpecial) return aSpecial ? 1 : -1;
-      return b[1].length - a[1].length;
-    });
+  const categoryOrder = useMemo(() => {
+    const order = Array.from(byCategory.entries())
+      .sort((a, b) => {
+        const aSpecial = a[0] === 'Transfer' || a[0] === 'Income';
+        const bSpecial = b[0] === 'Transfer' || b[0] === 'Income';
+        if (aSpecial !== bSpecial) return aSpecial ? 1 : -1;
+        return b[1].length - a[1].length;
+      });
+    for (const [, merchants] of order) {
+      merchants.sort((a, b) => b.count - a.count);
+    }
+    return order;
+  }, [byCategory]);
 
-  // Sort merchants within each category by count descending
-  for (const [, merchants] of categoryOrder) {
-    merchants.sort((a, b) => b.count - a.count);
-  }
+  // Start all collapsed
+  const allCats = useMemo(() => new Set(categoryOrder.map(([cat]) => cat)), [categoryOrder]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const totalAmount = groups.reduce((s, g) => s + g.totalAmount, 0);
   const income = groups.filter(g => g.totalAmount > 0).reduce((s, g) => s + g.totalAmount, 0);
   const expenses = groups.filter(g => g.totalAmount < 0).reduce((s, g) => s + Math.abs(g.totalAmount), 0);
 
   const toggleGroup = (cat: string) => {
-    setCollapsedGroups(prev => {
+    setExpandedGroups(prev => {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
       else next.add(cat);
       return next;
     });
+  };
+
+  const allExpanded = expandedGroups.size === allCats.size;
+  const toggleAll = () => {
+    setExpandedGroups(allExpanded ? new Set() : new Set(allCats));
   };
 
   const expenseCategories = categories.filter(c => c.type === 'expense');
@@ -89,28 +101,36 @@ export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, is
           </div>
         </div>
 
-        <p className="ticker text-muted-foreground/70 text-[10px]">
-          Review merchants grouped by category. Click any merchant to reassign it.
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="ticker text-muted-foreground/70 text-[10px]">
+            {categoryOrder.length} categories · {groups.length} merchants — click to expand, click merchant to reassign
+          </p>
+          <button onClick={toggleAll} className="ticker text-[10px] text-primary hover:text-primary/80 transition-colors">
+            {allExpanded ? 'Collapse All' : 'Expand All'}
+          </button>
+        </div>
       </div>
 
       {/* Grouped merchants by category */}
       {categoryOrder.map(([cat, merchants]) => {
         const catTotal = merchants.reduce((s, g) => s + g.totalAmount, 0);
         const catCount = merchants.reduce((s, g) => s + g.count, 0);
-        const isCollapsed = collapsedGroups.has(cat);
+        const isExpanded = expandedGroups.has(cat);
 
         return (
           <div key={cat} className="border border-border bg-surface-1 overflow-hidden">
-            {/* Category header — clickable to collapse */}
+            {/* Category header — clickable to expand/collapse */}
             <button
               onClick={() => toggleGroup(cat)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-surface-2 border-b border-border hover:bg-surface-2/80 transition-colors text-left"
+              className={cn(
+                'w-full flex items-center justify-between px-4 py-3 bg-surface-2 hover:bg-surface-2/80 transition-colors text-left',
+                isExpanded && 'border-b border-border'
+              )}
             >
               <div className="flex items-center gap-2">
                 <svg
                   width="10" height="10" viewBox="0 0 10 10"
-                  className={cn('text-muted-foreground transition-transform', isCollapsed ? '' : 'rotate-90')}
+                  className={cn('text-muted-foreground transition-transform', isExpanded ? 'rotate-90' : '')}
                 >
                   <path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
                 </svg>
@@ -124,8 +144,8 @@ export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, is
             </button>
 
             {/* Merchant list */}
-            {!isCollapsed && (
-              <div className="divide-y divide-border/50">
+            {isExpanded && (
+              <div className="divide-y divide-border/50 max-h-80 overflow-y-auto">
                 {merchants.map(m => (
                   <div key={m.merchant} className="group relative">
                     {reassigning === m.merchant ? (
@@ -169,6 +189,50 @@ export function ConfirmPhase({ stats, merchantMap, excludeDupes, importCount, is
                               {c.name}
                             </button>
                           ))}
+                          {/* Custom category */}
+                          {creatingCustom ? (
+                            <form
+                              className="flex items-center gap-1"
+                              onSubmit={async (e) => {
+                                e.preventDefault();
+                                const name = customName.trim();
+                                if (!name) return;
+                                await onCreateCategory(name);
+                                onReassign(m.merchant, name);
+                                setCreatingCustom(false);
+                                setCustomName('');
+                                setReassigning(null);
+                              }}
+                            >
+                              <input
+                                autoFocus
+                                value={customName}
+                                onChange={e => setCustomName(e.target.value)}
+                                placeholder="Category name"
+                                className="h-6 px-2 text-[10px] font-mono bg-surface-3 border border-border/60 text-foreground outline-none focus:border-primary w-28"
+                              />
+                              <button
+                                type="submit"
+                                className="h-6 px-2 text-[10px] font-mono border border-primary bg-primary text-primary-foreground"
+                              >
+                                Add
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setCreatingCustom(false); setCustomName(''); }}
+                                className="h-6 px-2 text-[10px] font-mono border border-border/60 bg-surface-2/50 text-muted-foreground hover:text-foreground"
+                              >
+                                x
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              onClick={() => setCreatingCustom(true)}
+                              className="h-6 px-2.5 text-[10px] font-mono border border-dashed border-border/60 bg-surface-2/30 hover:bg-primary/10 hover:border-primary/40 hover:text-primary transition-colors"
+                            >
+                              + Custom
+                            </button>
+                          )}
                         </div>
                       </div>
                     ) : (

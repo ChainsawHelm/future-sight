@@ -60,7 +60,7 @@ export type ImportAction =
   | { type: 'SKIP_MERCHANT' }
   | { type: 'TOGGLE_DUPES' }
   | { type: 'IMPORT_SUCCESS'; result: ImportState['importResult'] }
-  | { type: 'IMPORT_ERROR'; error: string }
+  | { type: 'IMPORT_ERROR'; error: string | null }
   | { type: 'RESET' };
 
 // ─── Initial State ──────────────────────────────

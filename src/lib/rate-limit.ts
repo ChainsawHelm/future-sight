@@ -30,8 +30,8 @@ const LIMITS: Record<string, RateLimitConfig> = {
   'api:read': { maxRequests: 120, windowSecs: 60 },
   // API writes — moderate
   'api:write': { maxRequests: 60, windowSecs: 60 },
-  // Bulk operations — tight
-  'api:bulk': { maxRequests: 10, windowSecs: 60 },
+  // Bulk operations — allow enough for large multi-file imports
+  'api:bulk': { maxRequests: 30, windowSecs: 60 },
   // Backup — very tight
   'api:backup': { maxRequests: 5, windowSecs: 300 },
   // Plaid operations — tight
