@@ -63,29 +63,48 @@ export function applyMerchantRules(
 
 /**
  * Detect transfer pairs: matching amounts with opposite signs on adjacent dates.
+ * Uses hash-map grouping by |amount| for O(n) amortized performance.
  */
 export function detectTransfers(transactions: ProcessedTransaction[]): ProcessedTransaction[] {
   const result = [...transactions];
   let pairCount = 0;
-  const indexed = result.map((t, i) => ({ t, i })).sort((a, b) => a.t.date.localeCompare(b.t.date));
   const used = new Set<number>();
 
-  for (let i = 0; i < indexed.length; i++) {
-    if (used.has(indexed[i].i)) continue;
-    const a = indexed[i].t;
-    for (let j = i + 1; j < indexed.length; j++) {
-      if (used.has(indexed[j].i)) continue;
-      const b = indexed[j].t;
-      const dayDiff = Math.abs((new Date(a.date).getTime() - new Date(b.date).getTime()) / 86400000);
-      if (dayDiff > 2) break;
-      if (Math.abs(a.amount + b.amount) < 0.01 && a.amount !== 0 && a.account !== b.account) {
-        pairCount++;
-        const pairId = `xfer-import-${pairCount}`;
-        result[indexed[i].i] = { ...result[indexed[i].i], transferPairId: pairId, category: 'Transfer' };
-        result[indexed[j].i] = { ...result[indexed[j].i], transferPairId: pairId, category: 'Transfer' };
-        used.add(indexed[i].i);
-        used.add(indexed[j].i);
-        break;
+  // Group by |amount| rounded to cents
+  const byAmount = new Map<string, number[]>();
+  for (let i = 0; i < result.length; i++) {
+    if (result[i].amount === 0) continue;
+    const key = Math.abs(result[i].amount).toFixed(2);
+    if (!byAmount.has(key)) byAmount.set(key, []);
+    byAmount.get(key)!.push(i);
+  }
+
+  for (const indices of byAmount.values()) {
+    if (indices.length < 2) continue;
+    indices.sort((a, b) => result[a].date.localeCompare(result[b].date));
+
+    for (let i = 0; i < indices.length; i++) {
+      const ai = indices[i];
+      if (used.has(ai)) continue;
+      const a = result[ai];
+
+      for (let j = i + 1; j < indices.length; j++) {
+        const bi = indices[j];
+        if (used.has(bi)) continue;
+        const b = result[bi];
+
+        const dayDiff = Math.abs((new Date(a.date).getTime() - new Date(b.date).getTime()) / 86400000);
+        if (dayDiff > 2) break;
+
+        if (Math.abs(a.amount + b.amount) < 0.01 && a.account !== b.account) {
+          pairCount++;
+          const pairId = `xfer-import-${pairCount}`;
+          result[ai] = { ...result[ai], transferPairId: pairId, category: 'Transfer' };
+          result[bi] = { ...result[bi], transferPairId: pairId, category: 'Transfer' };
+          used.add(ai);
+          used.add(bi);
+          break;
+        }
       }
     }
   }
@@ -98,41 +117,56 @@ export function detectTransfers(transactions: ProcessedTransaction[]): Processed
  */
 const RETURN_SIGNALS = ['RETURN', 'REFUND', 'CREDIT', 'REVERSAL', 'REIMBURSE', 'REBATE', 'CHARGEBACK'];
 
+/**
+ * Detect return/refund pairs using hash-map grouping by |amount| for O(n) amortized.
+ */
 export function detectReturns(transactions: ProcessedTransaction[]): ProcessedTransaction[] {
   const result = [...transactions];
   let pairCount = 0;
   const used = new Set<number>();
 
+  // Build index of negative transactions by |amount|
+  const negByAmount = new Map<string, number[]>();
   for (let i = 0; i < result.length; i++) {
-    if (used.has(i)) continue;
-    const t = result[i];
-    // Only look at positive amounts with return-like descriptions
-    if (t.amount <= 0 || t.transferPairId) continue;
-    const desc = t.description.toUpperCase();
-    const hasSignal = RETURN_SIGNALS.some(kw => desc.includes(kw));
-    if (!hasSignal) continue;
+    if (result[i].amount < 0 && !result[i].transferPairId) {
+      const key = Math.abs(result[i].amount).toFixed(2);
+      if (!negByAmount.has(key)) negByAmount.set(key, []);
+      negByAmount.get(key)!.push(i);
+    }
+  }
 
-    // Try to find the original charge: same merchant prefix, opposite sign, within 30 days
+  for (let i = 0; i < result.length; i++) {
+    if (used.has(i) || result[i].amount <= 0 || result[i].transferPairId) continue;
+    const desc = result[i].description.toUpperCase();
+    if (!RETURN_SIGNALS.some(kw => desc.includes(kw))) continue;
+
+    const key = result[i].amount.toFixed(2);
+    const candidates = negByAmount.get(key);
+    if (!candidates) {
+      result[i] = { ...result[i], category: 'Returns' };
+      continue;
+    }
+
     const merchantPrefix = desc.replace(/RETURN|REFUND|CREDIT|REVERSAL|REIMBURSE|REBATE|CHARGEBACK/gi, '').trim().slice(0, 12);
-    for (let j = 0; j < result.length; j++) {
-      if (i === j || used.has(j)) continue;
-      const candidate = result[j];
-      if (candidate.amount >= 0 || candidate.transferPairId) continue;
-      const dayDiff = Math.abs((new Date(t.date).getTime() - new Date(candidate.date).getTime()) / 86400000);
+    let matched = false;
+
+    for (const j of candidates) {
+      if (used.has(j)) continue;
+      const dayDiff = Math.abs((new Date(result[i].date).getTime() - new Date(result[j].date).getTime()) / 86400000);
       if (dayDiff > 30) continue;
-      if (Math.abs(t.amount + candidate.amount) < 0.01 && candidate.description.toUpperCase().includes(merchantPrefix.slice(0, 8))) {
+      if (result[j].description.toUpperCase().includes(merchantPrefix.slice(0, 8))) {
         pairCount++;
         const pairId = `return-import-${pairCount}`;
         result[i] = { ...result[i], returnPairId: pairId, category: 'Returns' };
         result[j] = { ...result[j], returnPairId: pairId };
         used.add(i);
         used.add(j);
+        matched = true;
         break;
       }
     }
 
-    // Even without a pair match, still classify as return if description has signal
-    if (!used.has(i)) {
+    if (!matched) {
       result[i] = { ...result[i], category: 'Returns' };
     }
   }
