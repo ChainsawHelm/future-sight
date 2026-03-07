@@ -576,67 +576,369 @@ export function categorizeTransaction(
   return { category: guess, autoMatched: false };
 }
 
+// ─── Extended Vendor Database ────────────────────────────────────────────────
+// Real company/brand names for fallback categorization when keyword map misses.
+// These are checked AFTER the main KEYWORD_MAP, so they only fire for unknowns.
+const VENDOR_FALLBACK: [string, string][] = [
+  // ── Dining — chains, coffee, fast-casual, delivery ────────────────────────
+  ['CANES', 'Dining'], ['RAISING CANE', 'Dining'], ['WINGSTOP', 'Dining'],
+  ['POPEYES', 'Dining'], ['KFC', 'Dining'], ['SONIC DRIVE', 'Dining'],
+  ['JACK IN THE BOX', 'Dining'], ['CARL\'S JR', 'Dining'], ['HARDEE', 'Dining'],
+  ['ARBY', 'Dining'], ['CULVER', 'Dining'], ['RALLY', 'Dining'],
+  ['CHECKERS', 'Dining'], ['DEL TACO', 'Dining'], ['EL POLLO LOCO', 'Dining'],
+  ['PANDA EXPRESS', 'Dining'], ['MOE\'S', 'Dining'], ['QDOBA', 'Dining'],
+  ['NOODLES & CO', 'Dining'], ['ZAXBY', 'Dining'], ['COOK OUT', 'Dining'],
+  ['GOLDEN CORRAL', 'Dining'], ['CHEDDAR\'S', 'Dining'], ['BOB EVANS', 'Dining'],
+  ['PERKINS', 'Dining'], ['VILLAGE INN', 'Dining'], ['STEAK N SHAKE', 'Dining'],
+  ['DAIRY QUEEN', 'Dining'], ['BASKIN ROBBINS', 'Dining'], ['COLD STONE', 'Dining'],
+  ['KRISPY KREME', 'Dining'], ['TIM HORTON', 'Dining'], ['PHILZ', 'Dining'],
+  ['BLUE BOTTLE', 'Dining'], ['INTELLIGENTSIA', 'Dining'], ['LA COLOMBE', 'Dining'],
+  ['SCOOTERS COFFEE', 'Dining'], ['BIGGBY', 'Dining'], ['PRET A MANGER', 'Dining'],
+  ['AU BON PAIN', 'Dining'], ['CORNER BAKERY', 'Dining'], ['EINSTEIN', 'Dining'],
+  ['BRUEGGER', 'Dining'], ['ATLANTA BREAD', 'Dining'], ['SCHLOTZSKY', 'Dining'],
+  ['JIMMY JOHN', 'Dining'], ['JERSEY MIKE', 'Dining'], ['FIREHOUSE SUBS', 'Dining'],
+  ['POTBELLY', 'Dining'], ['JASON\'S DELI', 'Dining'], ['MCALISTER', 'Dining'],
+  ['WHICH WICH', 'Dining'], ['QUIZNOS', 'Dining'], ['BLAZE PIZZA', 'Dining'],
+  ['MOD PIZZA', 'Dining'], ['MARCO\'S PIZZA', 'Dining'], ['LITTLE CAESARS', 'Dining'],
+  ['HUNT BROTHERS', 'Dining'], ['ROUND TABLE', 'Dining'], ['PAPA MURPHY', 'Dining'],
+  ['CICIS', 'Dining'], ['HUNGRY HOWIE', 'Dining'], ['JET\'S PIZZA', 'Dining'],
+  ['TOPPERS', 'Dining'], ['TROPICAL SMOOTHIE', 'Dining'], ['SMOOTHIE KING', 'Dining'],
+  ['ROBEKS', 'Dining'], ['NEKTER', 'Dining'], ['PRESSED JUICERY', 'Dining'],
+  ['BOBA GUYS', 'Dining'], ['KUNG FU TEA', 'Dining'], ['GONG CHA', 'Dining'],
+  ['TIGER SUGAR', 'Dining'], ['CAVA', 'Dining'], ['SWEETGREEN', 'Dining'],
+  ['JUST SALAD', 'Dining'], ['CHOPT', 'Dining'], ['DIG INN', 'Dining'],
+  ['TENDER GREENS', 'Dining'], ['NANDO', 'Dining'], ['WABA GRILL', 'Dining'],
+  ['FLAME BROILER', 'Dining'], ['YOSHINOYA', 'Dining'], ['TERIYAKI', 'Dining'],
+  ['PHO', 'Dining'], ['BONEFISH', 'Dining'], ['RUTH\'S CHRIS', 'Dining'],
+  ['MORTON\'S', 'Dining'], ['FLEMING', 'Dining'], ['CAPITAL GRILLE', 'Dining'],
+  ['BENIHANA', 'Dining'], ['NOBU', 'Dining'], ['P.F. CHANG', 'Dining'],
+  ['CHEESECAKE FACTORY', 'Dining'], ['RED ROBIN', 'Dining'], ['HOOTERS', 'Dining'],
+  ['TWIN PEAKS', 'Dining'], ['YARD HOUSE', 'Dining'], ['BJ\'S RESTAURANT', 'Dining'],
+  ['COSI', 'Dining'], ['WHATABURGER', 'Dining'], ['PORTILLOS', 'Dining'],
+  ['IN N OUT', 'Dining'], ['HABIT BURGER', 'Dining'], ['SMASHBURGER', 'Dining'],
+  ['FATBURGER', 'Dining'], ['MOOYAH', 'Dining'], ['ELEVATION BURGER', 'Dining'],
+  ['WHITE CASTLE', 'Dining'], ['KRYSTAL', 'Dining'], ['STEAK ESCAPE', 'Dining'],
+  ['CHARLEYS', 'Dining'], ['AUNTIE ANNE', 'Dining'], ['WETZEL', 'Dining'],
+  ['CINNABON', 'Dining'], ['JAMBA', 'Dining'], ['TACO CABANA', 'Dining'],
+  ['TACO BUENO', 'Dining'], ['GREEN BURRITO', 'Dining'], ['FREEBIRDS', 'Dining'],
+  ['BAJA FRESH', 'Dining'], ['RUBIO', 'Dining'], ['WAHOO', 'Dining'],
+  ['TORCHY', 'Dining'], ['VELVET TACO', 'Dining'], ['FUZZY\'S TACO', 'Dining'],
+  ['GRUBHUB', 'Dining'], ['CAVIAR', 'Dining'], ['GOPUFF', 'Dining'],
+  ['FAVOR', 'Dining'], ['WAITR', 'Dining'], ['SLICE', 'Dining'],
+  ['EAT24', 'Dining'], ['BITE SQUAD', 'Dining'], ['HUNGRYROOT', 'Dining'],
+  ['FACTOR', 'Dining'], ['HELLOFRESH', 'Dining'], ['BLUE APRON', 'Dining'],
+  ['HOME CHEF', 'Dining'], ['EVERY PLATE', 'Dining'], ['DINNERLY', 'Dining'],
+  ['SUNBASKET', 'Dining'], ['FRESHLY', 'Dining'], ['DAILY HARVEST', 'Dining'],
+  ['CRUMBL', 'Dining'], ['INSOMNIA COOKIES', 'Dining'], ['NOTHING BUNDT', 'Dining'],
+  ['GREAT HARVEST', 'Dining'],
+
+  // ── Groceries — regional chains, specialty, online ────────────────────────
+  ['PIGGLY WIGGLY', 'Groceries'], ['BI-LO', 'Groceries'], ['WINN DIXIE', 'Groceries'],
+  ['INGLES', 'Groceries'], ['INGLE\'S', 'Groceries'], ['EARTH FARE', 'Groceries'],
+  ['NATURAL GROCERS', 'Groceries'], ['LUCKY\'S MARKET', 'Groceries'],
+  ['STATER BROS', 'Groceries'], ['CARDENAS', 'Groceries'], ['EL SUPER', 'Groceries'],
+  ['FIESTA MART', 'Groceries'], ['VALLARTA', 'Groceries'], ['RANCH MARKET', 'Groceries'],
+  ['FOODMAXX', 'Groceries'], ['GROCERY OUTLET', 'Groceries'], ['SAVE A LOT', 'Groceries'],
+  ['PRICE CHOPPER', 'Groceries'], ['MARKET BASKET', 'Groceries'], ['SHOP RITE', 'Groceries'],
+  ['SHOPRITE', 'Groceries'], ['ACME MARKET', 'Groceries'], ['JEWEL OSCO', 'Groceries'],
+  ['SCHNUCKS', 'Groceries'], ['DIERBERGS', 'Groceries'], ['HY-VEE', 'Groceries'],
+  ['HYVEE', 'Groceries'], ['FAREWAY', 'Groceries'], ['CUB FOODS', 'Groceries'],
+  ['FESTIVAL FOODS', 'Groceries'], ['PICK N SAVE', 'Groceries'], ['WOODMAN', 'Groceries'],
+  ['CENTRAL MARKET', 'Groceries'], ['NEW SEASONS', 'Groceries'], ['MARKET OF CHOICE', 'Groceries'],
+  ['THRIVE MARKET', 'Groceries'], ['IMPERFECT FOODS', 'Groceries'], ['MISFITS MARKET', 'Groceries'],
+  ['FRESHDIRECT', 'Groceries'], ['PEAPOD', 'Groceries'], ['VITACOST', 'Groceries'],
+  ['IHERB', 'Groceries'], ['TRADER JOE', 'Groceries'], ['LIDL', 'Groceries'],
+  ['FOOD 4 LESS', 'Groceries'], ['FOOD4LESS', 'Groceries'], ['SMART & FINAL', 'Groceries'],
+  ['RESTAURANT DEPOT', 'Groceries'], ['CASH AND CARRY', 'Groceries'],
+  ['BJ\'S WHOLESALE', 'Groceries'], ['COSTCO WHOLESALE', 'Groceries'],
+
+  // ── Shopping — tech, fashion, home, general retail ────────────────────────
+  ['APPLE STORE', 'Shopping'], ['APPLE.COM', 'Shopping'], ['APPLE INC', 'Shopping'],
+  ['GOOGLE STORE', 'Shopping'], ['GOOGLE PLAY', 'Shopping'], ['SAMSUNG', 'Shopping'],
+  ['DELL', 'Shopping'], ['HP STORE', 'Shopping'], ['LENOVO', 'Shopping'],
+  ['NEWEGG', 'Shopping'], ['B&H PHOTO', 'Shopping'], ['MICRO CENTER', 'Shopping'],
+  ['ADORAMA', 'Shopping'], ['MONOPRICE', 'Shopping'], ['ANKER', 'Shopping'],
+  ['BOSE', 'Shopping'], ['SONOS', 'Shopping'], ['LOGITECH', 'Shopping'],
+  ['RAZER', 'Shopping'], ['CORSAIR', 'Shopping'],
+  ['NIKE', 'Shopping'], ['ADIDAS', 'Shopping'], ['UNDER ARMOUR', 'Shopping'],
+  ['PUMA', 'Shopping'], ['NEW BALANCE', 'Shopping'], ['ASICS', 'Shopping'],
+  ['REEBOK', 'Shopping'], ['CONVERSE', 'Shopping'], ['VANS', 'Shopping'],
+  ['FOOT LOCKER', 'Shopping'], ['FINISH LINE', 'Shopping'], ['JOURNEYS', 'Shopping'],
+  ['DSW', 'Shopping'], ['FAMOUS FOOTWEAR', 'Shopping'],
+  ['LULULEMON', 'Shopping'], ['ATHLETA', 'Shopping'], ['FABLETICS', 'Shopping'],
+  ['GYM SHARK', 'Shopping'], ['ALO YOGA', 'Shopping'],
+  ['UNIQLO', 'Shopping'], ['PRIMARK', 'Shopping'], ['FOREVER 21', 'Shopping'],
+  ['EXPRESS', 'Shopping'], ['AMERICAN EAGLE', 'Shopping'], ['AEROPOSTALE', 'Shopping'],
+  ['HOLLISTER', 'Shopping'], ['ABERCROMBIE', 'Shopping'], ['ANTHROPOLOGIE', 'Shopping'],
+  ['FREE PEOPLE', 'Shopping'], ['URBAN OUTFITTERS', 'Shopping'], ['MADEWELL', 'Shopping'],
+  ['ANN TAYLOR', 'Shopping'], ['LOFT', 'Shopping'], ['TALBOTS', 'Shopping'],
+  ['CHICO', 'Shopping'], ['WHITE HOUSE BLACK', 'Shopping'], ['TORRID', 'Shopping'],
+  ['LANE BRYANT', 'Shopping'], ['CATHERINES', 'Shopping'],
+  ['RESTORATION HARDWARE', 'Shopping'], ['WEST ELM', 'Shopping'], ['CB2', 'Shopping'],
+  ['PIER 1', 'Shopping'], ['WORLD MARKET', 'Shopping'], ['HOMEGOODS', 'Shopping'],
+  ['AT HOME', 'Shopping'], ['TUESDAY MORNING', 'Shopping'], ['HOBBY LOBBY', 'Shopping'],
+  ['MICHAELS', 'Shopping'], ['JOANN', 'Shopping'], ['BLICK ART', 'Shopping'],
+  ['CONTAINER STORE', 'Shopping'], ['ORGANIZE', 'Shopping'],
+  ['OVERSTOCK', 'Shopping'], ['WISH.COM', 'Shopping'], ['TEMU', 'Shopping'],
+  ['ALIEXPRESS', 'Shopping'], ['POSHMARK', 'Shopping'], ['THREDUP', 'Shopping'],
+  ['DEPOP', 'Shopping'], ['MERCARI', 'Shopping'], ['OFFERUP', 'Shopping'],
+  ['FACEBOOK MARKET', 'Shopping'], ['MARKETPLACE', 'Shopping'],
+  ['BATH AND BODY', 'Shopping'], ['YANKEE CANDLE', 'Shopping'],
+  ['VICTORIA\'S SECRET', 'Shopping'], ['PINK', 'Shopping'],
+  ['AUTOZONE', 'Shopping'], ['ADVANCE AUTO', 'Shopping'], ['O\'REILLY', 'Shopping'],
+  ['NAPA AUTO', 'Shopping'], ['CARQUEST', 'Shopping'], ['PEPBOYS', 'Shopping'],
+  ['TRACTOR SUPPLY', 'Shopping'], ['RURAL KING', 'Shopping'],
+  ['REI', 'Shopping'], ['CABELAS', 'Shopping'], ['BASS PRO', 'Shopping'],
+  ['DICKS SPORTING', 'Shopping'], ['ACADEMY SPORTS', 'Shopping'],
+  ['BIG 5', 'Shopping'], ['SCHEELS', 'Shopping'],
+  ['BARNES AND NOBLE', 'Shopping'], ['HALF PRICE BOOKS', 'Shopping'],
+  ['POWELL\'S BOOKS', 'Shopping'], ['BOOKSHOP', 'Shopping'],
+  ['HALLMARK', 'Shopping'], ['PAPYRUS', 'Shopping'],
+  ['LEGO STORE', 'Shopping'], ['BUILD A BEAR', 'Shopping'], ['TOYS R US', 'Shopping'],
+  ['PARTY CITY', 'Shopping'], ['SPIRIT HALLOWEEN', 'Shopping'],
+  ['MENARDS', 'Shopping'], ['HARBOR FREIGHT', 'Shopping'], ['ACE HARDWARE', 'Shopping'],
+  ['TRUE VALUE', 'Shopping'], ['DO IT BEST', 'Shopping'],
+
+  // ── Gas — additional stations ─────────────────────────────────────────────
+  ['MAVERIK', 'Gas'], ['KUM AND GO', 'Gas'], ['QUIKTRIP', 'Gas'], ['QT', 'Gas'],
+  ['SHEETZ', 'Gas'], ['RACETRAC', 'Gas'], ['MURPHY USA', 'Gas'], ['MURPHY OIL', 'Gas'],
+  ['SAM\'S FUEL', 'Gas'], ['COSTCO GAS', 'Gas'], ['KROGER FUEL', 'Gas'],
+  ['BUCCEES', 'Gas'], ['BUC-EE', 'Gas'], ['HOLIDAY STATION', 'Gas'],
+  ['CENEX', 'Gas'], ['CITGO', 'Gas'], ['PHILLIPS 66', 'Gas'], ['CONOCOPHILLIPS', 'Gas'],
+  ['TEXACO', 'Gas'], ['CUMBERLAND FARMS', 'Gas'], ['THORNTONS', 'Gas'],
+  ['MAPCO', 'Gas'], ['PARKER', 'Gas'], ['PLAID PANTRY', 'Gas'],
+  ['STEWARTS SHOPS', 'Gas'], ['ROYAL FARMS', 'Gas'], ['RUTTERS', 'Gas'],
+  ['GETGO', 'Gas'], ['GIANT EAGLE FUEL', 'Gas'], ['HEB FUEL', 'Gas'],
+  ['SAMS GAS', 'Gas'], ['WALMART GAS', 'Gas'], ['EXXONMOBIL', 'Gas'],
+
+  // ── Subscriptions — additional services ───────────────────────────────────
+  ['APPLE ONE', 'Subscriptions'], ['APPLE ARCADE', 'Subscriptions'],
+  ['APPLE NEWS', 'Subscriptions'], ['APPLE FITNESS', 'Subscriptions'],
+  ['GOOGLE YOUTUBE', 'Subscriptions'], ['YOUTUBE TV', 'Subscriptions'],
+  ['SLING TV', 'Subscriptions'], ['FUBO', 'Subscriptions'], ['PHILO', 'Subscriptions'],
+  ['CRUNCHYROLL', 'Subscriptions'], ['FUNIMATION', 'Subscriptions'],
+  ['CURIOSITY STREAM', 'Subscriptions'], ['MUBI', 'Subscriptions'],
+  ['CRITERION', 'Subscriptions'], ['SHUDDER', 'Subscriptions'],
+  ['BRITBOX', 'Subscriptions'], ['ACORN TV', 'Subscriptions'],
+  ['STARZ', 'Subscriptions'], ['SHOWTIME', 'Subscriptions'], ['CINEMAX', 'Subscriptions'],
+  ['ESPN PLUS', 'Subscriptions'], ['DAZN', 'Subscriptions'],
+  ['AMAZON DIGITAL', 'Subscriptions'], ['KINDLE', 'Subscriptions'],
+  ['SCRIBD', 'Subscriptions'], ['BLINKIST', 'Subscriptions'],
+  ['HEADSPACE', 'Subscriptions'], ['CALM APP', 'Subscriptions'],
+  ['STRAVA', 'Subscriptions'], ['ALLTRAILS', 'Subscriptions'],
+  ['MYFITNESSPAL', 'Subscriptions'], ['NOOM', 'Subscriptions'],
+  ['WEIGHT WATCHERS', 'Subscriptions'], ['WW DIGITAL', 'Subscriptions'],
+  ['CHATGPT', 'Subscriptions'], ['OPENAI', 'Subscriptions'],
+  ['CLAUDE', 'Subscriptions'], ['ANTHROPIC', 'Subscriptions'],
+  ['MIDJOURNEY', 'Subscriptions'], ['CANVA', 'Subscriptions'],
+  ['FIGMA', 'Subscriptions'], ['GRAMMARLY', 'Subscriptions'],
+  ['LASTPASS', 'Subscriptions'], ['ONEPASSWORD', 'Subscriptions'], ['1PASSWORD', 'Subscriptions'],
+  ['BITWARDEN', 'Subscriptions'], ['DASHLANE', 'Subscriptions'],
+  ['NORDVPN', 'Subscriptions'], ['EXPRESSVPN', 'Subscriptions'],
+  ['SURFSHARK', 'Subscriptions'], ['PROTONVPN', 'Subscriptions'],
+  ['NORTON', 'Subscriptions'], ['MCAFEE', 'Subscriptions'], ['MALWAREBYTES', 'Subscriptions'],
+  ['CARBONITE', 'Subscriptions'], ['BACKBLAZE', 'Subscriptions'],
+  ['EVERNOTE', 'Subscriptions'], ['TODOIST', 'Subscriptions'],
+  ['TRELLO', 'Subscriptions'], ['ASANA', 'Subscriptions'],
+  ['DESCRIPT', 'Subscriptions'], ['RIVERSIDE', 'Subscriptions'],
+  ['SKILLSHARE', 'Subscriptions'], ['BRILLIANT', 'Subscriptions'],
+  ['LINKEDIN LEARNING', 'Subscriptions'],
+
+  // ── Entertainment — venues, gaming, events ────────────────────────────────
+  ['TOPGOLF', 'Entertainment'], ['MAIN EVENT', 'Entertainment'],
+  ['ROUND1', 'Entertainment'], ['PINBALLZ', 'Entertainment'],
+  ['CHUCK E CHEESE', 'Entertainment'], ['FUNPLEX', 'Entertainment'],
+  ['SKYZONE', 'Entertainment'], ['URBAN AIR', 'Entertainment'],
+  ['TRAMPOLINE PARK', 'Entertainment'], ['AQUARIUM', 'Entertainment'],
+  ['PLANETARIUM', 'Entertainment'], ['SCIENCE CENTER', 'Entertainment'],
+  ['IMAX', 'Entertainment'], ['ALAMO DRAFTHOUSE', 'Entertainment'],
+  ['CINEMARK', 'Entertainment'], ['SHOWCASE CINEMA', 'Entertainment'],
+  ['HARKINS', 'Entertainment'], ['LANDMARK THEATRE', 'Entertainment'],
+  ['XBOX LIVE', 'Entertainment'], ['EA SPORTS', 'Entertainment'],
+  ['RIOT GAMES', 'Entertainment'], ['BLIZZARD', 'Entertainment'],
+  ['ACTIVISION', 'Entertainment'], ['UBISOFT', 'Entertainment'],
+  ['VALVE STEAM', 'Entertainment'], ['HUMBLE BUNDLE', 'Entertainment'],
+  ['TWITCH SUBS', 'Entertainment'], ['DISCORD NITRO', 'Entertainment'],
+  ['ROBLOX', 'Entertainment'], ['FORTNITE', 'Entertainment'],
+  ['MINECRAFT', 'Entertainment'],
+  ['LIVE NATION', 'Entertainment'], ['AXS', 'Entertainment'],
+  ['SEATGEEK', 'Entertainment'], ['VIVID SEATS', 'Entertainment'],
+  ['BROADWAY', 'Entertainment'], ['TICKETFLY', 'Entertainment'],
+
+  // ── Healthcare — additional providers ─────────────────────────────────────
+  ['MINUTE CLINIC', 'Healthcare'], ['CARESPOT', 'Healthcare'],
+  ['PATIENT FIRST', 'Healthcare'], ['CONCENTRA', 'Healthcare'],
+  ['MED EXPRESS', 'Healthcare'], ['ZOCDOC', 'Healthcare'],
+  ['TELADOC', 'Healthcare'], ['MDLIVE', 'Healthcare'], ['AMWELL', 'Healthcare'],
+  ['CAPSULE PHARM', 'Healthcare'], ['ALTO PHARMACY', 'Healthcare'],
+  ['PILLPACK', 'Healthcare'], ['NURX', 'Healthcare'], ['HIMS', 'Healthcare'],
+  ['ROMAN', 'Healthcare'], ['CEREBRAL', 'Healthcare'], ['BETTERHELP', 'Healthcare'],
+  ['TALKSPACE', 'Healthcare'], ['ALMA', 'Healthcare'],
+  ['WARBY PARKER', 'Healthcare'], ['ZENNI', 'Healthcare'], ['EYEBUYDIRECT', 'Healthcare'],
+  ['LENSCRAFTERS', 'Healthcare'], ['PEARLE VISION', 'Healthcare'],
+  ['AMERICAS BEST', 'Healthcare'], ['ASPEN DENTAL', 'Healthcare'],
+  ['HEARTLAND DENTAL', 'Healthcare'], ['PACIFIC DENTAL', 'Healthcare'],
+  ['SMILE DIRECT', 'Healthcare'], ['BYTE', 'Healthcare'],
+  ['QUEST DIAGNOSTICS', 'Healthcare'], ['LABCORP', 'Healthcare'],
+
+  // ── Transportation — additional auto/transit ──────────────────────────────
+  ['MIDAS', 'Transportation'], ['MAACO', 'Transportation'],
+  ['SAFELITE', 'Transportation'], ['CALIBER COLLISION', 'Transportation'],
+  ['SERVICE KING', 'Transportation'], ['TAKE 5 OIL', 'Transportation'],
+  ['GREASE MONKEY', 'Transportation'], ['EXPRESS LUBE', 'Transportation'],
+  ['MEINEKE', 'Transportation'], ['AAMCO', 'Transportation'],
+  ['MONROE MUFFLER', 'Transportation'], ['MAVIS TIRE', 'Transportation'],
+  ['BELLE TIRE', 'Transportation'], ['TIRE RACK', 'Transportation'],
+  ['CARVANA', 'Transportation'], ['CARMAX', 'Transportation'],
+  ['VROOM', 'Transportation'], ['SHIFT', 'Transportation'],
+  ['TURO', 'Transportation'], ['GETAROUND', 'Transportation'],
+  ['NATIONAL CAR RENTAL', 'Transportation'], ['SIXT', 'Transportation'],
+  ['THRIFTY', 'Transportation'], ['DOLLAR RENTAL', 'Transportation'],
+  ['FOX RENT', 'Transportation'], ['PAYBYPHONE', 'Transportation'],
+  ['PARKWHIZ', 'Transportation'], ['SPOTHERO', 'Transportation'],
+  ['PARKOPEDIA', 'Transportation'],
+
+  // ── Travel — additional hotels, airlines, booking ─────────────────────────
+  ['WYNDHAM', 'Travel'], ['BEST WESTERN', 'Travel'], ['CHOICE HOTELS', 'Travel'],
+  ['LA QUINTA', 'Travel'], ['MOTEL 6', 'Travel'], ['RED ROOF INN', 'Travel'],
+  ['COMFORT INN', 'Travel'], ['HAMPTON INN', 'Travel'], ['HOLIDAY INN', 'Travel'],
+  ['CROWNE PLAZA', 'Travel'], ['INTERCONTINENTAL', 'Travel'],
+  ['FAIRFIELD INN', 'Travel'], ['COURTYARD BY', 'Travel'], ['RESIDENCE INN', 'Travel'],
+  ['SPRINGHILL SUITES', 'Travel'], ['WESTIN', 'Travel'], ['SHERATON', 'Travel'],
+  ['W HOTEL', 'Travel'], ['FOUR SEASONS', 'Travel'], ['RITZ CARLTON', 'Travel'],
+  ['OMNI HOTEL', 'Travel'], ['LOEWS HOTEL', 'Travel'],
+  ['HAWAIIAN AIRLINES', 'Travel'], ['SUN COUNTRY', 'Travel'],
+  ['ALLEGIANT', 'Travel'], ['AVELO', 'Travel'], ['BREEZE AIRWAYS', 'Travel'],
+  ['AIR CANADA', 'Travel'], ['BRITISH AIRWAYS', 'Travel'],
+  ['LUFTHANSA', 'Travel'], ['EMIRATES', 'Travel'], ['QATAR AIRWAYS', 'Travel'],
+  ['NORWEGIAN AIR', 'Travel'], ['ICELANDAIR', 'Travel'], ['COPA AIRLINES', 'Travel'],
+  ['VOLARIS', 'Travel'], ['VIVAAEROBUS', 'Travel'],
+  ['HOPPER', 'Travel'], ['SKIPLAGGED', 'Travel'], ['KIWI.COM', 'Travel'],
+  ['MOMONDO', 'Travel'], ['TRIVAGO', 'Travel'], ['HOTELS.COM', 'Travel'],
+  ['HOSTELWORLD', 'Travel'], ['TRIPADVISOR', 'Travel'],
+  ['VIATOR', 'Travel'], ['GETYOURGUIDE', 'Travel'], ['KLOOK', 'Travel'],
+  ['CRUISE', 'Travel'], ['CARNIVAL', 'Travel'], ['ROYAL CARIBBEAN', 'Travel'],
+  ['NORWEGIAN CRUISE', 'Travel'], ['MSC CRUISE', 'Travel'],
+
+  // ── Fitness — gyms, studios, apps ─────────────────────────────────────────
+  ['BARRY\'S', 'Fitness'], ['F45', 'Fitness'], ['BURN BOOT CAMP', 'Fitness'],
+  ['TITLE BOXING', 'Fitness'], ['UFC GYM', 'Fitness'], ['GOLD\'S GYM', 'Fitness'],
+  ['LA FITNESS', 'Fitness'], ['LIFE TIME', 'Fitness'], ['SNAP FITNESS', 'Fitness'],
+  ['YOUFIT', 'Fitness'], ['CHUZE FITNESS', 'Fitness'], ['BLINK FITNESS', 'Fitness'],
+  ['EOS FITNESS', 'Fitness'], ['WORKOUT ANYTIME', 'Fitness'],
+  ['PURE BARRE', 'Fitness'], ['CLUB PILATES', 'Fitness'],
+  ['STRETCH ZONE', 'Fitness'], ['STRETCHLAB', 'Fitness'],
+  ['SOLIDCORE', 'Fitness'], ['RUMBLE', 'Fitness'],
+  ['PELOTON', 'Fitness'], ['MIRROR FIT', 'Fitness'], ['TONAL', 'Fitness'],
+  ['APPLE FITNESS', 'Fitness'], ['FITBIT PREMIUM', 'Fitness'],
+
+  // ── Personal Care — salons, grooming ──────────────────────────────────────
+  ['GREAT CLIPS', 'Personal Care'], ['SUPERCUTS', 'Personal Care'],
+  ['SPORT CLIPS', 'Personal Care'], ['FANTASTIC SAMS', 'Personal Care'],
+  ['FLOYD\'S 99', 'Personal Care'], ['BIRDS BARBERSHOP', 'Personal Care'],
+  ['DRYBAR', 'Personal Care'], ['MADISON REED', 'Personal Care'],
+  ['EUROPEAN WAX', 'Personal Care'], ['BENEFITS WAX', 'Personal Care'],
+  ['HAND AND STONE', 'Personal Care'], ['MASSAGE ENVY', 'Personal Care'],
+  ['ELEMENTS MASSAGE', 'Personal Care'], ['RESTORE HYPER', 'Personal Care'],
+  ['PERSPIRE SAUNA', 'Personal Care'], ['FLOAT SPA', 'Personal Care'],
+  ['TANNING', 'Personal Care'], ['PALM BEACH TAN', 'Personal Care'],
+
+  // ── Insurance — carriers ──────────────────────────────────────────────────
+  ['GEICO', 'Insurance'], ['STATE FARM', 'Insurance'], ['ALLSTATE', 'Insurance'],
+  ['PROGRESSIVE', 'Insurance'], ['LIBERTY MUTUAL', 'Insurance'],
+  ['USAA', 'Insurance'], ['FARMERS INS', 'Insurance'], ['NATIONWIDE', 'Insurance'],
+  ['TRAVELERS', 'Insurance'], ['HARTFORD', 'Insurance'], ['ERIE INSURANCE', 'Insurance'],
+  ['AMERICAN FAMILY', 'Insurance'], ['SHELTER INS', 'Insurance'],
+  ['AUTO OWNERS', 'Insurance'], ['SAFECO', 'Insurance'], ['MERCURY INS', 'Insurance'],
+  ['ROOT INS', 'Insurance'], ['LEMONADE INS', 'Insurance'], ['METROMILE', 'Insurance'],
+  ['ESURANCE', 'Insurance'], ['KEMPER', 'Insurance'],
+  ['OSCAR HEALTH', 'Insurance'], ['CLOVER HEALTH', 'Insurance'],
+  ['BRIGHT HEALTH', 'Insurance'], ['AMBETTER', 'Insurance'],
+
+  // ── Education — schools, platforms ────────────────────────────────────────
+  ['CODECADEMY', 'Education'], ['PLURALSIGHT', 'Education'],
+  ['LINKEDIN LEARNING', 'Education'], ['TREEHOUSE', 'Education'],
+  ['DATACAMP', 'Education'], ['OREILLY MEDIA', 'Education'],
+  ['EDEX', 'Education'], ['EDX', 'Education'],
+  ['KAPLAN', 'Education'], ['PRINCETON REVIEW', 'Education'],
+  ['KUMON', 'Education'], ['SYLVAN', 'Education'], ['MATHNASIUM', 'Education'],
+  ['OUTSCHOOL', 'Education'], ['VARSITY TUTORS', 'Education'],
+  ['WYZANT', 'Education'], ['PREPLY', 'Education'], ['ITALKI', 'Education'],
+
+  // ── Charity ───────────────────────────────────────────────────────────────
+  ['HABITAT FOR HUMANITY', 'Charity'], ['UNITED WAY', 'Charity'],
+  ['FEEDING AMERICA', 'Charity'], ['FOOD BANK', 'Charity'],
+  ['ST JUDE', 'Charity'], ['MAKE A WISH', 'Charity'],
+  ['BOYS AND GIRLS CLUB', 'Charity'], ['BIG BROTHERS', 'Charity'],
+  ['WOUNDED WARRIOR', 'Charity'], ['AMERICAN CANCER', 'Charity'],
+  ['SUSAN G KOMEN', 'Charity'], ['MARCH OF DIMES', 'Charity'],
+  ['WORLD VISION', 'Charity'], ['UNICEF', 'Charity'], ['AMNESTY', 'Charity'],
+  ['ASPCA', 'Charity'], ['HUMANE SOCIETY', 'Charity'], ['WWF', 'Charity'],
+  ['SIERRA CLUB', 'Charity'], ['NATURE CONSERV', 'Charity'],
+  ['ACLU', 'Charity'], ['PLANNED PARENTHOOD', 'Charity'],
+
+  // ── Business — SaaS, office, shipping ─────────────────────────────────────
+  ['QUICKBOOKS', 'Business'], ['FRESHBOOKS', 'Business'], ['XERO', 'Business'],
+  ['WAVE APPS', 'Business'], ['SQUARE', 'Business'], ['CLOVER', 'Business'],
+  ['TOAST', 'Business'], ['SHOPIFY', 'Business'], ['BIGCOMMERCE', 'Business'],
+  ['WOOCOMMERCE', 'Business'], ['STRIPE', 'Business'], ['BRAINTREE', 'Business'],
+  ['MAILCHIMP', 'Business'], ['CONSTANT CONTACT', 'Business'],
+  ['HUBSPOT', 'Business'], ['SALESFORCE', 'Business'],
+  ['ZENDESK', 'Business'], ['INTERCOM', 'Business'], ['FRESHDESK', 'Business'],
+  ['JIRA', 'Business'], ['ATLASSIAN', 'Business'], ['CONFLUENCE', 'Business'],
+  ['MONDAY.COM', 'Business'], ['CLICKUP', 'Business'],
+  ['GUSTO', 'Business'], ['JUSTWORKS', 'Business'], ['RIPPLING', 'Business'],
+  ['BAMBOOHR', 'Business'], ['NAMELY', 'Business'],
+  ['WEWORK', 'Business'], ['REGUS', 'Business'], ['IWG', 'Business'],
+  ['VISTAPRINT', 'Business'], ['MOO.COM', 'Business'],
+  ['GoDaddy', 'Business'], ['NAMECHEAP', 'Business'], ['CLOUDFLARE', 'Business'],
+  ['NETLIFY', 'Business'], ['VERCEL', 'Business'], ['RENDER', 'Business'],
+  ['RAILWAY', 'Business'], ['FLY.IO', 'Business'], ['SUPABASE', 'Business'],
+  ['FIREBASE', 'Business'], ['MONGO', 'Business'], ['PLANETSCALE', 'Business'],
+
+  // ── Utilities — additional providers ──────────────────────────────────────
+  ['PACIFIC GAS', 'Utilities'], ['FLORIDA POWER', 'Utilities'],
+  ['FIRSTENERGY', 'Utilities'], ['EVERSOURCE', 'Utilities'],
+  ['NATIONAL GRID', 'Utilities'], ['XCEL ENERGY', 'Utilities'],
+  ['AMEREN', 'Utilities'], ['ALLIANT ENERGY', 'Utilities'],
+  ['AVISTA', 'Utilities'], ['PUGET SOUND ENERGY', 'Utilities'],
+  ['ROCKY MOUNTAIN POWER', 'Utilities'], ['TUCSON ELECTRIC', 'Utilities'],
+  ['APS ELECTRIC', 'Utilities'], ['SRP POWER', 'Utilities'],
+  ['AUSTIN ENERGY', 'Utilities'], ['CPS ENERGY', 'Utilities'],
+  ['PEPCO', 'Utilities'], ['BGE ELECTRIC', 'Utilities'],
+  ['CONSUMERS ENERGY', 'Utilities'], ['DTE ENERGY', 'Utilities'],
+  ['WE ENERGIES', 'Utilities'], ['MID AMERICAN', 'Utilities'],
+  ['AQUA WATER', 'Utilities'], ['AMERICAN WATER', 'Utilities'],
+  ['WASTE MANAGEMENT', 'Utilities'], ['REPUBLIC SERVICES', 'Utilities'],
+  ['RECOLOGY', 'Utilities'],
+
+  // ── Housing — rent platforms, mortgage ────────────────────────────────────
+  ['APARTMENTS.COM', 'Housing'], ['ZILLOW RENT', 'Housing'],
+  ['AVAIL RENT', 'Housing'], ['COZY RENT', 'Housing'], ['RENTTANGO', 'Housing'],
+  ['APPFOLIO', 'Housing'], ['BUILDIUM', 'Housing'], ['YARDI', 'Housing'],
+  ['GREYSTAR', 'Housing'], ['EQUITY RESIDENTIAL', 'Housing'],
+  ['ESSEX PROPERTY', 'Housing'], ['MAA RENT', 'Housing'],
+  ['CAMDEN PROPERTY', 'Housing'], ['UDR', 'Housing'],
+  ['ROCKET MORTGAGE', 'Housing'], ['QUICKEN LOANS', 'Housing'],
+  ['WELLS FARGO MORT', 'Housing'], ['CHASE MORTGAGE', 'Housing'],
+  ['MR COOPER', 'Housing'], ['PENNYMAC', 'Housing'],
+  ['FREEDOM MORTGAGE', 'Housing'], ['NEWREZ', 'Housing'],
+  ['LOANCARE', 'Housing'], ['PHH MORTGAGE', 'Housing'],
+];
+
 /**
  * Best-guess categorization when no keyword or merchant rule matched.
- * Uses word-level heuristics on the description to make a reasonable guess.
- * Never returns "Uncategorized" — always picks the most likely category.
+ * Checks against an extended vendor database of real company names.
+ * Falls back to 'Shopping' for unknowns (most common general expense).
  */
-function guessCategory(upperDesc: string, amount: number): string {
-  // Food/dining signals
-  if (/\b(FOOD|EAT|KITCHEN|BAKERY|BREW|PUB|BAR |TAQUERIA|WOK|BBQ|BURRITO|WINGS|CHICKEN|THAI|CHINESE|MEXICAN|ITALIAN|INDIAN|KOREAN|VIETNAMESE|POKE|BOWL|NOODLE|SANDWICH|BAGEL|DONUT|WAFFLE|PANCAKE|ICE CREAM|YOGURT|DESSERT|CREAMERY|COFFEE|TEA |JUICE|TAVERN|CANTINA|TAPROOM|STEAKHOUSE)\b/.test(upperDesc)) {
-    return 'Dining';
+function guessCategory(upperDesc: string, _amount: number): string {
+  for (const [vendor, category] of VENDOR_FALLBACK) {
+    if (upperDesc.includes(vendor.toUpperCase())) {
+      return category;
+    }
   }
 
-  // Grocery signals
-  if (/\b(MARKET|GROCER|PRODUCE|ORGANIC|FARM|BUTCHER|DELI|SUPERMARKET|MINI MART|CONVENIENCE)\b/.test(upperDesc)) {
-    return 'Groceries';
-  }
-
-  // Gas/fuel signals
-  if (/\b(PETRO|PUMP|DIESEL|FILL UP|PROPANE)\b/.test(upperDesc)) {
-    return 'Gas';
-  }
-
-  // Medical/health signals
-  if (/\b(DR\.|DR |HEALTH|MED |CARE|LABS|DIAGNOSTIC|IMAGING|SURGERY|DENTAL|ORTHO|CHIRO|DERMA|PSYCH|PHYSICAL THERAPY|QUEST DIAG|LABCORP)\b/.test(upperDesc)) {
-    return 'Healthcare';
-  }
-
-  // Subscription/recurring signals
-  if (/\b(SUBSCRIPTION|MONTHLY|RECURRING|RENEWAL|ANNUAL FEE|MEMBERSHIP)\b/.test(upperDesc)) {
-    return 'Subscriptions';
-  }
-
-  // Insurance signals
-  if (/\b(INSURANCE|GEICO|STATE FARM|ALLSTATE|PROGRESSIVE|LIBERTY MUTUAL|USAA|FARMERS|NATIONWIDE)\b/.test(upperDesc)) {
-    return 'Insurance';
-  }
-
-  // Utility/bill signals
-  if (/\b(BILL PAY|UTILITY|POWER|ENERGY|WATER|SEWER|TELECOM)\b/.test(upperDesc)) {
-    return 'Utilities';
-  }
-
-  // Childcare/kids
-  if (/\b(DAYCARE|CHILDCARE|PRESCHOOL|SCHOOL|TUTOR|CAMP)\b/.test(upperDesc)) {
-    return 'Education';
-  }
-
-  // Home improvement
-  if (/\b(HARDWARE|PLUMBING|ELECTRIC|CONTRACTOR|LANDSCAP|LAWN|GARDEN|NURSERY|ACE HARDWARE|MENARDS|HARBOR FREIGHT)\b/.test(upperDesc)) {
-    return 'Shopping';
-  }
-
-  // Amount-based heuristics for remaining unknowns
-  const absAmt = Math.abs(amount);
-
-  // Small charges (<$20) are likely dining/coffee/snacks
-  if (absAmt < 20) return 'Dining';
-
-  // Medium charges ($20-$100) are likely shopping
-  if (absAmt < 100) return 'Shopping';
-
-  // Larger charges default to shopping (most common general expense)
+  // If nothing matched at all, default to Shopping (most common general expense)
   return 'Shopping';
 }
 
