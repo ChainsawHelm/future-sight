@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { isRealIncome, isRealExpense } from '@/lib/classify';
 
 /* ══════════════════════════════════════════════════════════════════
@@ -32,14 +32,14 @@ interface Link {
   value: number;
   srcColor: string;
   tgtColor: string;
-  srcY0: number;   // top of ribbon at source
-  srcY1: number;   // bottom of ribbon at source
-  tgtY0: number;   // top of ribbon at target
-  tgtY1: number;   // bottom of ribbon at target
+  srcY0: number;
+  srcY1: number;
+  tgtY0: number;
+  tgtY1: number;
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   COLORS — GLASSHOUSE palette
+   COLORS
 ══════════════════════════════════════════════════════════════════ */
 const INCOME_COLOR   = '#4E8B62';
 const ACCOUNT_COLORS = ['#3D7A8A', '#4A90A4', '#2E7D9A', '#4A7E6E', '#5A8A7A', '#326E84'];
@@ -53,20 +53,18 @@ const CAT_COLORS: Record<string, string> = {
   Insurance: '#7A6A5A', Restaurants: '#C47A5A',
   'ATM & Fees': '#8A9AA8', Uncategorized: '#9AA0A8',
 };
-const MERCHANT_COLOR = '#7B8FA6';
 function catColor(cat: string) { return CAT_COLORS[cat] || '#6A7A9A'; }
 
 /* ══════════════════════════════════════════════════════════════════
    LAYOUT
 ══════════════════════════════════════════════════════════════════ */
-const GAP        = 5;
+const GAP        = 6;
 const NODE_W     = 12;
-const MIN_NODE_H = 16;
+const MIN_NODE_H = 18;
 const LABEL_PAD  = 10;
 
-// Column fractions: where each column's node bar starts (left edge)
-// Shifted merchant column left to give right-side labels more breathing room
-const COL_FRACS_4 = [0.03, 0.28, 0.53, 0.76];
+// 3-column layout: Income | Accounts | Categories
+const COL_FRACS_3 = [0.03, 0.35, 0.68];
 const COL_FRACS_2 = [0.03, 0.74];
 
 function simplifyMerchant(desc: string): string {
@@ -93,19 +91,26 @@ function stackColumn(
   if (n === 0) return [];
   const totalGaps = GAP * (n - 1);
   const drawH = Math.max(0, availH - totalGaps);
-
-  // Raw heights → clamp to min
   const heights = rawNodes.map(node =>
     Math.max(MIN_NODE_H, totalVal > 0 ? (node.value / totalVal) * drawH : drawH / n)
   );
-
-  // Scale down if total overflows the available space
   const total = heights.reduce((s, h) => s + h, 0);
   const scale = total > drawH ? drawH / total : 1;
   const scaled = heights.map(h => h * scale);
-
   let y = startY;
   return scaled.map(h => { const pos = { y, h }; y += h + GAP; return pos; });
+}
+
+interface MerchantData {
+  merchant: string;
+  amount: number;
+}
+
+interface BuildResult {
+  nodes: Node[];
+  links: Link[];
+  maxColCount: number;
+  merchantsByCategory: Record<string, MerchantData[]>;
 }
 
 function buildSankeyData(
@@ -114,7 +119,7 @@ function buildSankeyData(
   svgW: number,
   isMobile: boolean,
   showAll: boolean = false,
-): { nodes: Node[]; links: Link[]; maxColCount: number } {
+): BuildResult {
   const incomeBySource: Record<string, number> = {};
   const incomeBySourceAccount: Record<string, Record<string, number>> = {};
   const expenseByAccount: Record<string, Record<string, number>> = {};
@@ -142,7 +147,6 @@ function buildSankeyData(
   const incomeLimit = showAll ? Infinity : 5;
   const accountLimit = showAll ? Infinity : 6;
   const categoryLimit = showAll ? Infinity : (isMobile ? 5 : 8);
-  const merchantLimit = showAll ? Infinity : (isMobile ? 5 : 8);
 
   const incomeSources = Object.entries(incomeBySource).sort(([, a], [, b]) => b - a).slice(0, incomeLimit);
   const accounts = Object.entries(
@@ -153,15 +157,10 @@ function buildSankeyData(
   ).sort(([, a], [, b]) => b - a).slice(0, accountLimit);
   const categories = Object.entries(expenseByCategory)
     .sort(([, a], [, b]) => b - a).slice(0, categoryLimit);
-  const merchants = Object.entries(
-    Object.values(expenseByCategoryMerchant).reduce((acc, m) => {
-      for (const [k, v] of Object.entries(m)) acc[k] = (acc[k] || 0) + v;
-      return acc;
-    }, {} as Record<string, number>)
-  ).sort(([, a], [, b]) => b - a).slice(0, merchantLimit);
 
-  const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_4;
+  const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_3;
 
+  // 3 columns: Income (0), Accounts (1), Categories (2) — no merchants in SVG
   const rawNodes: Omit<Node, 'y' | 'h'>[] = [
     ...incomeSources.map(([label, value]) => ({
       id: `inc:${label}`, label, value, color: INCOME_COLOR, column: 0,
@@ -172,13 +171,9 @@ function buildSankeyData(
     ...categories.map(([label, value]) => ({
       id: `cat:${label}`, label, value, color: catColor(label), column: isMobile ? 1 : 2,
     })),
-    ...(isMobile ? [] : merchants.map(([label, value]) => ({
-      id: `mer:${label}`, label, value, color: MERCHANT_COLOR, column: 3,
-    }))),
   ];
 
-  const numCols = isMobile ? 2 : 4;
-  // Reserve 8px top and 8px bottom padding inside the SVG
+  const numCols = isMobile ? 2 : 3;
   const availH = svgH - 16;
   const startY = 8;
 
@@ -191,7 +186,6 @@ function buildSankeyData(
     colNodes.forEach((n, i) => nodes.push({ ...n, ...positions[i] }));
   }
 
-  // Build raw link list
   const rawLinks: { sourceId: string; targetId: string; value: number }[] = [];
 
   if (isMobile) {
@@ -220,15 +214,8 @@ function buildSankeyData(
         if (v > 0) rawLinks.push({ sourceId: `acct:${acct}`, targetId: `cat:${cat}`, value: v });
       }
     }
-    for (const [cat] of categories) {
-      for (const [mer] of merchants) {
-        const v = expenseByCategoryMerchant[cat]?.[mer] || 0;
-        if (v > 0) rawLinks.push({ sourceId: `cat:${cat}`, targetId: `mer:${mer}`, value: v });
-      }
-    }
   }
 
-  // Position ribbons within nodes
   const srcConsumed: Record<string, number> = {};
   const tgtConsumed: Record<string, number> = {};
   const links: Link[] = [];
@@ -237,38 +224,35 @@ function buildSankeyData(
     const srcNode = nodes.find(n => n.id === rl.sourceId);
     const tgtNode = nodes.find(n => n.id === rl.targetId);
     if (!srcNode || !tgtNode) continue;
-
     const srcTotal = rawLinks.filter(l => l.sourceId === rl.sourceId).reduce((s, l) => s + l.value, 0);
     const tgtTotal = rawLinks.filter(l => l.targetId === rl.targetId).reduce((s, l) => s + l.value, 0);
-
     const srcBand = srcTotal > 0 ? (rl.value / srcTotal) * srcNode.h : 0;
     const tgtBand = tgtTotal > 0 ? (rl.value / tgtTotal) * tgtNode.h : 0;
-
     const srcUsed = srcConsumed[rl.sourceId] || 0;
     const tgtUsed = tgtConsumed[rl.targetId] || 0;
-
     links.push({
-      sourceId: rl.sourceId,
-      targetId: rl.targetId,
-      value: rl.value,
-      srcColor: srcNode.color,
-      tgtColor: tgtNode.color,
-      srcY0: srcNode.y + srcUsed,
-      srcY1: srcNode.y + srcUsed + srcBand,
-      tgtY0: tgtNode.y + tgtUsed,
-      tgtY1: tgtNode.y + tgtUsed + tgtBand,
+      sourceId: rl.sourceId, targetId: rl.targetId, value: rl.value,
+      srcColor: srcNode.color, tgtColor: tgtNode.color,
+      srcY0: srcNode.y + srcUsed, srcY1: srcNode.y + srcUsed + srcBand,
+      tgtY0: tgtNode.y + tgtUsed, tgtY1: tgtNode.y + tgtUsed + tgtBand,
     });
-
     srcConsumed[rl.sourceId] = srcUsed + srcBand;
     tgtConsumed[rl.targetId] = tgtUsed + tgtBand;
   }
 
-  // Return the max node count in any column so the component can size the SVG
-  const colCounts = [0, 0, 0, 0];
+  const colCounts = [0, 0, 0];
   for (const n of nodes) colCounts[n.column] = (colCounts[n.column] || 0) + 1;
   const maxColCount = Math.max(...colCounts);
 
-  return { nodes, links, maxColCount };
+  // Build merchant breakdown per category for the detail panel
+  const merchantsByCategory: Record<string, MerchantData[]> = {};
+  for (const [cat, merchants] of Object.entries(expenseByCategoryMerchant)) {
+    merchantsByCategory[cat] = Object.entries(merchants)
+      .sort(([, a], [, b]) => b - a)
+      .map(([merchant, amount]) => ({ merchant, amount }));
+  }
+
+  return { nodes, links, maxColCount, merchantsByCategory };
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -282,7 +266,7 @@ interface SankeyChartProps {
   tall?: boolean;
 }
 
-const COL_LABELS_4 = ['Income', 'Accounts', 'Categories', 'Merchants'];
+const COL_LABELS_3 = ['Income', 'Accounts', 'Categories'];
 const COL_LABELS_2 = ['Income', 'Spending'];
 
 export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: SankeyChartProps) {
@@ -290,6 +274,7 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -299,40 +284,41 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
   }, []);
 
   const isMobile = width < 520;
-  // tall prop = dedicated page = show all merchants/categories, no limits
   const showAll = !!tall;
-  const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_4;
-  const colLabels = isMobile ? COL_LABELS_2 : COL_LABELS_4;
+  const colFracs = isMobile ? COL_FRACS_2 : COL_FRACS_3;
+  const colLabels = isMobile ? COL_LABELS_2 : COL_LABELS_3;
 
-  // First pass: build data to find how many nodes we have
-  // Then compute SVG height based on the tallest column
-  const { nodes, links, svgH } = useMemo(() => {
-    // Initial pass with a temporary height to get node counts
+  const { nodes, links, svgH, merchantsByCategory } = useMemo(() => {
     const preliminary = buildSankeyData(transactions, 720, width, isMobile, showAll);
     const nodeCount = preliminary.maxColCount;
-
-    // Scale height: each node needs ~(MIN_NODE_H + GAP) minimum, plus padding
-    const minH = isMobile ? 280 : (tall ? 720 : 360);
+    const minH = isMobile ? 280 : (tall ? 600 : 360);
     const dynamicH = nodeCount * (MIN_NODE_H + GAP) + 16;
     const finalH = Math.max(minH, dynamicH);
-
-    // Rebuild with the correct height
     const result = buildSankeyData(transactions, finalH, width, isMobile, showAll);
-    return { nodes: result.nodes, links: result.links, svgH: finalH };
+    return { nodes: result.nodes, links: result.links, svgH: finalH, merchantsByCategory: result.merchantsByCategory };
   }, [transactions, width, isMobile, showAll, tall]);
 
-  const handleNodeClick = (node: Node) => {
-    const dateParts = [
+  const dateSuffix = useMemo(() => {
+    const parts = [
       dateFrom ? `dateFrom=${encodeURIComponent(dateFrom)}` : '',
       dateTo   ? `dateTo=${encodeURIComponent(dateTo)}`     : '',
     ].filter(Boolean).join('&');
-    const dateSuffix = dateParts ? `&${dateParts}` : '';
+    return parts ? `&${parts}` : '';
+  }, [dateFrom, dateTo]);
 
+  const handleNodeClick = (node: Node) => {
+    // Category nodes toggle the merchant expansion panel
+    if (node.id.startsWith('cat:')) {
+      const cat = node.label;
+      setExpandedCategory(prev => prev === cat ? null : cat);
+      return;
+    }
     if (node.id.startsWith('inc:'))  router.push(`/transactions?search=${encodeURIComponent(node.id.slice(4))}${dateSuffix}`);
     if (node.id.startsWith('acct:')) router.push(`/transactions?account=${encodeURIComponent(node.label)}${dateSuffix}`);
-    if (node.id.startsWith('cat:'))  router.push(`/transactions?category=${encodeURIComponent(node.label)}${dateSuffix}`);
-    if (node.id.startsWith('mer:'))  router.push(`/transactions?search=${encodeURIComponent(node.label)}${dateSuffix}`);
   };
+
+  // Reset expanded category when period changes
+  useEffect(() => { setExpandedCategory(null); }, [period]);
 
   if (transactions.length === 0) {
     return <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">No transaction data for this period</div>;
@@ -341,22 +327,20 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
     return <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">No income/expense data in this period</div>;
   }
 
+  const expandedMerchants = expandedCategory ? merchantsByCategory[expandedCategory] || [] : [];
+  const expandedTotal = expandedMerchants.reduce((s, m) => s + m.amount, 0);
+
   return (
     <div ref={containerRef} className="w-full">
-      {/* Column headers — absolutely positioned over the SVG */}
+      {/* Column headers */}
       <div className="relative h-5 mb-1 select-none">
         {colLabels.map((label, i) => {
           const pct = colFracs[i] * 100;
-          const isLast = i === colLabels.length - 1;
           return (
             <span
               key={i}
               className="absolute text-[9px] font-bold tracking-[0.10em] text-muted-foreground"
-              style={
-                isLast
-                  ? { right: `${(1 - colFracs[i] - NODE_W / width) * 100}%`, textAlign: 'right' }
-                  : { left: `${pct}%` }
-              }
+              style={{ left: `${pct}%` }}
             >
               {label.toUpperCase()}
             </span>
@@ -364,7 +348,7 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
         })}
       </div>
 
-      {/* SVG — clipped to its bounds */}
+      {/* SVG */}
       <div className="w-full overflow-hidden">
         <svg
           width="100%"
@@ -381,7 +365,7 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
             ))}
           </defs>
 
-          {/* Ribbon links — filled paths */}
+          {/* Ribbons */}
           {links.map((link, i) => {
             const srcNode = nodes.find(n => n.id === link.sourceId)!;
             const tgtNode = nodes.find(n => n.id === link.targetId)!;
@@ -391,8 +375,6 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
             const x2  = colFracs[tgtNode.column] * width;
             const cpX = (x1 + x2) / 2;
 
-            // Top edge: source top → target top (left to right)
-            // Bottom edge: target bottom → source bottom (right to left)
             const d = [
               `M${x1},${link.srcY0}`,
               `C${cpX},${link.srcY0} ${cpX},${link.tgtY0} ${x2},${link.tgtY0}`,
@@ -402,12 +384,13 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
             ].join(' ');
 
             const isHovered = hoveredNode === link.sourceId || hoveredNode === link.targetId;
+            const isExpanded = expandedCategory && link.targetId === `cat:${expandedCategory}`;
             return (
               <path
                 key={i}
                 d={d}
                 fill={`url(#lg-${i})`}
-                fillOpacity={isHovered ? 0.70 : 0.38}
+                fillOpacity={isExpanded ? 0.75 : isHovered ? 0.70 : 0.38}
                 className="transition-opacity duration-200"
               />
             );
@@ -417,14 +400,15 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
           {nodes.map(node => {
             const x = colFracs[node.column] * width;
             const isHovered = hoveredNode === node.id;
-            // Labels: col 0 & 1 right of bar, col 2 left of bar (between ribbons), col 3 right of bar (outside)
-            const labelRight = node.column === 2 && !isMobile;
-            const labelX = labelRight ? x - LABEL_PAD : x + NODE_W + LABEL_PAD;
-            const anchor  = labelRight ? 'end' : 'start';
-            // Merchants (col 3) get more room since labels render outside the chart
-            const maxChars = isMobile ? 11 : (node.column === 3 ? 22 : 14);
+            const isExpanded = expandedCategory && node.id === `cat:${expandedCategory}`;
+            const isCatNode = node.id.startsWith('cat:');
+
+            // Categories: labels go right of bar (plenty of room now with no col 3)
+            const labelX = x + NODE_W + LABEL_PAD;
+            const anchor = 'start';
+            const maxChars = isMobile ? 11 : 18;
             const label   = truncate(node.label, maxChars);
-            const showVal = isHovered || node.h > 26;
+            const showVal = isHovered || isExpanded || node.h > 26;
             const midY    = node.y + node.h / 2;
 
             return (
@@ -435,8 +419,7 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
                 onMouseLeave={() => setHoveredNode(null)}
                 style={{ cursor: 'pointer' }}
               >
-                {/* Subtle glow on hover */}
-                {isHovered && (
+                {(isHovered || isExpanded) && (
                   <rect
                     x={x - 2} y={node.y - 2}
                     width={NODE_W + 4} height={node.h + 4}
@@ -444,17 +427,15 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
                   />
                 )}
 
-                {/* Node bar */}
                 <rect
                   x={x} y={node.y}
                   width={NODE_W} height={node.h}
                   rx={3}
                   fill={node.color}
-                  opacity={isHovered ? 1 : 0.85}
+                  opacity={isHovered || isExpanded ? 1 : 0.85}
                   style={{ transition: 'opacity 0.15s' }}
                 />
 
-                {/* Label */}
                 <text
                   x={labelX}
                   y={showVal ? midY - 6 : midY}
@@ -462,17 +443,19 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
                   dominantBaseline="middle"
                   fontSize={isMobile ? 9 : 11}
                   fontFamily="var(--font-sans), system-ui"
-                  fontWeight={isHovered ? '700' : '500'}
+                  fontWeight={isHovered || isExpanded ? '700' : '500'}
                   style={{
-                    fill: isHovered ? node.color : 'hsl(var(--foreground) / 0.78)',
+                    fill: isHovered || isExpanded ? node.color : 'hsl(var(--foreground) / 0.78)',
                     transition: 'fill 0.15s',
                     userSelect: 'none',
                   }}
                 >
                   {label}
+                  {isCatNode && !isMobile && (
+                    <tspan fontSize={9} fill="hsl(var(--muted-foreground))">{isExpanded ? ' ▾' : ' ▸'}</tspan>
+                  )}
                 </text>
 
-                {/* Value sub-label */}
                 {showVal && (
                   <text
                     x={labelX}
@@ -482,7 +465,7 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
                     fontSize={isMobile ? 7.5 : 9}
                     fontFamily="var(--font-mono), monospace"
                     style={{
-                      fill: isHovered ? node.color : 'hsl(var(--muted-foreground))',
+                      fill: isHovered || isExpanded ? node.color : 'hsl(var(--muted-foreground))',
                       transition: 'fill 0.15s',
                       userSelect: 'none',
                     }}
@@ -497,8 +480,62 @@ export function SankeyChart({ transactions, period, dateFrom, dateTo, tall }: Sa
       </div>
 
       <p className="text-[10px] text-center text-muted-foreground mt-2">
-        Click any node to filter transactions
+        Click a category to expand merchants · Click income or account to view transactions
       </p>
+
+      {/* ═══ Merchant Expansion Panel ═══ */}
+      {expandedCategory && expandedMerchants.length > 0 && (
+        <div className="mt-3 border border-border bg-surface-1 overflow-hidden animate-fade-in">
+          <div className="flex items-center justify-between px-4 py-3 bg-surface-2 border-b border-border">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: catColor(expandedCategory) }} />
+              <span className="text-sm font-semibold">{expandedCategory}</span>
+              <span className="ticker text-[10px]">{expandedMerchants.length} merchant{expandedMerchants.length !== 1 ? 's' : ''} · {formatCurrency(expandedTotal)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push(`/transactions?category=${encodeURIComponent(expandedCategory)}${dateSuffix}`)}
+                className="text-[10px] font-mono text-primary hover:text-primary/80 transition-colors"
+              >
+                View Transactions →
+              </button>
+              <button
+                onClick={() => setExpandedCategory(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+          </div>
+          <div className="max-h-72 overflow-y-auto divide-y divide-border/50">
+            {expandedMerchants.map((m, i) => {
+              const pct = expandedTotal > 0 ? (m.amount / expandedTotal) * 100 : 0;
+              return (
+                <button
+                  key={m.merchant}
+                  onClick={() => router.push(`/transactions?search=${encodeURIComponent(m.merchant)}${dateSuffix}`)}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-surface-2/50 transition-colors text-left group"
+                >
+                  <span className="text-[10px] font-mono text-muted-foreground/50 w-5 text-right shrink-0">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-mono truncate group-hover:text-primary transition-colors">{m.merchant}</span>
+                      <span className="tabnum text-xs font-semibold shrink-0 ml-2">{formatCurrency(m.amount)}</span>
+                    </div>
+                    <div className="h-1 bg-surface-2 overflow-hidden">
+                      <div
+                        className="h-full transition-all duration-500"
+                        style={{ width: `${pct}%`, backgroundColor: catColor(expandedCategory) }}
+                      />
+                    </div>
+                  </div>
+                  <span className="tabnum text-[10px] text-muted-foreground/60 w-10 text-right shrink-0">{pct.toFixed(1)}%</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
