@@ -41,6 +41,8 @@ export function ImportView() {
   const [reviewSearch, setReviewSearch] = useState('');
   const [reviewCategoryFilter, setReviewCategoryFilter] = useState('');
   const [reviewStatusFilter, setReviewStatusFilter] = useState<'' | 'uncategorized' | 'auto' | 'dupe' | 'transfer'>('');
+  const [batchIndex, setBatchIndex] = useState(0);
+  const BATCH_SIZE = 100;
 
   const { data: categories } = useCategories();
   const { data: rulesData } = useFetch<{ rules: Record<string, string> }>(() => merchantRulesApi.list(), []);
@@ -187,8 +189,8 @@ export function ImportView() {
   };
 
   const handleBulkRecategorize = (category: string) => {
-    setProcessed(prev => prev.map(t =>
-      t.category === 'Uncategorized' ? { ...t, category, autoMatched: false } : t
+    setProcessed(prev => prev.map((t, i) =>
+      i >= batchStart && i < batchEnd && t.category === 'Uncategorized' ? { ...t, category, autoMatched: false } : t
     ));
   };
 
@@ -244,7 +246,7 @@ export function ImportView() {
   };
 
   const handleDeleteImport = async (id: string) => { if (!confirm('Delete this import and all its transactions?')) return; await importApi.delete(id); refetchImports(); };
-  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); setRulePrompt(null); setSessionRules([]); setReviewSearch(''); setReviewCategoryFilter(''); setReviewStatusFilter(''); setSortField(null); setReviewMode('merchants'); setExpandedMerchant(null); };
+  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); setRulePrompt(null); setSessionRules([]); setReviewSearch(''); setReviewCategoryFilter(''); setReviewStatusFilter(''); setSortField(null); setReviewMode('merchants'); setExpandedMerchant(null); setBatchIndex(0); };
   const importCount = excludeDupes ? processed.filter(t => !t.flagged).length : processed.length;
 
   const toggleSort = (field: 'date' | 'category' | 'amount') => {
@@ -252,12 +254,57 @@ export function ImportView() {
     else { setSortField(field); setSortDir('asc'); }
   };
 
-  const uncategorizedCount = useMemo(() => processed.filter(t => t.category === 'Uncategorized').length, [processed]);
+  // Batch slicing
+  const totalBatches = Math.ceil(processed.length / BATCH_SIZE);
+  const batchStart = batchIndex * BATCH_SIZE;
+  const batchEnd = Math.min(batchStart + BATCH_SIZE, processed.length);
+  const batchSlice = useMemo(() => processed.slice(batchStart, batchEnd), [processed, batchStart, batchEnd]);
+  const isLastBatch = batchIndex >= totalBatches - 1;
 
-  // Build merchant groups
+  const uncategorizedCount = useMemo(() => batchSlice.filter(t => t.category === 'Uncategorized').length, [batchSlice]);
+
+  // Advance to next batch — apply learned rules to remaining transactions
+  const advanceBatch = () => {
+    if (isLastBatch) return;
+    // Build rules from what was categorized in this batch
+    const learnedRules: Record<string, string> = {};
+    for (const r of sessionRules) learnedRules[r.merchant] = r.category;
+    // Also learn from manually categorized merchants in current batch
+    for (const t of batchSlice) {
+      if (t.category !== 'Uncategorized' && !t.autoMatched) {
+        const merchant = extractMerchant(t.description);
+        if (merchant && merchant.length >= 2 && !learnedRules[merchant]) {
+          learnedRules[merchant] = t.category;
+        }
+      }
+    }
+    // Apply learned rules to remaining uncategorized transactions
+    if (Object.keys(learnedRules).length > 0) {
+      setProcessed(prev => {
+        const next = [...prev];
+        for (let i = batchEnd; i < next.length; i++) {
+          if (next[i].category === 'Uncategorized') {
+            const merchant = extractMerchant(next[i].description);
+            if (merchant && learnedRules[merchant]) {
+              next[i] = { ...next[i], category: learnedRules[merchant], autoMatched: true };
+            }
+          }
+        }
+        return next;
+      });
+    }
+    setBatchIndex(prev => prev + 1);
+    setExpandedMerchant(null);
+    setReviewSearch('');
+    setReviewStatusFilter('');
+    setReviewCategoryFilter('');
+  };
+
+  // Build merchant groups (from current batch only)
   const merchantGroups = useMemo(() => {
     const map = new Map<string, MerchantGroup>();
-    processed.forEach((t, i) => {
+    batchSlice.forEach((t, localIdx) => {
+      const i = batchStart + localIdx;
       const merchant = extractMerchant(t.description) || t.description.slice(0, 30);
       const existing = map.get(merchant);
       if (existing) {
@@ -286,7 +333,7 @@ export function ImportView() {
       return b.count - a.count;
     });
     return groups;
-  }, [processed]);
+  }, [batchSlice, batchStart]);
 
   const filteredMerchantGroups = useMemo(() => {
     let groups = merchantGroups;
@@ -323,7 +370,7 @@ export function ImportView() {
   };
 
   const sortedProcessed = useMemo(() => {
-    let items = processed.map((t, i) => ({ ...t, _origIdx: i }));
+    let items = batchSlice.map((t, localIdx) => ({ ...t, _origIdx: batchStart + localIdx }));
 
     // Apply filters
     if (reviewSearch) {
@@ -349,7 +396,7 @@ export function ImportView() {
       });
     }
     return items;
-  }, [processed, reviewSearch, reviewCategoryFilter, reviewStatusFilter, sortField, sortDir]);
+  }, [batchSlice, batchStart, reviewSearch, reviewCategoryFilter, reviewStatusFilter, sortField, sortDir]);
 
   const sortIcon = (field: string) => sortField === field ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
 
@@ -458,12 +505,35 @@ export function ImportView() {
 
       {phase === 'review' && (
         <div className="space-y-4">
+          {/* Batch progress bar */}
+          {totalBatches > 1 && (
+            <div className="border border-border bg-surface-1 px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-mono font-semibold">
+                  Batch {batchIndex + 1} of {totalBatches}
+                  <span className="text-muted-foreground font-normal ml-2">
+                    (transactions {batchStart + 1}–{batchEnd} of {processed.length})
+                  </span>
+                </p>
+                <span className="ticker">
+                  {sessionRules.length} rule{sessionRules.length !== 1 ? 's' : ''} learned
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-surface-2 overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-500"
+                  style={{ width: `${((batchIndex + 1) / totalBatches) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 border border-border bg-surface-1">
             {[
-              { label: 'Total Parsed', value: stats.total, color: 'text-foreground' },
-              { label: 'Auto-Categorized', value: stats.autoMatched, color: 'text-primary' },
-              { label: 'Transfer Pairs', value: stats.transfers, color: 'text-purple-400' },
-              { label: 'Duplicates', value: stats.duplicates, color: 'text-yellow-400' },
+              { label: totalBatches > 1 ? 'This Batch' : 'Total Parsed', value: batchSlice.length, color: 'text-foreground' },
+              { label: 'Auto-Categorized', value: batchSlice.filter(t => t.autoMatched).length, color: 'text-primary' },
+              { label: 'Uncategorized', value: uncategorizedCount, color: uncategorizedCount > 0 ? 'text-yellow-400' : 'text-foreground' },
+              { label: 'Duplicates', value: batchSlice.filter(t => t.flagged).length, color: 'text-yellow-400' },
             ].map((s, i) => (
               <div key={s.label} className={`px-4 py-3 ${i > 0 ? 'border-l border-border' : ''}`}>
                 <p className="ticker mb-1">{s.label}</p>
@@ -493,13 +563,27 @@ export function ImportView() {
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={resetImport}>Cancel</Button>
-              <button
-                onClick={handleConfirmImport}
-                disabled={importMutation.isLoading}
-                className="h-9 px-4 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors disabled:opacity-40 shadow-[0_0_12px_hsl(var(--primary)/0.2)]"
-              >
-                {importMutation.isLoading ? 'Importing...' : `Import ${importCount} Transactions`}
-              </button>
+              {batchIndex > 0 && (
+                <Button variant="outline" size="sm" onClick={() => { setBatchIndex(prev => prev - 1); setExpandedMerchant(null); }}>
+                  Back
+                </Button>
+              )}
+              {!isLastBatch ? (
+                <button
+                  onClick={advanceBatch}
+                  className="h-9 px-4 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors shadow-[0_0_12px_hsl(var(--primary)/0.2)]"
+                >
+                  Next Batch &rarr;
+                </button>
+              ) : (
+                <button
+                  onClick={handleConfirmImport}
+                  disabled={importMutation.isLoading}
+                  className="h-9 px-4 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/85 transition-colors disabled:opacity-40 shadow-[0_0_12px_hsl(var(--primary)/0.2)]"
+                >
+                  {importMutation.isLoading ? 'Importing...' : `Import All ${importCount} Transactions`}
+                </button>
+              )}
             </div>
           </div>
 
@@ -699,14 +783,14 @@ export function ImportView() {
               </div>
 
               {/* Bottom summary */}
-              {processed.length > 0 && (() => {
-                const rows = excludeDupes ? processed.filter(t => !t.flagged) : processed;
+              {batchSlice.length > 0 && (() => {
+                const rows = excludeDupes ? batchSlice.filter(t => !t.flagged) : batchSlice;
                 const total = rows.reduce((s, t) => s + t.amount, 0);
                 const income = rows.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
                 const expenses = rows.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
                 return (
                   <div className="border-t border-border px-4 py-2.5 bg-surface-2/80 flex items-center justify-end gap-4 text-xs font-mono">
-                    <span className="text-muted-foreground/60 mr-auto">{filteredMerchantGroups.length} merchants · {processed.length} transactions</span>
+                    <span className="text-muted-foreground/60 mr-auto">{filteredMerchantGroups.length} merchants · {batchSlice.length} transactions</span>
                     {income > 0 && <span className="text-income tabnum">+${income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                     {expenses > 0 && <span className="text-expense tabnum">-${expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                     <span className={cn('font-semibold tabnum', total >= 0 ? 'text-income' : 'text-expense')}>
