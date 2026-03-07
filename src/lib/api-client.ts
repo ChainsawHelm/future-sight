@@ -214,6 +214,29 @@ export const accountNicknamesApi = {
     request<any>('/api/account-nicknames', { method: 'DELETE', body: JSON.stringify({ accountName }) }),
 };
 
+// ─── Expense Reports ─────────────────
+
+export const expenseReportsApi = {
+  list: (status?: string) => request<any>(`/api/expense-reports${qs({ status })}`),
+  get: (id: string) => request<any>(`/api/expense-reports/${id}`),
+  create: (data: { title: string; description?: string }) =>
+    request<any>('/api/expense-reports', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) =>
+    request<any>(`/api/expense-reports/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    request<any>(`/api/expense-reports/${id}`, { method: 'DELETE' }),
+  addItems: (id: string, transactionIds: string[], note?: string) =>
+    request<any>(`/api/expense-reports/${id}/items`, {
+      method: 'POST',
+      body: JSON.stringify({ transactionIds, note }),
+    }),
+  removeItems: (id: string, transactionIds: string[]) =>
+    request<any>(`/api/expense-reports/${id}/items`, {
+      method: 'DELETE',
+      body: JSON.stringify({ transactionIds }),
+    }),
+};
+
 // ─── Backup ─────────────────────────────────
 
 export const backupApi = {

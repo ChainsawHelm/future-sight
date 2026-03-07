@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTransactions, useCategories, useAccountNicknames } from '@/hooks/use-data';
 import { useMutation } from '@/hooks/use-fetch';
-import { transactionsApi } from '@/lib/api-client';
+import { transactionsApi, expenseReportsApi } from '@/lib/api-client';
 import { TransactionTableSkeleton } from '@/components/shared/skeletons';
 import { ErrorAlert } from '@/components/shared/error-alert';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -80,6 +80,21 @@ function TransactionsViewInner() {
   const bulkUpdateMutation = useMutation(
     useCallback(({ ids, update }: { ids: string[]; update: any }) => transactionsApi.bulkUpdate(ids, update), [])
   );
+
+  // Expense reports for bulk "add to report" action
+  const [expenseReports, setExpenseReports] = useState<{ id: string; title: string }[]>([]);
+  const [expenseMsg, setExpenseMsg] = useState<string | null>(null);
+  useEffect(() => {
+    expenseReportsApi.list('draft').then(res => setExpenseReports(res.reports || [])).catch(() => {});
+  }, []);
+
+  const handleAddToExpenseReport = async (reportId: string) => {
+    if (selectedIds.size === 0) return;
+    const res = await expenseReportsApi.addItems(reportId, [...selectedIds]);
+    setExpenseMsg(`Added ${res.added} transaction(s) to expense report`);
+    setSelectedIds(new Set());
+    setTimeout(() => setExpenseMsg(null), 3000);
+  };
 
   const transactions = data?.transactions || [];
   const pagination = data?.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 };
@@ -362,12 +377,31 @@ function TransactionsViewInner() {
               <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
+          {expenseReports.length > 0 && (
+            <select
+              onChange={(e) => { if (e.target.value) handleAddToExpenseReport(e.target.value); e.target.value = ''; }}
+              className="h-7 border border-border bg-surface-2 px-2 text-xs font-mono focus:outline-none focus:border-primary"
+              defaultValue=""
+            >
+              <option value="" disabled>Expense Report...</option>
+              {expenseReports.map((r) => (
+                <option key={r.id} value={r.id}>{r.title}</option>
+              ))}
+            </select>
+          )}
           <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
             Delete
           </Button>
           <button onClick={() => setSelectedIds(new Set())} className="ticker text-muted-foreground hover:text-foreground transition-colors">
             Clear
           </button>
+        </div>
+      )}
+
+      {expenseMsg && (
+        <div className="flex items-center gap-2 text-xs px-3 py-2.5 border border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400 animate-fade-in">
+          <span className="font-semibold shrink-0">&#10003;</span>
+          <span>{expenseMsg}</span>
         </div>
       )}
 

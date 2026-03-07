@@ -49,6 +49,7 @@ model User {
   plaidAccounts     PlaidAccount[]
   waitListItems     WaitListItem[]
   accountNicknames  AccountNickname[]
+  expenseReports    ExpenseReport[]
 
   @@map("users")
 }
@@ -114,8 +115,9 @@ model Transaction {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  importRecord ImportRecord? @relation(fields: [importRecordId], references: [id], onDelete: SetNull)
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importRecord      ImportRecord?       @relation(fields: [importRecordId], references: [id], onDelete: SetNull)
+  expenseReportItems ExpenseReportItem[]
 
   @@index([userId, date])
   @@index([userId, category])
@@ -420,6 +422,41 @@ model WaitListItem {
 
   @@index([userId, status])
   @@map("wait_list_items")
+}
+
+// ─── Expense Reports ─────────────────────
+
+model ExpenseReport {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  status      String   @default("draft") // "draft", "submitted", "approved", "rejected"
+  totalAmount Decimal  @default(0) @db.Decimal(12, 2)
+  submittedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ExpenseReportItem[]
+
+  @@index([userId, status])
+  @@map("expense_reports")
+}
+
+model ExpenseReportItem {
+  id              String @id @default(cuid())
+  expenseReportId String
+  transactionId   String
+  note            String?
+  createdAt       DateTime @default(now())
+
+  expenseReport ExpenseReport @relation(fields: [expenseReportId], references: [id], onDelete: Cascade)
+  transaction   Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseReportId, transactionId])
+  @@index([transactionId])
+  @@map("expense_report_items")
 }
 
 // ─── Account Nicknames ────────────────────

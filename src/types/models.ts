@@ -219,6 +219,29 @@ export interface DashboardData {
   }[];
 }
 
+// ─── Expense Reports ────────────────────────
+
+export interface ExpenseReportItem {
+  id: string;
+  expenseReportId: string;
+  transactionId: string;
+  note?: string | null;
+  createdAt: string;
+  transaction: Transaction;
+}
+
+export interface ExpenseReport {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  totalAmount: number;
+  submittedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: ExpenseReportItem[];
+}
+
 // ─── Settings ───────────────────────────────
 
 export interface UserSettings {
