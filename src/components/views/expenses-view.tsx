@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useFetch, useMutation } from '@/hooks/use-fetch';
-import { useAccountNicknames } from '@/hooks/use-data';
+import { useAccountNicknames, useCategories } from '@/hooks/use-data';
 import { expenseReportsApi, transactionsApi } from '@/lib/api-client';
 import { PageLoader } from '@/components/shared/spinner';
 import { ErrorAlert } from '@/components/shared/error-alert';
@@ -387,6 +387,8 @@ function AddTransactionsView({
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const { data: categories } = useCategories();
 
   const existingTxIds = new Set(report.items.map(i => i.transactionId));
 
@@ -417,8 +419,9 @@ function AddTransactionsView({
       search: search || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
+      category: filterCategory || undefined,
     }),
-    [search, dateFrom, dateTo]
+    [search, dateFrom, dateTo, filterCategory]
   );
 
   const transactions: Transaction[] = (data?.transactions || []).filter(
@@ -462,11 +465,28 @@ function AddTransactionsView({
         </div>
       </div>
 
-      <Input
-        placeholder="Search transactions..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex-1 min-w-[200px] max-w-sm">
+          <Input
+            placeholder="Search transactions..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <select
+          value={filterCategory}
+          onChange={e => setFilterCategory(e.target.value)}
+          className="h-9 rounded-md border border-border bg-background px-3 text-xs font-mono text-foreground/80 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+        >
+          <option value="">All categories</option>
+          {categories?.filter(c => c.type === 'expense').map(c => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+          {categories?.filter(c => c.type === 'income').map(c => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Date presets */}
       <div className="flex flex-wrap items-center gap-1.5">
