@@ -15,9 +15,11 @@ import { formatDate, cn } from '@/lib/utils';
 import type { ImportRecord } from '@/types/models';
 
 type ImportPhase = 'upload' | 'review' | 'complete';
+type ReviewMode = 'merchants' | 'all';
 interface ImportStats { total: number; autoMatched: number; transfers: number; duplicates: number; }
 interface FileGroup { filename: string; startIdx: number; count: number; }
 interface FileQueueItem { name: string; status: 'pending' | 'parsing' | 'done' | 'error'; count?: number; error?: string; }
+interface MerchantGroup { merchant: string; category: string; count: number; total: number; indices: number[]; autoMatched: boolean; hasMultipleCategories: boolean; }
 
 export function ImportView() {
   const [phase, setPhase] = useState<ImportPhase>('upload');
@@ -34,6 +36,8 @@ export function ImportView() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [rulePrompt, setRulePrompt] = useState<{ merchant: string; category: string; matchCount: number; matchingIndices: number[] } | null>(null);
   const [sessionRules, setSessionRules] = useState<{ merchant: string; category: string }[]>([]);
+  const [reviewMode, setReviewMode] = useState<ReviewMode>('merchants');
+  const [expandedMerchant, setExpandedMerchant] = useState<string | null>(null);
   const [reviewSearch, setReviewSearch] = useState('');
   const [reviewCategoryFilter, setReviewCategoryFilter] = useState('');
   const [reviewStatusFilter, setReviewStatusFilter] = useState<'' | 'uncategorized' | 'auto' | 'dupe' | 'transfer'>('');
@@ -240,7 +244,7 @@ export function ImportView() {
   };
 
   const handleDeleteImport = async (id: string) => { if (!confirm('Delete this import and all its transactions?')) return; await importApi.delete(id); refetchImports(); };
-  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); setRulePrompt(null); setSessionRules([]); setReviewSearch(''); setReviewCategoryFilter(''); setReviewStatusFilter(''); setSortField(null); };
+  const resetImport = () => { setPhase('upload'); setProcessed([]); setStats({ total: 0, autoMatched: 0, transfers: 0, duplicates: 0 }); setFileGroups([]); setFileQueue([]); setFilename(''); setImportResult(null); setParseError(''); setRulePrompt(null); setSessionRules([]); setReviewSearch(''); setReviewCategoryFilter(''); setReviewStatusFilter(''); setSortField(null); setReviewMode('merchants'); setExpandedMerchant(null); };
   const importCount = excludeDupes ? processed.filter(t => !t.flagged).length : processed.length;
 
   const toggleSort = (field: 'date' | 'category' | 'amount') => {
@@ -249,6 +253,74 @@ export function ImportView() {
   };
 
   const uncategorizedCount = useMemo(() => processed.filter(t => t.category === 'Uncategorized').length, [processed]);
+
+  // Build merchant groups
+  const merchantGroups = useMemo(() => {
+    const map = new Map<string, MerchantGroup>();
+    processed.forEach((t, i) => {
+      const merchant = extractMerchant(t.description) || t.description.slice(0, 30);
+      const existing = map.get(merchant);
+      if (existing) {
+        existing.count++;
+        existing.total += t.amount;
+        existing.indices.push(i);
+        if (existing.category !== t.category) existing.hasMultipleCategories = true;
+      } else {
+        map.set(merchant, {
+          merchant,
+          category: t.category,
+          count: 1,
+          total: t.amount,
+          indices: [i],
+          autoMatched: t.autoMatched,
+          hasMultipleCategories: false,
+        });
+      }
+    });
+    const groups = Array.from(map.values());
+    // Sort: uncategorized first, then by count desc
+    groups.sort((a, b) => {
+      const aUncat = a.category === 'Uncategorized' ? 0 : 1;
+      const bUncat = b.category === 'Uncategorized' ? 0 : 1;
+      if (aUncat !== bUncat) return aUncat - bUncat;
+      return b.count - a.count;
+    });
+    return groups;
+  }, [processed]);
+
+  const filteredMerchantGroups = useMemo(() => {
+    let groups = merchantGroups;
+    if (reviewSearch) {
+      const q = reviewSearch.toLowerCase();
+      groups = groups.filter(g => g.merchant.toLowerCase().includes(q));
+    }
+    if (reviewCategoryFilter) {
+      groups = groups.filter(g => g.category === reviewCategoryFilter);
+    }
+    if (reviewStatusFilter === 'uncategorized') groups = groups.filter(g => g.category === 'Uncategorized');
+    else if (reviewStatusFilter === 'auto') groups = groups.filter(g => g.autoMatched);
+    else if (reviewStatusFilter === 'dupe') groups = groups.filter(g => g.indices.some(i => processed[i].flagged));
+    else if (reviewStatusFilter === 'transfer') groups = groups.filter(g => g.indices.some(i => processed[i].transferPairId));
+    return groups;
+  }, [merchantGroups, reviewSearch, reviewCategoryFilter, reviewStatusFilter, processed]);
+
+  const handleGroupCategoryChange = (merchant: string, category: string) => {
+    const group = merchantGroups.find(g => g.merchant === merchant);
+    if (!group) return;
+    setProcessed(prev => {
+      const next = [...prev];
+      for (const i of group.indices) {
+        next[i] = { ...next[i], category, autoMatched: false };
+      }
+      return next;
+    });
+    // Save as merchant rule
+    if (merchant.length >= 2) {
+      merchantRulesApi.upsert({ merchant, category }).then(() => {
+        setSessionRules(prev => [...prev.filter(r => r.merchant !== merchant), { merchant, category }]);
+      }).catch(() => {});
+    }
+  };
 
   const sortedProcessed = useMemo(() => {
     let items = processed.map((t, i) => ({ ...t, _origIdx: i }));
@@ -431,14 +503,28 @@ export function ImportView() {
             </div>
           </div>
 
-          {/* Search / filter bar */}
+          {/* View toggle + search/filter bar */}
           <div className="flex flex-wrap items-center gap-2">
+            <div className="flex border border-border bg-surface-2 h-8">
+              <button
+                onClick={() => setReviewMode('merchants')}
+                className={cn('px-3 text-xs font-mono transition-colors', reviewMode === 'merchants' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
+              >
+                By Merchant
+              </button>
+              <button
+                onClick={() => setReviewMode('all')}
+                className={cn('px-3 text-xs font-mono transition-colors border-l border-border', reviewMode === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
+              >
+                All ({processed.length})
+              </button>
+            </div>
             <div className="relative flex-1 min-w-[180px] max-w-xs">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
               </svg>
               <input
-                placeholder="Search descriptions..."
+                placeholder={reviewMode === 'merchants' ? 'Search merchants...' : 'Search descriptions...'}
                 value={reviewSearch}
                 onChange={(e) => setReviewSearch(e.target.value)}
                 className="w-full h-8 pl-9 pr-3 rounded-md border border-border bg-background text-xs font-mono text-foreground/80 focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -455,22 +541,6 @@ export function ImportView() {
               <option value="dupe">Duplicates</option>
               <option value="transfer">Transfers</option>
             </select>
-            <select
-              value={reviewCategoryFilter}
-              onChange={e => setReviewCategoryFilter(e.target.value)}
-              className="h-8 rounded-md border border-border bg-background px-2 text-xs font-mono text-foreground/80 focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              <option value="">All categories</option>
-              <optgroup label="Expense">
-                {categories?.filter(c => c.type === 'expense').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </optgroup>
-              <optgroup label="Income">
-                {categories?.filter(c => c.type === 'income').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </optgroup>
-              <optgroup label="System">
-                {categories?.filter(c => c.type === 'system').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </optgroup>
-            </select>
             {(reviewSearch || reviewStatusFilter || reviewCategoryFilter) && (
               <button
                 onClick={() => { setReviewSearch(''); setReviewStatusFilter(''); setReviewCategoryFilter(''); }}
@@ -480,7 +550,10 @@ export function ImportView() {
               </button>
             )}
             <span className="text-[10px] font-mono text-muted-foreground ml-auto">
-              {sortedProcessed.length} of {processed.length} shown
+              {reviewMode === 'merchants'
+                ? `${filteredMerchantGroups.length} merchants · ${processed.length} transactions`
+                : `${sortedProcessed.length} of ${processed.length} shown`
+              }
             </span>
           </div>
 
@@ -489,7 +562,7 @@ export function ImportView() {
             <div className="flex items-center gap-3 border border-yellow-500/30 bg-yellow-500/5 px-4 py-2.5">
               <span className="text-yellow-400 text-xs shrink-0">⚠</span>
               <span className="ticker text-yellow-400">{uncategorizedCount} uncategorized</span>
-              <span className="text-muted-foreground text-xs">— bulk assign:</span>
+              <span className="text-muted-foreground text-xs">— bulk assign all:</span>
               <select
                 onChange={e => { if (e.target.value) { handleBulkRecategorize(e.target.value); e.target.value = ''; } }}
                 className="h-7 border border-border bg-surface-2 px-2 text-xs font-mono focus:outline-none focus:border-primary"
@@ -511,38 +584,6 @@ export function ImportView() {
 
           {importMutation.error && <ErrorAlert message={importMutation.error} />}
 
-          {/* Merchant rule prompt */}
-          {rulePrompt && (
-            <div className="border border-primary/40 bg-primary/5 p-4 animate-fade-in">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold">
-                    Create rule for <span className="font-mono text-primary">{rulePrompt.merchant}</span>?
-                  </p>
-                  <p className="ticker mt-1">
-                    Found <span className="font-semibold text-foreground">{rulePrompt.matchCount}</span> other transaction{rulePrompt.matchCount !== 1 ? 's' : ''} matching this merchant.
-                    Apply <span className="font-semibold text-foreground">{rulePrompt.category}</span> to all?
-                  </p>
-                </div>
-                <button onClick={() => setRulePrompt(null)} className="text-muted-foreground hover:text-foreground shrink-0 text-xs mt-0.5">✕</button>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button onClick={applyRuleToAll}
-                  className="h-8 px-4 bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/85 transition-colors">
-                  Apply to All {rulePrompt.matchCount + 1} & Save Rule
-                </button>
-                <button onClick={saveRuleOnly}
-                  className="h-8 px-4 border border-border bg-surface-2 text-xs font-semibold hover:bg-surface-3 transition-colors">
-                  Save Rule Only
-                </button>
-                <button onClick={() => setRulePrompt(null)}
-                  className="h-8 px-4 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  Skip
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Session rules created during this import */}
           {sessionRules.length > 0 && (
             <div className="border border-border bg-surface-1 overflow-hidden">
@@ -562,87 +603,205 @@ export function ImportView() {
             </div>
           )}
 
-          <div className="border border-border bg-surface-1">
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-surface-2 border-b border-border">
-                  <tr>
-                    <th className="text-left px-3 py-2.5 w-16"><span className="ticker">Status</span></th>
-                    <th className="text-left px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('date')}><span className="ticker">Date{sortIcon('date')}</span></th>
-                    <th className="text-left px-3 py-2.5"><span className="ticker">Description</span></th>
-                    <th className="text-left px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('category')}><span className="ticker">Category{sortIcon('category')}</span></th>
-                    <th className="text-left px-3 py-2.5"><span className="ticker">Account</span></th>
-                    <th className="text-right px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('amount')}><span className="ticker">Amount{sortIcon('amount')}</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedProcessed.map((row) => (
-                    <tr key={row._origIdx} className={cn(
-                      'border-b border-border last:border-0 transition-colors hover:bg-surface-2/60',
-                      row.flagged && 'bg-yellow-500/5 opacity-60',
-                      row.transferPairId && !row.flagged && 'bg-purple-500/5',
-                      row.category === 'Uncategorized' && !row.flagged && 'bg-yellow-500/[0.03]'
-                    )}>
-                      <td className="px-3 py-2.5 font-mono text-[10px]">
-                        {row.flagged ? <span className="text-yellow-400">⚠ Dupe</span>
-                          : row.transferPairId ? <span className="text-purple-400">⇄ Xfer</span>
-                          : row.autoMatched ? <span className="text-primary">✓ Auto</span>
-                          : row.category === 'Uncategorized' ? <span className="text-yellow-500/70">? New</span>
-                          : null}
-                      </td>
-                      <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground tabnum whitespace-nowrap">{row.date}</td>
-                      <td className="px-3 py-2.5 text-xs max-w-[250px]">
-                        <span className="block truncate" title={row.originalDescription || row.description}>{row.description}</span>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <select
-                          value={row.category}
-                          onChange={e => handleCategoryChange(row._origIdx, e.target.value)}
-                          className={cn(
-                            'h-7 border px-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors',
-                            row.category === 'Uncategorized'
-                              ? 'border-yellow-500/40 bg-yellow-500/5 text-yellow-400'
-                              : 'border-border bg-surface-2 text-foreground/80'
-                          )}
-                        >
-                          <option value="Uncategorized">Uncategorized</option>
-                          <optgroup label="Expense">
-                            {categories?.filter(c => c.type === 'expense').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                          </optgroup>
-                          <optgroup label="Income">
-                            {categories?.filter(c => c.type === 'income').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                          </optgroup>
-                          <optgroup label="System">
-                            {categories?.filter(c => c.type === 'system').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                          </optgroup>
-                        </select>
-                      </td>
-                      <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground whitespace-nowrap">{row.account}</td>
-                      <td className="px-3 py-2.5 text-right"><Amount value={row.amount} size="sm" showSign /></td>
+          {/* ─── MERCHANT-GROUPED VIEW ─── */}
+          {reviewMode === 'merchants' && (
+            <div className="border border-border bg-surface-1">
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-surface-2 border-b border-border">
+                    <tr>
+                      <th className="text-left px-3 py-2.5 w-8"><span className="ticker"></span></th>
+                      <th className="text-left px-3 py-2.5"><span className="ticker">Merchant</span></th>
+                      <th className="text-center px-3 py-2.5 w-16"><span className="ticker">Count</span></th>
+                      <th className="text-left px-3 py-2.5"><span className="ticker">Category</span></th>
+                      <th className="text-right px-3 py-2.5"><span className="ticker">Total</span></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredMerchantGroups.map((group) => {
+                      const isExpanded = expandedMerchant === group.merchant;
+                      const groupTxns = group.indices.map(i => processed[i]);
+                      return (
+                        <>
+                          <tr
+                            key={group.merchant}
+                            className={cn(
+                              'border-b border-border transition-colors hover:bg-surface-2/60 cursor-pointer',
+                              group.category === 'Uncategorized' && 'bg-yellow-500/[0.03]'
+                            )}
+                            onClick={() => setExpandedMerchant(isExpanded ? null : group.merchant)}
+                          >
+                            <td className="px-3 py-2.5 text-muted-foreground/50 text-[10px]">
+                              {isExpanded ? '▼' : '▶'}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono font-medium">{group.merchant}</span>
+                                {group.autoMatched && <span className="text-[9px] font-mono text-primary">AUTO</span>}
+                                {group.indices.some(i => processed[i].flagged) && <span className="text-[9px] font-mono text-yellow-400">DUPE</span>}
+                                {group.indices.some(i => processed[i].transferPairId) && <span className="text-[9px] font-mono text-purple-400">XFER</span>}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className={cn(
+                                'inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 text-[10px] font-mono font-semibold',
+                                group.count > 1 ? 'bg-primary/10 text-primary border border-primary/20' : 'text-muted-foreground'
+                              )}>
+                                {group.count}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+                              <select
+                                value={group.category}
+                                onChange={e => handleGroupCategoryChange(group.merchant, e.target.value)}
+                                className={cn(
+                                  'h-7 border px-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors',
+                                  group.category === 'Uncategorized'
+                                    ? 'border-yellow-500/40 bg-yellow-500/5 text-yellow-400'
+                                    : 'border-border bg-surface-2 text-foreground/80'
+                                )}
+                              >
+                                <option value="Uncategorized">Uncategorized</option>
+                                <optgroup label="Expense">
+                                  {categories?.filter(c => c.type === 'expense').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                </optgroup>
+                                <optgroup label="Income">
+                                  {categories?.filter(c => c.type === 'income').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                </optgroup>
+                                <optgroup label="System">
+                                  {categories?.filter(c => c.type === 'system').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                </optgroup>
+                              </select>
+                            </td>
+                            <td className="px-3 py-2.5 text-right"><Amount value={group.total} size="sm" showSign /></td>
+                          </tr>
+                          {isExpanded && groupTxns.map((t, ti) => (
+                            <tr key={`${group.merchant}-${ti}`} className="border-b border-border/50 bg-surface-2/30">
+                              <td className="px-3 py-1.5"></td>
+                              <td className="px-3 py-1.5 text-[11px] text-muted-foreground pl-8">
+                                <span className="font-mono text-muted-foreground/60 mr-2">{t.date}</span>
+                                <span className="truncate" title={t.originalDescription || t.description}>{t.description}</span>
+                              </td>
+                              <td className="px-3 py-1.5 text-center text-[10px] text-muted-foreground font-mono">{t.account}</td>
+                              <td className="px-3 py-1.5 text-[10px] font-mono">
+                                {t.flagged ? <span className="text-yellow-400">Dupe</span>
+                                  : t.transferPairId ? <span className="text-purple-400">Transfer</span>
+                                  : <span className="text-muted-foreground">{t.category}</span>}
+                              </td>
+                              <td className="px-3 py-1.5 text-right"><Amount value={t.amount} size="sm" showSign /></td>
+                            </tr>
+                          ))}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Bottom summary */}
-            {processed.length > 0 && (() => {
-              const visibleRows = excludeDupes ? sortedProcessed.filter(t => !t.flagged) : sortedProcessed;
-              const total = visibleRows.reduce((s, t) => s + t.amount, 0);
-              const income = visibleRows.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-              const expenses = visibleRows.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-              return (
-                <div className="border-t border-border px-4 py-2.5 bg-surface-2/80 flex items-center justify-end gap-4 text-xs font-mono">
-                  <span className="text-muted-foreground/60 mr-auto">{sortedProcessed.length} rows</span>
-                  {income > 0 && <span className="text-income tabnum">+${income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
-                  {expenses > 0 && <span className="text-expense tabnum">-${expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
-                  <span className={cn('font-semibold tabnum', total >= 0 ? 'text-income' : 'text-expense')}>
-                    Net: {total >= 0 ? '+' : '-'}${Math.abs(total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-              );
-            })()}
-          </div>
+              {/* Bottom summary */}
+              {processed.length > 0 && (() => {
+                const rows = excludeDupes ? processed.filter(t => !t.flagged) : processed;
+                const total = rows.reduce((s, t) => s + t.amount, 0);
+                const income = rows.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+                const expenses = rows.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+                return (
+                  <div className="border-t border-border px-4 py-2.5 bg-surface-2/80 flex items-center justify-end gap-4 text-xs font-mono">
+                    <span className="text-muted-foreground/60 mr-auto">{filteredMerchantGroups.length} merchants · {processed.length} transactions</span>
+                    {income > 0 && <span className="text-income tabnum">+${income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                    {expenses > 0 && <span className="text-expense tabnum">-${expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                    <span className={cn('font-semibold tabnum', total >= 0 ? 'text-income' : 'text-expense')}>
+                      Net: {total >= 0 ? '+' : '-'}${Math.abs(total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ─── ALL TRANSACTIONS VIEW ─── */}
+          {reviewMode === 'all' && (
+            <div className="border border-border bg-surface-1">
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-surface-2 border-b border-border">
+                    <tr>
+                      <th className="text-left px-3 py-2.5 w-16"><span className="ticker">Status</span></th>
+                      <th className="text-left px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('date')}><span className="ticker">Date{sortIcon('date')}</span></th>
+                      <th className="text-left px-3 py-2.5"><span className="ticker">Description</span></th>
+                      <th className="text-left px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('category')}><span className="ticker">Category{sortIcon('category')}</span></th>
+                      <th className="text-left px-3 py-2.5"><span className="ticker">Account</span></th>
+                      <th className="text-right px-3 py-2.5 cursor-pointer select-none hover:text-foreground" onClick={() => toggleSort('amount')}><span className="ticker">Amount{sortIcon('amount')}</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedProcessed.map((row) => (
+                      <tr key={row._origIdx} className={cn(
+                        'border-b border-border last:border-0 transition-colors hover:bg-surface-2/60',
+                        row.flagged && 'bg-yellow-500/5 opacity-60',
+                        row.transferPairId && !row.flagged && 'bg-purple-500/5',
+                        row.category === 'Uncategorized' && !row.flagged && 'bg-yellow-500/[0.03]'
+                      )}>
+                        <td className="px-3 py-2.5 font-mono text-[10px]">
+                          {row.flagged ? <span className="text-yellow-400">⚠ Dupe</span>
+                            : row.transferPairId ? <span className="text-purple-400">⇄ Xfer</span>
+                            : row.autoMatched ? <span className="text-primary">✓ Auto</span>
+                            : row.category === 'Uncategorized' ? <span className="text-yellow-500/70">? New</span>
+                            : null}
+                        </td>
+                        <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground tabnum whitespace-nowrap">{row.date}</td>
+                        <td className="px-3 py-2.5 text-xs max-w-[250px]">
+                          <span className="block truncate" title={row.originalDescription || row.description}>{row.description}</span>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <select
+                            value={row.category}
+                            onChange={e => handleCategoryChange(row._origIdx, e.target.value)}
+                            className={cn(
+                              'h-7 border px-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors',
+                              row.category === 'Uncategorized'
+                                ? 'border-yellow-500/40 bg-yellow-500/5 text-yellow-400'
+                                : 'border-border bg-surface-2 text-foreground/80'
+                            )}
+                          >
+                            <option value="Uncategorized">Uncategorized</option>
+                            <optgroup label="Expense">
+                              {categories?.filter(c => c.type === 'expense').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                            </optgroup>
+                            <optgroup label="Income">
+                              {categories?.filter(c => c.type === 'income').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                            </optgroup>
+                            <optgroup label="System">
+                              {categories?.filter(c => c.type === 'system').map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                            </optgroup>
+                          </select>
+                        </td>
+                        <td className="px-3 py-2.5 text-xs font-mono text-muted-foreground whitespace-nowrap">{row.account}</td>
+                        <td className="px-3 py-2.5 text-right"><Amount value={row.amount} size="sm" showSign /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Bottom summary */}
+              {processed.length > 0 && (() => {
+                const visibleRows = excludeDupes ? sortedProcessed.filter(t => !t.flagged) : sortedProcessed;
+                const total = visibleRows.reduce((s, t) => s + t.amount, 0);
+                const income = visibleRows.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+                const expenses = visibleRows.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+                return (
+                  <div className="border-t border-border px-4 py-2.5 bg-surface-2/80 flex items-center justify-end gap-4 text-xs font-mono">
+                    <span className="text-muted-foreground/60 mr-auto">{sortedProcessed.length} rows</span>
+                    {income > 0 && <span className="text-income tabnum">+${income.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                    {expenses > 0 && <span className="text-expense tabnum">-${expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                    <span className={cn('font-semibold tabnum', total >= 0 ? 'text-income' : 'text-expense')}>
+                      Net: {total >= 0 ? '+' : '-'}${Math.abs(total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       )}
 
