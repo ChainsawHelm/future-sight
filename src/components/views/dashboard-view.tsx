@@ -299,8 +299,8 @@ export function DashboardView() {
   return (
     <div className="space-y-5 animate-fade-in">
 
-      {/* ════════════ PERIOD TABS ════════════ */}
-      <div className="flex items-start gap-3 flex-wrap">
+      {/* ════════════ PERIOD TABS + IMPORT ════════════ */}
+      <div className="flex items-start gap-3 flex-wrap justify-between">
         <div className="flex items-center gap-1 bg-surface-2 p-1 flex-wrap">
           {(['today', 'week', 'month', 'last_month', '3months', 'ytd', 'all'] as Period[]).map(p => (
             <button
@@ -335,6 +335,15 @@ export function DashboardView() {
             ))}
           </div>
         )}
+        <a
+          href="/import"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-2 text-muted-foreground hover:text-primary hover:border-primary/40 border border-border transition-colors shrink-0"
+        >
+          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Import
+        </a>
       </div>
 
       {/* ════════════ PERIOD METRIC STRIP ════════════ */}
@@ -610,7 +619,7 @@ export function DashboardView() {
             </a>
           </div>
           <p className="text-[10px] text-muted-foreground/50 font-mono">
-            TIP: Connect your bank via Accounts for automatic transaction syncing.
+            TIP: Connect your bank via Import for automatic transaction syncing.
           </p>
         </div>
       )}

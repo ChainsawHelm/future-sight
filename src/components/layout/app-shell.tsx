@@ -8,10 +8,10 @@ import { KeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { MatrixRain } from '@/components/shared/matrix-rain';
 import { cn } from '@/lib/utils';
 import {
-  IconDashboard, IconNetWorth, IconTransactions, IconImport, IconCalendar,
+  IconDashboard, IconNetWorth, IconTransactions, IconCalendar,
   IconGoals, IconDebts, IconBudget, IconSubscriptions, IconInsights,
-  IconExpenses, IconReports, IconHeatmap, IconCashFlow, IconMoneyFlow, IconAchievements,
-  IconPlaid, IconLabs, IconChecklist, IconSettings,
+  IconExpenses, IconReports, IconHeatmap, IconMoneyFlow, IconAchievements,
+  IconLabs, IconChecklist, IconSettings,
 } from '@/components/shared/icons';
 
 /* ══════════════════════════════════════════
@@ -31,8 +31,6 @@ const NAV_GROUPS = [
     label: 'TXN',
     items: [
       { id: 'transactions', label: 'Transactions', href: '/transactions', icon: IconTransactions },
-      { id: 'import',       label: 'Import',       href: '/import',       icon: IconImport },
-      { id: 'accounts',     label: 'Accounts',     href: '/accounts',     icon: IconPlaid },
       { id: 'calendar',     label: 'Calendar',     href: '/calendar',     icon: IconCalendar },
     ],
   },
@@ -54,7 +52,6 @@ const NAV_GROUPS = [
       { id: 'expenses',      label: 'Expenses',     href: '/expenses',      icon: IconExpenses },
       { id: 'reports',       label: 'Reports',      href: '/reports',       icon: IconReports },
       { id: 'heatmap',       label: 'Heatmap',      href: '/heatmap',       icon: IconHeatmap },
-      { id: 'cashflow',      label: 'Cash Flow',    href: '/cashflow',      icon: IconCashFlow },
       { id: 'money-flow',   label: 'Money Flow',   href: '/money-flow',    icon: IconMoneyFlow },
       { id: 'achievements',  label: 'Achievements', href: '/achievements',  icon: IconAchievements },
     ],
