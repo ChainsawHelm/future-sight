@@ -1,25 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MatrixRain } from '@/components/shared/matrix-rain';
+import { useEffect } from 'react';
+import { TerminalAnimation } from '@/components/shared/terminal-animation';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const [isMatrix, setIsMatrix] = useState(false);
-
   useEffect(() => {
     document.documentElement.classList.add('dark');
-    // Restore saved terminal theme on auth pages too
     const savedTheme = localStorage.getItem('fs-theme');
     if (savedTheme && savedTheme !== 'default') {
       document.documentElement.dataset.theme = savedTheme;
     }
-    setIsMatrix(savedTheme === 'matrix');
     return () => {};
   }, []);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden font-mono bg-background">
-      {isMatrix && <MatrixRain />}
+      <TerminalAnimation />
 
       {/* Scanline overlay */}
       <div

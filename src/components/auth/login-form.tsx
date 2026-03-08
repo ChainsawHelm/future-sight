@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Spinner } from '@/components/shared/spinner';
+import { TERMINAL_DEMO_EVENT } from '@/components/shared/terminal-animation';
 
 function OAuthButton({ label, icon, onClick, disabled, loading }: {
   label: string; icon: React.ReactNode;
@@ -106,6 +107,17 @@ export function LoginForm() {
           {/* Info */}
           <div className="text-[9px] text-muted-foreground/40 text-center pt-1">
             New accounts are created automatically on first sign-in.
+          </div>
+
+          {/* Demo button */}
+          <div className="pt-1 flex justify-center">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(TERMINAL_DEMO_EVENT))}
+              className="text-[9px] text-primary/40 hover:text-primary/70 transition-colors font-mono tracking-wider uppercase"
+            >
+              [demo terminal]
+            </button>
           </div>
         </div>
       </div>
