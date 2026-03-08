@@ -5,60 +5,23 @@ import { useFetch } from '@/hooks/use-fetch';
 import { transactionsApi } from '@/lib/api-client';
 import { SankeyChart } from './sankey-chart';
 import { cn } from '@/lib/utils';
-
-type Period = 'month' | 'last_month' | '3months' | 'ytd' | 'all' | `year:${number}`;
-
-const PERIOD_LABELS: Record<string, string> = {
-  month: 'This Month',
-  last_month: 'Last Month',
-  '3months': '3 Months',
-  ytd: 'Year to Date',
-  all: 'All Time',
-};
-
-function getPeriodRange(period: Period): { from: string; to: string } | null {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-
-  if (period === 'month') return { from: fmt(new Date(y, m, 1)), to: fmt(new Date(y, m + 1, 0)) };
-  if (period === 'last_month') return { from: fmt(new Date(y, m - 1, 1)), to: fmt(new Date(y, m, 0)) };
-  if (period === '3months') return { from: fmt(new Date(y, m - 2, 1)), to: fmt(new Date(y, m + 1, 0)) };
-  if (period === 'ytd') return { from: fmt(new Date(y, 0, 1)), to: fmt(now) };
-  if (period.startsWith('year:')) {
-    const yr = parseInt(period.slice(5));
-    return { from: `${yr}-01-01`, to: `${yr}-12-31` };
-  }
-  return null;
-}
-
-function filterByPeriod<T extends { date: string }>(txns: T[], period: Period): T[] {
-  const range = getPeriodRange(period);
-  if (!range) return txns;
-  return txns.filter(t => t.date >= range.from && t.date <= range.to);
-}
+import {
+  type Period, PERIOD_OPTIONS, getPeriodLabel, getPeriodRange,
+  filterByPeriod, getTransactionYears,
+} from '@/lib/periods';
 
 export function MoneyFlowView() {
-  const [period, setPeriod] = useState<Period>('all');
+  const [period, setPeriod] = useState<Period>('ytd');
   const { data, isLoading } = useFetch(
     () => transactionsApi.list({ limit: 5000, sort: 'date', order: 'desc' }), []
   );
 
   const allTxns = data?.transactions || [];
   const periodTxns = useMemo(() => filterByPeriod(allTxns, period), [allTxns, period]);
-
-  const txnYears = useMemo(() => {
-    const years = new Set<number>();
-    for (const t of allTxns) {
-      const yr = parseInt(t.date.slice(0, 4));
-      if (!isNaN(yr)) years.add(yr);
-    }
-    return Array.from(years).sort((a, b) => b - a);
-  }, [allTxns]);
+  const txnYears = useMemo(() => getTransactionYears(allTxns), [allTxns]);
 
   const range = getPeriodRange(period);
-  const label = period.startsWith('year:') ? period.slice(5) : PERIOD_LABELS[period] || period;
+  const label = getPeriodLabel(period);
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -70,7 +33,7 @@ export function MoneyFlowView() {
       {/* Period selector */}
       <div className="flex items-start gap-3 flex-wrap">
         <div className="flex items-center gap-1 bg-surface-2 p-1 flex-wrap">
-          {(['month', 'last_month', '3months', 'ytd', 'all'] as Period[]).map(p => (
+          {PERIOD_OPTIONS.map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
@@ -81,7 +44,7 @@ export function MoneyFlowView() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              {PERIOD_LABELS[p]}
+              {getPeriodLabel(p)}
             </button>
           ))}
         </div>

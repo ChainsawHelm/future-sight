@@ -12,6 +12,7 @@ import { CategoryBadge } from '@/components/shared/category-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate, formatCurrency } from '@/lib/utils';
+import { PERIOD_OPTIONS, getPeriodLabel, getPeriodRange } from '@/lib/periods';
 import type { ExpenseReport, Transaction } from '@/types/models';
 
 type View = 'list' | 'detail' | 'add-transactions';
@@ -392,18 +393,10 @@ function AddTransactionsView({
 
   const existingTxIds = new Set(report.items.map(i => i.transactionId));
 
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const today = fmt(new Date());
-  const minus = (days: number) => fmt(new Date(Date.now() - days * 864e5));
-
-  const datePresets = [
-    { label: '1D',  from: today,      to: today },
-    { label: '7D',  from: minus(6),   to: today },
-    { label: '30D', from: minus(29),  to: today },
-    { label: '3M',  from: minus(89),  to: today },
-    { label: '6M',  from: minus(179), to: today },
-    { label: '1Y',  from: minus(364), to: today },
-  ];
+  const datePresets = PERIOD_OPTIONS.map(p => {
+    const range = getPeriodRange(p)!;
+    return { label: getPeriodLabel(p), ...range };
+  });
 
   const applyPreset = (label: string, from: string, to: string) => {
     if (activePreset === label) {

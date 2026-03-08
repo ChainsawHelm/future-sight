@@ -13,6 +13,9 @@ import { Amount } from '@/components/shared/amount';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, formatDate, formatCurrency } from '@/lib/utils';
+import {
+  type Period, PERIOD_OPTIONS, getPeriodLabel, getPeriodRange,
+} from '@/lib/periods';
 import type { TransactionQuery, Transaction } from '@/types/models';
 
 function TransactionsViewInner() {
@@ -207,31 +210,17 @@ function TransactionsViewInner() {
   };
 
   const datePresets = useMemo(() => {
-    const now = new Date();
-    const fmt = (d: Date) => d.toISOString().slice(0, 10);
-    const startOf = (d: Date) => { d.setHours(0, 0, 0, 0); return d; };
-
-    const today = fmt(startOf(new Date()));
-    const minus = (days: number) => fmt(startOf(new Date(Date.now() - days * 864e5)));
-
-    const thisYear = now.getFullYear();
-    const lastYear = thisYear - 1;
-
-    const presets: { label: string; from: string; to: string }[] = [
-      { label: '1D',   from: today,                   to: today },
-      { label: '7D',   from: minus(6),                to: today },
-      { label: '30D',  from: minus(29),               to: today },
-      { label: '3M',   from: minus(89),               to: today },
-      { label: '6M',   from: minus(179),              to: today },
-      { label: 'YTD',  from: `${thisYear}-01-01`,     to: today },
-      { label: `${lastYear}`, from: `${lastYear}-01-01`, to: `${lastYear}-12-31` },
-    ];
-
-    // Add per-year chunks back to 2020
-    for (let y = lastYear - 1; y >= 2020; y--) {
-      presets.push({ label: `${y}`, from: `${y}-01-01`, to: `${y}-12-31` });
+    const presets: { label: string; from: string; to: string }[] = [];
+    for (const p of PERIOD_OPTIONS) {
+      const range = getPeriodRange(p);
+      if (range) presets.push({ label: getPeriodLabel(p), ...range });
     }
-
+    // Add per-year presets back to 2020
+    const thisYear = new Date().getFullYear();
+    for (let yr = thisYear - 1; yr >= 2020; yr--) {
+      const range = getPeriodRange(`year:${yr}` as Period);
+      if (range) presets.push({ label: `${yr}`, ...range });
+    }
     return presets;
   }, []);
 
